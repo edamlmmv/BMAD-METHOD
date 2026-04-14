@@ -77,7 +77,7 @@ Append:
 - **Confirmed:** [date]
 ```
 
-Initialize and output the State Ledger using workflow.md §STATE LEDGER. Record any files or workspace surfaces consulted so far in `Evidence:` and leave `Skill:` blank until handoff.
+Initialize and output the State Ledger using workflow.md §STATE LEDGER. Set `Depth:` to empty (top level). Record any files or workspace surfaces consulted so far in `Evidence:` and leave `Skill:` blank until handoff.
 
 ## Memory Checkpoint
 

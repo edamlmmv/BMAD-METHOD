@@ -32,6 +32,7 @@ Session: [{sessionTag}]
 Problem: [one-line summary]
 Class: [activity] | [tier] | Convergence: [Y/N] | Domains: [fragments]
 Position: [current] ✅ → [next] [N/5]
+Depth: [stack of parent positions when inside sub-skill invocations, empty when at top level]
 Counter: [N]
 Findings: [one-line per step]
 Evidence: [files, commands, logs, and self-served surfaces consulted]
@@ -39,6 +40,8 @@ Open: [unresolved items]
 Decisions: [key decisions]
 Skill: [recommended downstream skill or Proceed directly]
 ```
+
+**Depth tracking:** `Depth:` tracks nested sub-skill invocations as a stack. When discovery-rigor invokes another skill (e.g., `bmad-party-mode`, `bmad-advanced-elicitation`, `bmad-domain-research`), push the current `Position:` value onto `Depth:` before invoking. When the sub-skill returns, pop `Depth:` and restore `Position:`. This ensures the agent always knows its place in the broader workflow after resolving nested questions. If `Depth:` has entries after a context compression recovery, the agent is inside a sub-invocation and should return to the parent step after resolving the current item.
 
 ## RECOVERY PROTOCOL
 
@@ -61,7 +64,29 @@ When user requests autonomous execution (e.g., "just investigate", "autonomous m
 | Gate answers | Self-serve from workspace evidence |
 | Logging | 🔍 prefix in State Ledger for self-served items |
 | Halting | Only halt for genuinely unresolvable inputs |
+| Uncertainty | Invoke §UNCERTAINTY RESOLUTION before halting |
 | Summary | `🔍 Self-served: [step] ([N]/[M] resolved via [method]). Unresolved: [items].` |
+
+## UNCERTAINTY RESOLUTION
+
+When evidence is insufficient to self-serve a gate answer, resolve uncertainty before halting:
+
+| Confidence | Action |
+|------------|--------|
+| High (workspace evidence is clear) | Self-serve and log with 🔍 prefix |
+| Medium (multiple interpretations exist) | Invoke `bmad-party-mode --solo` with 2-3 relevant agents to surface the strongest interpretation, then self-serve from the consensus |
+| Low (no workspace evidence, contradictory signals) | Invoke `bmad-advanced-elicitation` on the ambiguous item to sharpen the question, then present a focused question to the user |
+| Unresolvable (requires external input the workspace cannot provide) | HALT with the sharpened question from the elicitation pass |
+
+**Depth tracking rule:** Before entering a sub-skill invocation, push the current `Position:` and step context onto `Depth:` in the State Ledger. When the sub-skill returns, pop `Depth:` and resume from the recorded position. This prevents "getting lost" during nested interrogations.
+
+**Party-mode integration:** When invoking `bmad-party-mode --solo`, pass:
+
+- The specific uncertainty or ambiguity as the discussion topic
+- The current State Ledger as context
+- Request only the 2-3 agents most relevant to the domain (e.g., `bmad-agent-architect` for technical gaps, `bmad-agent-analyst` for requirements gaps, `bmad-agent-pm` for scope gaps)
+
+Take the strongest consensus position, log the reasoning, and continue. Do not halt for party-mode output review in autonomous mode.
 
 ## DOMAIN FRAGMENT LOADING
 
@@ -97,6 +122,72 @@ Optional skill invocations. Evaluate them at step 5 entry only, after the core d
 | High-stakes or many open items | `bmad-review-adversarial-general` | Full Discovery Context | Adversarial review |
 
 Skip any skill that is not installed.
+
+## SKILL GRAPH
+
+Discovery-rigor can invoke other BMAD skills at specific points. This graph ensures no useful skill goes unused due to limited references. At each step, consult this table for applicable invocations. Load available skills from `{project-root}/_bmad/_config/bmad-help.csv` when it exists.
+
+### During Discovery (Steps 1-4)
+
+| Trigger | Skill | How to invoke | When to return |
+|---------|-------|---------------|----------------|
+| Uncertainty at any gate (medium confidence) | `bmad-party-mode --solo` | Pass uncertainty + State Ledger; request 2-3 domain-relevant agents | After consensus; log and continue |
+| Uncertainty at any gate (low confidence) | `bmad-advanced-elicitation` | Pass the ambiguous item for refinement | After sharpened question; ask user or self-serve |
+| Domain gap identified (step 2-4) | `bmad-domain-research` | Pass the specific domain question | After findings; fold into Interview Findings or Research |
+| Technical gap identified (step 2-4) | `bmad-technical-research` | Pass the technical question with architecture context | After findings; fold into Research Summary |
+| Market context needed (step 2-4) | `bmad-market-research` | Pass the market question | After findings; fold into Interview Findings |
+| Large document needs indexing | `bmad-index-docs` | Pass the document path | After index built; use for targeted reading |
+| Document too large to process | `bmad-shard-doc` | Pass the document path | After sharding; load shards as needed |
+
+### At Handoff (Step 5)
+
+| Signal | Downstream skill | Handoff artifact |
+|--------|-----------------|-----------------|
+| Build + product definition needed | `bmad-create-prd` | Discovery Context + classification |
+| Build + UX component | `bmad-create-ux-design` | Discovery Context + UX requirements |
+| Build + architecture needed | `bmad-create-architecture` | Discovery Context + technical findings |
+| Convergence = Yes | `bmad-create-workflow-contract` | Discovery Context + contract candidates |
+| Epics and stories needed | `bmad-create-epics-and-stories` | Discovery Context + PRD reference |
+| Execute + implementation ready | `bmad-sprint-planning` or `bmad-create-story` | Discovery Context + story reference |
+| Solve + Quick | Proceed directly | Discovery Context summary |
+| Quality review needed | `bmad-check-implementation-readiness` | All planning artifacts |
+| Editorial polish needed | `bmad-editorial-review-prose` or `bmad-editorial-review-structure` | Discovery Context document |
+| Project documentation needed | `bmad-document-project` or `bmad-generate-project-context` | Discovery Context + workspace |
+| Course correction detected | `bmad-correct-course` | Discovery Context + change trigger |
+
+### Invocation Protocol
+
+When invoking a sub-skill during discovery:
+
+1. Push current `Position:` onto `Depth:` in the State Ledger.
+2. Log the invocation in `Decisions:`: `Invoked {skill-name} for: {reason}`.
+3. Pass the current State Ledger and relevant findings as context.
+4. When the sub-skill completes, fold its output into the appropriate section of `{outputFile}`.
+5. Pop `Depth:` and restore `Position:`.
+6. Continue from where the parent step left off.
+
+## CROSS-SKILL HANDOFF
+
+When discovery completes and routes to a downstream skill, produce a handoff block that the receiving skill can parse without re-reading the entire Discovery Context:
+
+```markdown
+## Handoff Brief
+
+- **From:** discovery-rigor ({sessionTag})
+- **To:** {downstream-skill-name}
+- **Classification:** {activity} | {tier} | Convergence: {Y/N}
+- **Key findings:** [3-5 bullet summary]
+- **Open items:** [items with owners]
+- **Constraints:** [scope boundaries]
+- **Evidence manifest:** [key files consulted]
+- **Verification strategy:** [how downstream should prove correctness]
+```
+
+**Seamless transition rules:**
+
+- The downstream skill should be invoked immediately after handoff confirmation in autonomous mode — do not wait for the user to re-enter the skill name.
+- Pass the `{outputFile}` path so the downstream skill can load the full Discovery Context if needed.
+- If the downstream skill has its own INITIALIZATION section, the handoff brief substitutes for the user's initial prompt.
 
 ## SESSION ANCHOR
 

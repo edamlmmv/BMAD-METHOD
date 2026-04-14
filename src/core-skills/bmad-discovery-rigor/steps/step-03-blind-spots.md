@@ -58,7 +58,7 @@ Use these deferral criteria:
 | Requires a separate discovery run | Security or safety concern |
 | Would expand scope beyond stated constraints | Would make downstream work unreliable |
 
-**Autonomous mode:** self-assess from workspace evidence with a `🔍` prefix. Only increment Counter for genuinely unresolvable gaps.
+**Autonomous mode:** self-assess from workspace evidence with a `🔍` prefix. Only increment Counter for genuinely unresolvable gaps. For ambiguous assessments, consult workflow.md §UNCERTAINTY RESOLUTION — invoke `bmad-party-mode --solo` for medium-confidence items or `bmad-advanced-elicitation` for low-confidence items before incrementing Counter.
 
 If all findings cluster in one category, explicitly re-sweep the remaining categories before proceeding.
 
