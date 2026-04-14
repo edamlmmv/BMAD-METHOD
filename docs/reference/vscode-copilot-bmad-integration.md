@@ -66,7 +66,7 @@ BMAD workflows can be exposed as `.prompt.md` files so users can invoke them via
 ```markdown
 ---
 agent: "agent"
-model: GPT-4o mini
+model: mini
 description: "Get BMAD help — what to do next in your project"
 ---
 Run the bmad-help skill. Analyze the current project state by checking:
@@ -182,7 +182,7 @@ Define agents that restrict tools and right-size model tier by BMAD phase:
 | Implementation | `implementation.agent.md` | Full development — all tools | Full | _(all tools)_ |
 | Review | `review.agent.md` | Code review — read-only with diagnostics | Mini / Haiku | `codebase_search`, `read_file`, `grep_search`, `git_diff`, `diagnostics`, `test` |
 
-Use the `model` frontmatter field in each `.agent.md` file to assign lighter models (e.g., `GPT-4o mini`, `Claude Haiku`) to agents that perform simpler, less compute-intensive tasks such as editorial review, formatting checks, or boilerplate generation.
+Use the `model` frontmatter field in each `.agent.md` file to assign lighter models (mini / haiku tier) to agents that perform simpler, less compute-intensive tasks such as editorial review, formatting checks, or boilerplate generation.
 
 ## Agent Skills Mapping
 
