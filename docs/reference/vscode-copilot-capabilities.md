@@ -751,17 +751,29 @@ Key Copilot-related settings for `.vscode/settings.json`.
 | `chat.tools.autoApprove` | boolean | `false` | Auto-approve tool calls |
 | `chat.tools.terminal.backgroundNotifications` | boolean | `true` | Notify on background terminal activity |
 | `chat.tools.sandbox.enabled` | boolean | `false` | Run terminal commands in Docker sandbox |
+| `chat.tools.urlAutoApproval` | object | — | URL patterns auto-approved for `fetch` tool |
 | `chat.mcp.discovery.enabled` | boolean | `true` | Auto-discover MCP server configs |
 | `github.copilot.chat.codeGeneration.useInstructionFiles` | boolean | `true` | Use instruction files |
 | `github.copilot.chat.tools.memory.enabled` | boolean | `true` | Enable memory tool |
 | `github.copilot.chat.copilotMemory.enabled` | boolean | `false` | Enable GitHub-hosted Copilot Memory |
 | `chat.planAgent.defaultModel` | string | — | Default model for Plan agent |
+| `github.copilot.chat.implementAgent.model` | string | — | Model for implementation step after planning |
+| `github.copilot.chat.planAgent.additionalTools` | array | — | Additional tools available to Plan agent |
+| `chat.promptFilesLocations` | array | — | Additional directories for prompt files |
+| `chat.agentFilesLocations` | array | — | Additional directories for agent files |
+| `chat.skillsLocations` | array | — | Additional directories for agent skills |
+| `chat.hookFilesLocations` | array | — | Customize which hook files are loaded |
+| `chat.useCustomAgentHooks` | boolean | `false` | Enable agent-scoped hooks in `.agent.md` frontmatter |
 | `chat.plugins.enabled` | boolean | `false` | Enable agent plugins (Preview) |
+| `chat.plugins.marketplaces` | array | — | Plugin marketplace repositories |
 | `chat.artifacts.enabled` | boolean | `false` | Enable artifacts panel (Preview) |
 | `chat.useCustomizationsInParentRepositories` | boolean | `false` | Discover customizations from parent repo root |
 | `chat.subagents.allowInvocationsFromSubagents` | boolean | `false` | Allow nested subagents |
 | `workbench.browser.enableChatTools` | boolean | `false` | Enable browser tools for agents |
 | `github.copilot.selectedCompletionModel` | string | — | Override completion model |
+| `github.copilot.chat.claudeAgent.enabled` | boolean | `false` | Enable Claude Agent (Preview) |
+| `github.copilot.chat.cli.customAgents.enabled` | boolean | `false` | Enable custom agents in Copilot CLI sessions |
+| `search.searchView.semanticSearchBehavior` | string | — | Enable semantic search in Search view |
 
 ## File System Layout
 

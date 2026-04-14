@@ -66,6 +66,7 @@ BMAD workflows can be exposed as `.prompt.md` files so users can invoke them via
 ```markdown
 ---
 agent: "agent"
+model: GPT-4o mini
 description: "Get BMAD help — what to do next in your project"
 ---
 Run the bmad-help skill. Analyze the current project state by checking:
@@ -97,6 +98,7 @@ Run the bmad-dev-story workflow:
 ```markdown
 ---
 agent: "agent"
+model: Claude Haiku
 description: "Run BMAD code review on current changes"
 tools: ['read_file', 'grep_search', 'diagnostics', 'test', 'git_diff']
 ---
@@ -111,14 +113,14 @@ BMAD agents (Analyst, PM, Architect, Developer, etc.) map directly to VS Code cu
 
 ### Agent File Mapping
 
-| BMAD Agent | File | Tools | Handoffs |
-| --- | --- | --- | --- |
-| Analyst (Mary) | `analyst.agent.md` | `codebase_search`, `read_file`, `create_file`, `fetch` | → PM, → Architect |
-| Product Manager (John) | `pm.agent.md` | `read_file`, `create_file`, `edit_file` | → Architect, → UX |
-| Architect (Winston) | `architect.agent.md` | `codebase_search`, `read_file`, `create_file`, `edit_file` | → Developer |
-| Developer (Amelia) | `dev.agent.md` | All tools | → Reviewer |
-| UX Designer (Sally) | `ux.agent.md` | `read_file`, `create_file`, `edit_file` | → PM |
-| Technical Writer (Paige) | `writer.agent.md` | `read_file`, `create_file`, `edit_file`, `codebase_search` | — |
+| BMAD Agent | File | Model Tier | Tools | Handoffs |
+| --- | --- | --- | --- | --- |
+| Analyst (Mary) | `analyst.agent.md` | Full | `codebase_search`, `read_file`, `create_file`, `fetch` | → PM, → Architect |
+| Product Manager (John) | `pm.agent.md` | Full | `read_file`, `create_file`, `edit_file` | → Architect, → UX |
+| Architect (Winston) | `architect.agent.md` | Full | `codebase_search`, `read_file`, `create_file`, `edit_file` | → Developer |
+| Developer (Amelia) | `dev.agent.md` | Full | All tools | → Reviewer |
+| UX Designer (Sally) | `ux.agent.md` | Full | `read_file`, `create_file`, `edit_file` | → PM |
+| Technical Writer (Paige) | `writer.agent.md` | Mini / Haiku | `read_file`, `create_file`, `edit_file`, `codebase_search` | — |
 
 ### Example Agent File with Handoffs
 
@@ -432,6 +434,48 @@ VS Code Copilot smart actions that complement BMAD workflows.
 | Explain This | During `bmad-discovery-rigor` for codebase understanding |
 | Generate Commit Message | During `bmad-dev-story` for Conventional Commit formatting |
 | Generate PR Description | After `bmad-code-review` approval |
+
+## Inline Chat for BMAD
+
+Inline Chat (`Ctrl+I` / `Cmd+I`) provides targeted AI assistance directly in the editor, complementing BMAD workflows that involve code editing.
+
+| BMAD Workflow | Inline Chat Use |
+| --- | --- |
+| Dev Story | Select code → refactor, fix, or extend inline while implementing a story |
+| Code Review | Select flagged code → ask for inline fix or explanation |
+| Quick Dev | Select code → rapid implementation without leaving the editor |
+| Discovery Rigor | Select unfamiliar code → explain inline to build understanding |
+
+## Review Code Edits for BMAD
+
+The Review Code Edits workflow shows side-by-side or inline diffs of Copilot's proposed changes before accepting them. This integrates with BMAD's code review discipline.
+
+| BMAD Workflow | Review Edits Use |
+| --- | --- |
+| Dev Story | Review each Copilot-generated edit against story acceptance criteria before accepting |
+| Code Review | Navigate proposed fixes hunk-by-hunk; accept or reject individually |
+| Quick Dev | Preview inline diff before accepting rapid changes |
+
+## Chat Artifacts for BMAD
+
+Chat Artifacts surface important documents, links, and plans alongside the conversation. Enable with `chat.artifacts.enabled`.
+
+| BMAD Use Case | Artifact Type |
+| --- | --- |
+| Sprint dashboard | Link to `sprint-status.yaml`; plan document from Plan agent |
+| Architecture review | Architecture diagram or decision record surfaced as a document artifact |
+| Story implementation | Plan checklist surfaced alongside the chat for progress tracking |
+
+## Third-Party Agents for BMAD
+
+Third-party agents (Claude Agent, OpenAI Codex) run within VS Code and can use the same BMAD instructions, skills, hooks, and agents as the built-in Copilot agent.
+
+| Provider | BMAD Notes |
+| --- | --- |
+| **Claude Agent** | Uses `.claude/` directory conventions; BMAD's `AGENTS.md` is auto-read; enable with `github.copilot.chat.claudeAgent.enabled` |
+| **OpenAI Codex** | Requires Copilot Pro+; interactive (local) or unattended (cloud) sessions; same skill/hook compatibility |
+
+Both providers support local and cloud session types. BMAD custom agents, skills, and hooks are loaded by all providers when using VS Code's unified customization surfaces (`.github/agents/`, `.github/skills/`, `.github/hooks/`).
 
 ## Cloud Agent (Coding Agent) for BMAD
 
