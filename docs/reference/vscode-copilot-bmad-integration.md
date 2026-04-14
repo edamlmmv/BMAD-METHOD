@@ -433,7 +433,7 @@ VS Code Copilot smart actions that complement BMAD workflows.
 
 ## Cloud Agent (Coding Agent) for BMAD
 
-BMAD stories can be assigned to Copilot's cloud agent for autonomous implementation.
+BMAD stories can be assigned to Copilot's cloud agent for autonomous implementation. Cloud agents also support hand-off from local Plan agent sessions for complex workflows.
 
 ### Setup
 
@@ -456,6 +456,47 @@ steps:
 3. Assign issues to Copilot for autonomous implementation
 4. Review generated PRs against BMAD quality standards
 5. Use `bmad-code-review` on the PR diff
+
+### Plan → Cloud Hand-off
+
+For complex features, use the Plan agent to create a structured plan, then hand off to cloud:
+
+1. Select **Plan** agent and describe the feature
+2. Iterate on the plan until it meets requirements
+3. Select **Start Implementation** → **Continue in Cloud**
+4. Cloud agent implements the plan and creates a PR
+
+## Copilot CLI for BMAD Background Sessions
+
+Copilot CLI sessions let BMAD workflows run autonomously in the background while you continue coding.
+
+### BMAD Background Workflow
+
+1. Plan a story with the **Plan** agent in a local chat session
+2. Select **Start Implementation** → **Continue in Copilot CLI**
+3. Choose **Worktree** isolation to keep changes separate from your active work
+4. Monitor progress in the Chat view sessions list
+5. Review the worktree diff when the session completes
+
+### Parallel BMAD Story Implementation
+
+Run multiple BMAD stories in parallel by starting multiple Copilot CLI sessions:
+
+1. Create separate Copilot CLI sessions for independent stories
+2. Each session operates in its own Git worktree
+3. Changes remain isolated until you review and merge
+
+### Custom Agents in CLI
+
+Enable BMAD custom agents for Copilot CLI sessions:
+
+```json
+{
+  "github.copilot.chat.cli.customAgents.enabled": true
+}
+```
+
+Then select a BMAD persona agent (e.g., `dev`, `reviewer`) when creating a Copilot CLI session.
 
 ## Agent Plugins for BMAD (Future)
 

@@ -304,12 +304,15 @@ The primary interaction surface for conversational AI assistance.
 | --- | --- |
 | **Open** | `Ctrl+Alt+I` / `Cmd+Alt+I` or Activity Bar icon |
 | **Agents** | Select from agent picker dropdown (Ask, Agent, Plan, custom agents) |
-| **Ask mode** | Read-only Q&A; no file modifications |
+| **Session targets** | Local (default), Copilot CLI (background), Cloud (remote) |
+| **Ask mode** | Read-only Q&A; uses agentic capabilities for research but no file modifications |
 | **Agent mode** | Autonomous; can run terminal commands, edit files, use tools |
+| **Plan mode** | Creates structured implementation plan before implementation |
 | **Setting** | `chat.agent.enabled` (default: `true`) |
 | **Max requests** | `chat.agent.maxRequests` — limit autonomous iterations |
 | **Auto-fix** | `github.copilot.chat.agent.autoFix` — auto-fix lint/build errors |
 | **Run tasks** | `github.copilot.chat.agent.runTasks` — allow task execution |
+| **Queued messages** | Send follow-up prompts while agent is working |
 
 **Permission levels:**
 
@@ -356,6 +359,7 @@ Explicitly attach context to chat messages using `#` references.
 | `#testFailure` | Details of failing tests |
 | `#debugContext` | Current debug session state |
 | `#artifacts` | Surface resources to the artifacts panel |
+| `#searchResults` | Results from the Search view |
 
 **Additional context methods:**
 
@@ -520,6 +524,17 @@ Built-in tools available to Copilot in agent mode.
 | **Auto-approve** | `chat.tools.autoApprove` with tool ID allow-lists |
 | **Tool sets** | Group tools into named sets in `.vscode/settings.json` |
 | **Sandbox** | `chat.tools.sandbox.enabled` — run terminal commands in Docker sandbox |
+| **URL approval** | Auto-approve external URL access via `chat.tools.urlAutoApproval` patterns |
+| **Edit params** | Expand tool call in chat to edit parameters before executing |
+| **Background terminal** | `chat.tools.terminal.backgroundNotifications` — notify on background output |
+
+**Permission levels:**
+
+| Level | Description |
+| --- | --- |
+| **Default Approvals** | Tools requiring approval show confirmation dialog |
+| **Bypass Approvals** | Auto-approves all tool calls; may ask clarifying questions |
+| **Autopilot** (Preview) | Auto-approves and auto-responds; fully autonomous until task completion |
 
 ### Subagents
 
@@ -556,54 +571,98 @@ Run agent sessions locally with full workspace access.
 | **Security** | Tool calls require approval (configurable via `chat.tools.autoApprove`) |
 | **Multi-session** | Multiple local agent sessions can run in parallel |
 
-### Copilot CLI
+### Copilot CLI (Background Sessions)
 
-Command-line interface for Copilot agent interactions outside VS Code.
+Copilot CLI sessions run autonomously in the background on your local machine, freeing you to continue coding in VS Code while agents work independently.
 
 | Attribute | Details |
 | --- | --- |
-| **Install** | `npm install -g @anthropic-ai/claude-code` or GitHub CLI extension |
-| **Environment** | Terminal-based; uses same customizations (instructions, skills, hooks, agents) |
-| **Capabilities** | Full agent mode with file editing, terminal, and tool use |
-| **MCP** | Supports same `.vscode/mcp.json` configuration |
+| **Concept** | Background agent sessions using the Copilot CLI agent harness |
+| **Auto-install** | VS Code automatically installs and configures the Copilot CLI |
+| **Start** | Select **Copilot CLI** from Session Target dropdown, or run **Chat: New Copilot CLI** |
+| **Isolation modes** | **Worktree** (Git worktree — changes isolated) or **Workspace** (direct edits) |
+| **Worktree perms** | Worktree isolation auto-sets to Bypass Approvals (all tool calls auto-approved) |
+| **Workspace perms** | All three permission levels available (Default, Bypass, Autopilot) |
+| **Hand-off** | Continue any local/Plan agent conversation as a Copilot CLI session |
+| **Plan → CLI** | Select **Start Implementation** → **Continue in Copilot CLI** from Plan agent |
+| **Custom agents** | Enable with `github.copilot.chat.cli.customAgents.enabled` setting |
+| **Slash commands** | `/compact`, `/yolo`, `/autoApprove`, reusable prompts, agent skills |
+| **Persistence** | Sessions continue running when VS Code is closed |
+| **Terminal** | Type `copilot` in integrated terminal, or use **GitHub Copilot CLI** terminal profile |
+| **Customizations** | Uses same instructions, skills, hooks, agents, and prompt files |
+| **Limitations** | Cannot access all VS Code built-in tools; limited to local MCP servers without auth |
 
 ### Cloud Agents (Copilot Coding Agent)
 
-GitHub-hosted agent sessions that run in the cloud.
+Cloud agents run on remote infrastructure and integrate with GitHub repositories for team collaboration through pull requests.
 
 | Attribute | Details |
 | --- | --- |
-| **Trigger** | Assign a GitHub issue to Copilot, or invoke from VS Code |
-| **Environment** | Runs in a cloud VM with repo access |
-| **Output** | Creates a pull request with changes |
+| **Concept** | Remote agent sessions running on cloud infrastructure |
+| **Start** | Select **Cloud** from Session Type dropdown, or run **Chat: New Cloud Agent** |
+| **Providers** | GitHub Copilot cloud agent (primary), plus third-party (Claude, Codex) |
+| **Hand-off** | Continue any local or CLI conversation as a cloud session |
+| **Plan → Cloud** | Select **Start Implementation** → **Continue in Cloud** from Plan agent |
+| **CLI → Cloud** | Type `/delegate` in a Copilot CLI session to hand off to cloud |
+| **From GitHub** | Assign a GitHub issue to Copilot, or invoke from GitHub.com |
+| **Output** | Creates a pull request with detailed descriptions |
 | **Config** | `copilot-setup-steps.yml` in `.github/` for environment setup |
 | **Customizations** | Uses repo's instructions, skills, hooks, and agents |
-| **Limits** | Bounded by Copilot plan quotas |
+| **Capabilities** | Large-scale refactoring, feature implementation, code review integration |
+| **Limits** | Bounded by Copilot plan quotas; cannot access VS Code built-in tools directly |
 
 ### Third-Party Agents
 
-Extend Copilot with external service integrations.
+Third-party agents from external providers (Anthropic, OpenAI) run within VS Code using the provider's SDK and agent harness. Both local and cloud sessions are supported.
 
 | Attribute | Details |
 | --- | --- |
-| **Marketplace** | GitHub Marketplace Copilot extensions |
-| **Invocation** | `@agent-name` in chat |
-| **Examples** | `@docker`, `@azure`, database agents |
+| **Providers** | Claude Agent (Anthropic), OpenAI Codex |
+| **Billing** | Through existing GitHub Copilot subscription |
+| **Session types** | Local (select provider from Session Type dropdown) or Cloud (select Cloud → partner) |
+| **Enable cloud** | Enable third-party cloud agents in Copilot account settings on GitHub |
+
+**Claude Agent (Preview):**
+
+| Attribute | Details |
+| --- | --- |
+| **Setting** | `github.copilot.chat.claudeAgent.enabled` |
+| **SDK** | Uses Anthropic's Claude Agent SDK |
+| **Slash commands** | `/agents`, `/hooks`, `/memory`, `/init`, `/pr-comments`, `/review`, `/security-review` |
+| **Permission modes** | Edit automatically, Request approval, Plan |
+| **Danger mode** | `github.copilot.chat.claudeAgent.allowDangerouslySkipPermissions` (sandbox only) |
+
+**OpenAI Codex:**
+
+| Attribute | Details |
+| --- | --- |
+| **Extension** | [OpenAI Codex](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt) VS Code extension |
+| **Prerequisite** | Copilot Pro+ subscription for authentication |
+| **Sessions** | Interactive (local) or unattended (cloud) |
 
 ### Copilot Smart Actions
 
-Context-sensitive actions available directly in the editor.
+Context-sensitive AI actions available directly throughout the VS Code UI.
 
-| Attribute | Details |
+| Action | Details |
 | --- | --- |
-| **Fix** | Lightbulb → "Fix with Copilot" for diagnostics |
-| **Explain** | Right-click → "Copilot: Explain This" |
-| **Generate docs** | Right-click → "Copilot: Generate Docs" |
-| **Generate tests** | Right-click → "Copilot: Generate Tests" |
-| **Rename** | Smart rename suggestions based on code semantics |
-| **Commit message** | Auto-generate commit messages from staged changes |
-| **PR description** | Auto-generate PR descriptions |
-| **Terminal** | `Ctrl+I` in terminal for command suggestions |
+| **Fix with Copilot** | Lightbulb code action for diagnostics errors |
+| **Explain** | Right-click → **Explain** for selected code |
+| **Generate docs** | Right-click → **Generate Code** → **Generate Docs** |
+| **Generate tests** | Right-click → **Generate Code** → **Generate Tests** |
+| **Fix code** | Right-click → **Generate Code** → **Fix** |
+| **Review code** | Right-click → **Generate Code** → **Review**; also PR-level review |
+| **Rename symbols** | AI-generated rename suggestions based on symbol context |
+| **Commit message** | Sparkle icon in Source Control to auto-generate commit message |
+| **PR description** | Auto-generate PR titles and descriptions |
+| **Resolve merge conflicts** | **Resolve Merge Conflict with AI** button in editor (Experimental) |
+| **Implement TODO** | Code action on `TODO` comments → **Delegate to coding agent** |
+| **Fix test failures** | Sparkle icon on failing tests in Test Explorer; or `/fixTestFailure` |
+| **Fix terminal errors** | Sparkle Quick Fix in terminal after failed commands |
+| **Generate alt text** | Code action on Markdown image links → **Generate alt text** |
+| **Semantic search** | Search view finds semantically relevant results (`search.searchView.semanticSearchBehavior`) |
+| **Search settings** | AI-powered settings search (`workbench.settings.showAISearchToggle`) |
+| **Terminal assist** | `Ctrl+I` in terminal for command suggestions |
 
 ## Extension API Surfaces
 
