@@ -265,3 +265,13 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 </step>
 
 </workflow>
+
+## MEMORY CHECKPOINT
+
+Use `bmad-memory-manager` to persist course-correction state for recovery across context compressions. The Sprint Change Proposal document remains the canonical artifact.
+
+| Event | Operation |
+|-------|-----------|
+| After step 2 (analysis complete) | `persist | scope: session | key: change-analysis | caller: "correct-course"` with change trigger, impact summary, and checklist state |
+| After step 4 (proposal drafted) | `persist | scope: session | key: change-analysis | caller: "correct-course"` with proposal summary and approval status |
+| Workflow completion | `persist | scope: workspace | key: learned-patterns | caller: "correct-course"` with reusable change management insights |

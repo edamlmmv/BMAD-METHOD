@@ -32,6 +32,10 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Resume Awareness
+
+When activated in a fresh conversation, immediately surface the sprint position so the user never needs to re-explain where they left off. Before entering interactive mode, display the last-known active story and recommended next action. This makes sprint-status the natural "where was I?" entry point for any new session.
+
 ---
 
 ## EXECUTION

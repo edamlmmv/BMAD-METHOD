@@ -50,3 +50,13 @@ Load `./resources/contract-surface-types.csv` — this drives which contract typ
 ## EXECUTION
 
 Read fully and follow: `./steps/step-01-init.md`
+
+## MEMORY CHECKPOINT
+
+Use `bmad-memory-manager` to persist contract state for recovery across context compressions. `{outputFile}` remains the canonical workflow artifact.
+
+| Event | Operation |
+|-------|-----------|
+| After each completed step | `persist | scope: session | key: contract-state | caller: "create-workflow-contract"` with current frontmatter + systems map |
+| Recovery mismatch | `recover | scope: session | key: contract-state | caller: "create-workflow-contract"` |
+| Workflow completion | `persist | scope: workspace | key: learned-patterns | caller: "create-workflow-contract"` with reusable contract definition insights |
