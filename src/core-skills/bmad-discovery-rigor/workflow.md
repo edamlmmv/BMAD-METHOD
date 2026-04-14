@@ -43,6 +43,29 @@ Skill: [recommended downstream skill or Proceed directly]
 
 **Depth tracking:** `Depth:` tracks nested sub-skill invocations as a stack. When discovery-rigor invokes another skill (e.g., `bmad-party-mode`, `bmad-advanced-elicitation`, `bmad-domain-research`), push the current `Position:` value onto `Depth:` before invoking. When the sub-skill returns, pop `Depth:` and restore `Position:`. This ensures the agent always knows its place in the broader workflow after resolving nested questions. If `Depth:` has entries after a context compression recovery, the agent is inside a sub-invocation and should return to the parent step after resolving the current item.
 
+Example — at top level during step 2, `Depth:` is empty:
+
+```
+Position: step-02-interview ✅ → step-03-blind-spots [2/5]
+Depth: []
+```
+
+After invoking `bmad-domain-research` from step 2 to resolve a gap:
+
+```
+Position: bmad-domain-research (resolving: API auth gap)
+Depth: [step-02-interview 2/5]
+```
+
+If that research triggers `bmad-technical-research` for a sub-question:
+
+```
+Position: bmad-technical-research (resolving: OAuth2 vs API-key)
+Depth: [step-02-interview 2/5, bmad-domain-research]
+```
+
+When each sub-skill returns, pop the stack and resume from the recorded position.
+
 ## RECOVERY PROTOCOL
 
 At every step entry, before doing anything else:
