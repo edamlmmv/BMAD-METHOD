@@ -1,5 +1,7 @@
 ---
 outputFile: '{output_folder}/discovery-context-{sessionTag}.md'
+# NOTE: {sessionTag} is resolved during INITIALIZATION (cases 1-2) or deferred
+# to step 1 (case 3). See §SESSION RESOLUTION for the resolution lifecycle.
 ---
 
 # Discovery Rigor Workflow
@@ -135,13 +137,15 @@ Resolve `{sessionTag}` before checking for existing work:
 
 1. If the user provides a session tag or references a specific discovery context file, use that tag.
 2. If recovering from an existing file, extract `sessionTag` from its frontmatter.
-3. Otherwise, defer tag generation to step 1 — the tag requires a classified problem statement.
+3. Otherwise, defer tag generation to step 1 — the tag requires a classified problem statement. `{outputFile}` remains unresolved until then.
 
 Once `{sessionTag}` is resolved, substitute it into `{outputFile}` to get the concrete path.
 
 ### Check for Existing Work
 
-Check `{outputFile}` per §RECOVERY PROTOCOL table.
+When `{sessionTag}` is already resolved (cases 1 or 2 above), check `{outputFile}` per §RECOVERY PROTOCOL table.
+
+When `{sessionTag}` is deferred (case 3), scan `{output_folder}/discovery-context-*.md` for any in-progress sessions and offer to resume one. If none are found, proceed to step 1 for a fresh run.
 
 ## EXECUTION
 
