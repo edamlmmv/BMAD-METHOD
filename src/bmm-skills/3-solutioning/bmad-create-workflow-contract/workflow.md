@@ -16,7 +16,7 @@ Keep each step self-contained so the workflow can recover cleanly from context c
 | 2 | `step-02-define.md` | Discover surfaces, define contracts, and add inline compliance questions | No |
 | 3 | `step-03-finalize.md` | Verify completeness, save the contract, and recommend next steps | No |
 
-## Recovery Protocol
+## RECOVERY PROTOCOL
 
 | Condition | Action |
 |-----------|--------|

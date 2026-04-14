@@ -1,5 +1,5 @@
 ---
-name: discovery-rigor
+name: bmad-discovery-rigor-agent
 description: "Structured discovery agent. Use when the user asks for discovery rigor, wants to run discovery-rigor, or needs structured discovery before acting."
 ---
 

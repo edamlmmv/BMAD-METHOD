@@ -92,7 +92,6 @@ Optional skill invocations. Evaluate them at step 5 entry only, after the core d
 | Interview findings accepted too readily | `bmad-advanced-elicitation` | Interview Q&A | Pushes for refinement |
 | Blind-spot coverage thin | `bmad-review-edge-case-hunter` | Findings so far | Walks branching paths sweep missed |
 | High-stakes or many open items | `bmad-review-adversarial-general` | Full Discovery Context | Adversarial review |
-| Output > 2000 words | `bmad-distillator` | Saved Discovery Context | Compressed handoff version |
 
 Skip any skill that is not installed.
 
@@ -116,6 +115,6 @@ Load config from `{project-root}/_bmad/core/config.yaml` and resolve:
 
 Check `{outputFile}` per §RECOVERY PROTOCOL table.
 
-### Route to First Step
+## EXECUTION
 
 Read fully and follow: `./steps/step-01-classify.md`
