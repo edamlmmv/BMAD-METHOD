@@ -11,30 +11,40 @@ Complete reference for VS Code GitHub Copilot capabilities aggregated from the o
 
 ### Custom Instructions
 
-Custom instructions let you define persistent context and rules that Copilot follows across all interactions in a workspace.
+Custom instructions define persistent context and rules that Copilot follows across all interactions. VS Code supports two categories: **always-on** (automatically included in every request) and **file-based** (conditionally applied based on file patterns).
+
+#### Always-On Instructions
+
+| Source | Details |
+| --- | --- |
+| **`.github/copilot-instructions.md`** | Workspace-level; auto-included in every chat request |
+| **`AGENTS.md`** | Root-level or subfolder-level; compatible with multi-agent setups |
+| **`CLAUDE.md`** | Root, `.claude/`, or `~/`; for compatibility with Claude Code tools |
+| **Organization-level** | Shared across repos in a GitHub organization |
 
 | Attribute | Details |
 | --- | --- |
-| **File** | `.github/copilot-instructions.md` |
-| **Scope** | Workspace-level; applies to all Copilot interactions in the repo |
 | **Format** | Markdown; Copilot reads the full content as system-level context |
 | **Setting** | `github.copilot.chat.codeGeneration.useInstructionFiles` (default: `true`) |
 | **Behavior** | Automatically included in every chat request; no explicit `#` reference needed |
 | **Use cases** | Coding conventions, framework preferences, naming standards, architecture rules |
-| **Limitations** | Not shown in chat UI; applies silently; one file per repo |
+| **Quick start** | Type `/init` in chat to auto-generate instructions tailored to your project |
+| **Monorepo** | Enable `chat.useCustomizationsInParentRepositories` to discover from parent repo root |
+| **Management** | Chat Customizations editor (Preview): **Chat: Open Chat Customizations** |
 
-### Instruction Files (Scoped)
+#### File-Based Instructions (.instructions.md)
 
-Fine-grained instruction files that apply to specific file patterns or contexts.
+Conditionally applied instructions based on file type or location using glob patterns.
 
 | Attribute | Details |
 | --- | --- |
-| **Directory** | `.github/instructions/` |
+| **Extension** | `.instructions.md` |
+| **Locations** | Workspace (any directory) or user profile |
 | **Format** | Markdown with YAML frontmatter (`applyTo` glob pattern) |
 | **Frontmatter** | `applyTo: "**/*.ts"` — glob pattern controlling when instructions apply |
-| **Scope** | Auto-attached when editing files matching the `applyTo` pattern |
+| **Scope** | Auto-attached when the agent is working on files matching the `applyTo` pattern |
 | **Manual use** | Can be referenced explicitly with `#instructions` in chat |
-| **Setting** | `github.copilot.chat.codeGeneration.useInstructionFiles` |
+| **AI generation** | Type `/create-instruction` in chat to generate with AI assistance |
 | **Use cases** | Language-specific rules, test conventions, component patterns |
 
 **Example frontmatter:**
@@ -48,26 +58,40 @@ Use vitest for all tests. Prefer `describe`/`it` blocks over `test`.
 
 ### Prompt Files (.prompt.md)
 
-Reusable, parameterized prompt templates that can be invoked as slash commands in chat.
+Reusable prompt templates for common tasks, invocable as slash commands in chat.
 
 | Attribute | Details |
 | --- | --- |
-| **Directory** | `.github/prompts/` (or any directory; configured via setting) |
+| **Directory** | `.github/prompts/` (workspace) or user profile (cross-workspace) |
 | **Extension** | `.prompt.md` |
-| **Setting** | `chat.promptFiles` — enable and configure prompt file directories |
-| **Invocation** | Type `/` in chat to see available prompts |
-| **Format** | Markdown with optional YAML frontmatter for mode and description |
-| **Context refs** | Can embed `#file:path/to/file` references for automatic context attachment |
-| **Variables** | Support `${input:variableName}` for user-prompted values |
-| **Mode binding** | Frontmatter `mode: "agent"` or `mode: "edit"` to constrain to specific chat modes |
-| **Description** | Frontmatter `description:` shown in slash command picker |
-| **Nesting** | Prompt files can reference other prompt files |
+| **Setting** | `chat.promptFilesLocations` — configure additional prompt file directories |
+| **Invocation** | Type `/` in chat; also via **Chat: Run Prompt** command |
+| **Format** | Markdown with optional YAML frontmatter |
+| **Context refs** | Can embed `#file:path/to/file` and `#tool:tool-name` references |
+| **Variables** | Support `${input:variableName}` and `${input:variableName:placeholder}` |
+| **AI generation** | Type `/create-prompt` in chat to generate with AI assistance |
+| **Sync** | Enable via Settings Sync → **Prompts and Instructions** |
+
+**Frontmatter fields:**
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `description` | No | Short description shown in slash command picker |
+| `name` | No | Display name after `/`; defaults to file name |
+| `argument-hint` | No | Hint text shown in chat input when prompt is invoked |
+| `agent` | No | Agent to use: `ask`, `agent`, `plan`, or a custom agent name |
+| `model` | No | Language model override (e.g., `GPT-4o`, `Claude Sonnet 4`) |
+| `tools` | No | List of tool or tool set names available for this prompt |
+
+**Tool list priority:** prompt file tools > referenced custom agent tools > default tools.
 
 **Example prompt file:**
 
 ```markdown
 ---
-mode: "agent"
+agent: "agent"
+model: GPT-4o
+tools: ['search/codebase', 'vscode/askQuestions']
 description: "Generate a React component with tests"
 ---
 Create a React component for #file:src/types.ts
@@ -76,48 +100,72 @@ Use the patterns from #file:src/components/Example.tsx
 Name: ${input:componentName}
 ```
 
-### Custom Chat Modes
+### Custom Agents
 
-Define custom chat modes that control how Copilot behaves, which tools it can use, and what instructions it follows.
-
-| Attribute | Details |
-| --- | --- |
-| **Directory** | `.github/chat-modes/` (workspace) or `~/.config/Code/User/chat-modes/` (global) |
-| **Extension** | `.chatmode.md` |
-| **Format** | Markdown with YAML frontmatter |
-| **Frontmatter keys** | `description`, `tools` (array of allowed tool IDs) |
-| **Tool restriction** | Only tools listed in `tools:` are available in that mode |
-| **Invocation** | Chat mode picker at top of chat panel |
-| **Use cases** | Restrict agent to specific tools, create review-only mode, documentation-only mode |
-
-### Custom Agents (Chat Participants)
-
-Define workspace-local chat participants with specific expertise and tool access.
+Custom agents (formerly custom chat modes) define specialized AI personas with specific behavior, tool access, and model preferences. Agents can hand off to each other for multi-step workflows.
 
 | Attribute | Details |
 | --- | --- |
-| **Directory** | `.github/agents/` |
-| **Extension** | `.agent.md` |
+| **Directory** | `.github/agents/` (workspace), `.claude/agents/` (Claude format), or user profile |
+| **Extension** | `.agent.md` (or any `.md` in `.github/agents/`) |
 | **Format** | Markdown with YAML frontmatter |
-| **Frontmatter keys** | `description`, `tools` (array), `if` (activation condition) |
-| **Invocation** | `@agent-name` in chat |
-| **Tools** | Array of tool IDs the agent can use; empty = all tools |
-| **Conditional** | `if: "resourceExists('pyproject.toml')"` for conditional activation |
-| **Instructions** | Markdown body serves as the agent's system prompt |
-| **Use cases** | Domain experts, specialized reviewers, project-specific assistants |
+| **Invocation** | Agent picker dropdown in Chat view |
+| **AI generation** | Type `/create-agent` in chat to generate with AI assistance |
+| **Setting** | `chat.agentFilesLocations` — configure additional agent file directories |
+
+**Frontmatter fields:**
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `description` | No | Description shown in agent picker |
+| `tools` | No | Array of tool IDs the agent can use; empty = all tools |
+| `model` | No | Preferred language model(s) for this agent |
+| `agents` | No | List of custom agents allowed as subagents (`*` = all, `[]` = none) |
+| `handoffs` | No | Array of handoff definitions for workflow transitions |
+| `hooks` | No | Agent-scoped hooks (run only when this agent is active) |
+| `user-invocable` | No | Whether agent appears in dropdown (default: `true`); set `false` for subagent-only |
+| `disable-model-invocation` | No | Prevent automatic invocation as subagent (default: `false`) |
+| `if` | No | Activation condition (e.g., `resourceExists('pyproject.toml')`) |
+| `argument-hint` | No | Hint text for the agent |
+
+**Handoffs** enable guided workflow transitions between agents:
+
+```yaml
+handoffs:
+  - label: Start Implementation
+    agent: implementation
+    prompt: Now implement the plan outlined above.
+    send: false
+    model: GPT-5.2 (copilot)
+```
 
 ### Agent Skills
 
-Skills extend agent capabilities with structured, multi-step workflows.
+Agent Skills are portable, multi-file capabilities that teach Copilot specialized workflows. Skills follow an [open standard](https://agentskills.io) that works across VS Code, Copilot CLI, and Copilot cloud agent.
 
 | Attribute | Details |
 | --- | --- |
-| **Directory** | `.github/skills/` or `.claude/skills/` (auto-discovered) |
-| **Structure** | `{skill-name}/SKILL.md` with optional supporting files |
+| **Directories** | `.github/skills/`, `.claude/skills/`, `.agents/skills/` (project); `~/.copilot/skills/`, `~/.claude/skills/`, `~/.agents/skills/` (personal) |
+| **Structure** | `{skill-name}/SKILL.md` with optional supporting files (scripts, examples, resources) |
 | **Format** | Markdown with YAML frontmatter (`name`, `description`) |
-| **Discovery** | Auto-discovered by VS Code; listed in `#skills` context |
-| **Invocation** | Referenced by name; agents can invoke skills as tools |
-| **Frontmatter** | `name:` must match directory name; `description:` shown in skill picker |
+| **Discovery** | Auto-discovered by VS Code; listed as slash commands alongside prompt files |
+| **Invocation** | Type `/skill-name` in chat; or agent auto-loads based on relevance |
+| **Quick access** | Type `/skills` in chat to open Configure Skills menu |
+| **AI generation** | Type `/create-skill` in chat to generate with AI assistance |
+| **Setting** | `chat.skillsLocations` — configure additional skill directories |
+| **Extension API** | Contribute via `chatSkills` in extension `package.json` |
+
+**SKILL.md frontmatter fields:**
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `name` | Yes | Unique identifier; lowercase with hyphens; must match directory name (max 64 chars) |
+| `description` | Yes | What the skill does and when to use it (max 1024 chars) |
+| `argument-hint` | No | Hint text shown when skill is invoked as slash command |
+| `user-invocable` | No | Show in `/` menu (default: `true`); set `false` for background-only skills |
+| `disable-model-invocation` | No | Prevent auto-loading by agent (default: `false`); require manual `/` invocation |
+
+**Loading model:** Discovery (name + description) → Instructions (SKILL.md body) → Resources (linked files on-demand).
 
 ### Language Model Selection
 
@@ -126,33 +174,50 @@ Configure which AI models Copilot uses for different tasks.
 | Attribute | Details |
 | --- | --- |
 | **Chat model** | Model picker in chat panel; supports GPT-4o, Claude, Gemini, o1, o3, etc. |
+| **Per-agent** | Set `model` in `.agent.md` frontmatter for per-agent model preference |
+| **Per-prompt** | Set `model` in `.prompt.md` frontmatter for per-prompt model |
 | **Completions** | `github.copilot.selectedCompletionModel` setting |
-| **Per-request** | Model can be changed per chat message via the model dropdown |
+| **Plan agent** | `chat.planAgent.defaultModel` — model for planning phase |
+| **BYOK** | Bring your own API key to access additional models |
 | **Custom models** | Extension API `lm.registerLanguageModelChatProvider()` for custom providers |
-| **Capabilities** | Models vary in speed, context window, reasoning depth, and tool use support |
 
 ### MCP Servers
 
-Model Context Protocol servers extend Copilot with external tool access.
+Model Context Protocol servers extend Copilot with external tools, resources, prompts, and interactive apps.
 
 | Attribute | Details |
 | --- | --- |
-| **Configuration** | `.vscode/mcp.json` (workspace) or user `settings.json` |
+| **Configuration** | `.vscode/mcp.json` (workspace) or user profile `mcp.json` |
 | **Format** | JSON with server definitions |
-| **Transport** | `stdio` (local process) or `sse` (remote HTTP) |
+| **Transport** | `stdio` (local process), `http` (remote HTTP), or `sse` (server-sent events) |
 | **Keys** | `servers: { "name": { "type": "stdio", "command": "...", "args": [...], "env": {...} } }` |
+| **Gallery** | Browse and install from Extensions view with `@mcp` search |
 | **Input variables** | `${input:name}` for user-prompted values; `${workspaceFolder}` for paths |
-| **Discovery** | Tools from MCP servers appear in `#tools` and are available to agents |
+| **Discovery** | `chat.mcp.discovery.enabled` — auto-discover configs from other tools |
 | **Approval** | Controlled by `chat.tools.autoApprove` setting |
-| **Setting** | `chat.mcp.discovery.enabled` — auto-discover `mcp.json` in workspace |
+| **Trust** | Trust dialog on first start; reset with **MCP: Reset Trust** command |
+| **Sandboxing** | macOS/Linux: `sandboxEnabled: true` with file/network restrictions |
+| **Dev containers** | Configure in `customizations.vscode.mcp` in `devcontainer.json` |
+| **Settings Sync** | Sync MCP configs across devices via Settings Sync |
+
+**Additional MCP capabilities:**
+
+| Capability | Description |
+| --- | --- |
+| **Resources** | Read-only data context from MCP servers; attach via **Add Context** > **MCP Resources** |
+| **Prompts** | Preconfigured prompt templates from MCP servers; invoke with `/<server>.<prompt>` |
+| **MCP Apps** | Interactive UI components rendered inline in chat |
 
 **Example `.vscode/mcp.json`:**
 
 ```json
 {
   "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp"
+    },
     "my-server": {
-      "type": "stdio",
       "command": "node",
       "args": ["./mcp-server.js"],
       "env": { "API_KEY": "${input:apiKey}" }
@@ -161,45 +226,73 @@ Model Context Protocol servers extend Copilot with external tool access.
 }
 ```
 
-### Copilot Hooks
+### Copilot Hooks (Preview)
 
-Hooks let you run commands automatically before or after Copilot agent actions.
+Hooks execute custom shell commands at key lifecycle points during agent sessions for automation, validation, and policy enforcement.
 
 | Attribute | Details |
 | --- | --- |
-| **Setting** | `github.copilot.chat.agent.hooks` in `.vscode/settings.json` |
-| **Hook points** | `postSave`, `postCreate`, `postDelete`, `postRename` |
-| **Format** | Array of command objects per hook point |
-| **Command keys** | `command` (string), `glob` (file pattern filter), `working_directory` |
-| **Approval** | Each hook execution requires user approval (safety) |
-| **Use cases** | Auto-format on save, auto-lint, run tests after file creation |
+| **Config files** | `.github/hooks/*.json` (workspace), `.claude/settings.json`, `.claude/settings.local.json` |
+| **Format** | JSON with `hooks` object containing arrays per lifecycle event |
+| **Setting** | `chat.hookFilesLocations` — customize which hook files are loaded |
+| **Agent-scoped** | Hooks in `.agent.md` frontmatter (enable with `chat.useCustomAgentHooks`) |
+| **AI generation** | Type `/create-hook` in chat to generate with AI assistance |
+| **Cross-agent** | Works across local agents, background agents, and cloud agents |
 
-**Example:**
+**Hook lifecycle events:**
+
+| Event | When It Fires | Common Use Cases |
+| --- | --- | --- |
+| `SessionStart` | User submits the first prompt of a new session | Initialize resources, validate project state |
+| `UserPromptSubmit` | User submits a prompt | Audit requests, inject system context |
+| `PreToolUse` | Before agent invokes any tool | Block dangerous ops, require approval, modify input |
+| `PostToolUse` | After tool completes successfully | Run formatters, log results, trigger follow-up |
+| `PreCompact` | Before conversation context is compacted | Export important context, save state |
+| `SubagentStart` | Subagent is spawned | Track nested agent usage |
+| `SubagentStop` | Subagent completes | Aggregate results, cleanup |
+| `Stop` | Agent session ends | Generate reports, cleanup resources |
+
+**Hook command properties:**
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `type` | string | Must be `"command"` |
+| `command` | string | Default command to run (cross-platform) |
+| `windows` | string | Windows-specific command override |
+| `linux` | string | Linux-specific command override |
+| `osx` | string | macOS-specific command override |
+| `timeout` | number | Timeout in seconds (default: 30) |
+
+**Example `.github/hooks/format.json`:**
 
 ```json
 {
-  "github.copilot.chat.agent.hooks": {
-    "postSave": [
-      { "command": "npx prettier --write ${file}", "glob": "**/*.{ts,js}" }
+  "hooks": {
+    "PostToolUse": [
+      { "type": "command", "command": "npx prettier --write \"$TOOL_INPUT_FILE_PATH\"" }
     ],
-    "postCreate": [
-      { "command": "npm run lint:fix -- ${file}" }
+    "PreToolUse": [
+      { "type": "command", "command": "./scripts/validate-tool.sh", "timeout": 15 }
     ]
   }
 }
 ```
 
-### Agent Plugins (Extensibility)
+### Agent Plugins (Preview)
 
-Extend Copilot via VS Code extension API to create custom chat participants, tools, and model providers.
+Agent plugins are prepackaged bundles of chat customizations installed from plugin marketplaces. A single plugin can provide slash commands, skills, custom agents, hooks, and MCP servers.
 
 | Attribute | Details |
 | --- | --- |
-| **Chat participant API** | `vscode.chat.createChatParticipant()` — register `@name` participants |
-| **Tool API** | `vscode.lm.registerTool()` — register tools callable by agents |
-| **Language model API** | `vscode.lm.registerLanguageModelChatProvider()` — custom model backends |
-| **Package.json** | Declare via `contributes.chatParticipants` and `contributes.languageModelTools` |
-| **Tool annotations** | `confirmationMessages`, `readonlyHint`, `defaultApproval` metadata |
+| **Discovery** | Extensions view with `@agentPlugins` search; or Chat Customizations editor |
+| **Marketplaces** | GitHub repos configured via `chat.plugins.marketplaces` |
+| **Install sources** | Marketplace, Git URL (**Chat: Install Plugin From Source**), or local path |
+| **Setting** | `chat.plugins.enabled` — enable/disable plugin support |
+| **Contents** | Slash commands, agent skills, custom agents, hooks, MCP servers |
+| **Plugin file** | `plugin.json` at plugin root defines metadata and configuration |
+| **MCP config** | `.mcp.json` at plugin root (uses `mcpServers` key, not `servers`) |
+| **Path token** | `${CLAUDE_PLUGIN_ROOT}` expands to plugin's absolute path |
+| **Workspace recs** | `enabledPlugins` and `extraKnownMarketplaces` in workspace settings |
 
 ## Chat Features
 
@@ -210,14 +303,21 @@ The primary interaction surface for conversational AI assistance.
 | Attribute | Details |
 | --- | --- |
 | **Open** | `Ctrl+Alt+I` / `Cmd+Alt+I` or Activity Bar icon |
-| **Modes** | Ask, Edit, Agent (configurable per conversation) |
+| **Agents** | Select from agent picker dropdown (Ask, Agent, Plan, custom agents) |
 | **Ask mode** | Read-only Q&A; no file modifications |
-| **Edit mode** | Proposes inline edits to specified files |
 | **Agent mode** | Autonomous; can run terminal commands, edit files, use tools |
-| **Agent setting** | `chat.agent.enabled` (default: `true`) |
+| **Setting** | `chat.agent.enabled` (default: `true`) |
 | **Max requests** | `chat.agent.maxRequests` — limit autonomous iterations |
 | **Auto-fix** | `github.copilot.chat.agent.autoFix` — auto-fix lint/build errors |
 | **Run tasks** | `github.copilot.chat.agent.runTasks` — allow task execution |
+
+**Permission levels:**
+
+| Level | Description |
+| --- | --- |
+| **Default Approvals** | Tools requiring approval show confirmation dialog |
+| **Bypass Approvals** | Auto-approves all tool calls; may ask clarifying questions |
+| **Autopilot** (Preview) | Auto-approves and auto-responds; fully autonomous until task completion |
 
 ### Chat Sessions
 
@@ -228,8 +328,8 @@ Manage multiple concurrent conversations with Copilot.
 | **Multi-session** | Multiple chat tabs; each maintains independent context |
 | **History** | Sessions persist across VS Code restarts |
 | **Export** | Right-click session → Export to markdown |
+| **Background sessions** | Sessions can run in background while you code |
 | **Session title** | Auto-generated from first message; editable |
-| **Clear** | Clear session to reset context without closing tab |
 
 ### Chat Context (`#` References)
 
@@ -255,6 +355,27 @@ Explicitly attach context to chat messages using `#` references.
 | `#imports:file` | Import graph of a file |
 | `#testFailure` | Details of failing tests |
 | `#debugContext` | Current debug session state |
+| `#artifacts` | Surface resources to the artifacts panel |
+
+**Additional context methods:**
+
+| Method | Details |
+| --- | --- |
+| **Drag & drop** | Drag files/folders from Explorer, Search, or editor tabs onto Chat |
+| **Add Context** | Button in Chat view to open the context picker |
+| **Vision** | Attach images (screenshots, UI sketches) for visual context (Preview) |
+| **Browser elements** | Select elements from integrated browser (Experimental) |
+| **URL references** | Include URLs directly in prompts; agent fetches content |
+| **@-mentions** | `@vscode`, `@terminal` for domain-specific chat participants |
+
+### Context Window Management
+
+| Feature | Details |
+| --- | --- |
+| **Context indicator** | Visual fill bar in chat input showing token usage vs. model capacity |
+| **Auto-compaction** | Conversation automatically summarized when context window fills up |
+| **Manual compaction** | Type `/compact` in chat; optionally add guidance |
+| **Workspace indexing** | Automatic; relevant files included based on conversation |
 
 ### Inline Chat
 
@@ -267,7 +388,6 @@ Trigger Copilot directly in the editor at the cursor position.
 | **Actions** | Explain, fix, refactor, generate, document |
 | **Preview** | Shows inline diff preview before accepting |
 | **Accept** | Enter to accept; Escape to dismiss |
-| **History** | `↑`/`↓` to cycle through previous inline prompts |
 
 ### Review Code Edits
 
@@ -279,7 +399,6 @@ Review and accept/reject Copilot's proposed changes.
 | **Navigation** | Arrow buttons or `F7`/`Shift+F7` to navigate between changes |
 | **Accept/Reject** | Per-file or per-hunk accept/reject |
 | **Undo** | Full undo of accepted changes via editor undo |
-| **Review scope** | Changes grouped by file in the chat response |
 
 ### Chat Checkpoints
 
@@ -291,7 +410,17 @@ Save and restore conversation state at specific points.
 | **Restore** | Click checkpoint to restore conversation and file state to that point |
 | **File state** | Checkpoints capture both conversation and workspace file state |
 | **Branching** | Restore a checkpoint and take a different direction |
-| **UI** | Checkpoint markers shown in chat timeline |
+
+### Chat Artifacts (Preview)
+
+The artifacts panel surfaces important resources alongside the chat conversation.
+
+| Attribute | Details |
+| --- | --- |
+| **Setting** | `chat.artifacts.enabled` — enable/disable the artifacts panel |
+| **Types** | Links, screenshots/images, plans, documents |
+| **Invocation** | Agent uses `#artifacts` tool; or ask agent to create artifacts |
+| **Behavior** | Each time the agent sets artifacts, the previous list is replaced |
 
 ### Chat Debug View
 
@@ -299,52 +428,58 @@ Use Copilot integrated with the VS Code debugger.
 
 | Attribute | Details |
 | --- | --- |
-| **Context** | `#debugContext` attaches current debug session state (call stack, variables) |
+| **Context** | `#debugContext` attaches current debug session state |
 | **Fix suggestions** | Copilot can suggest fixes based on exception state |
 | **Breakpoint assist** | Ask Copilot to set conditional breakpoints |
 | **Watch expressions** | Copilot can suggest watch expressions |
-
-### Prompt Crafting Best Practices
-
-Patterns for effective Copilot interactions.
-
-| Practice | Details |
-| --- | --- |
-| **Be specific** | Include technology, framework, and pattern requirements |
-| **Provide context** | Use `#file:` and `#selection` to ground requests |
-| **Iterate** | Refine through follow-up messages in the same session |
-| **Scope work** | One task per message; break complex work into steps |
-| **Examples** | Include input/output examples for generation tasks |
-| **Constraints** | State what NOT to do alongside what to do |
-| **Verification** | Ask Copilot to verify its own output against requirements |
 
 ## Agent Mode Capabilities
 
 ### Planning
 
-Agent mode can create and follow multi-step plans.
+The Plan agent creates structured implementation plans before coding begins.
 
 | Attribute | Details |
 | --- | --- |
-| **Auto-planning** | Agent mode automatically plans complex multi-step tasks |
-| **Plan display** | Plan shown as checklist in chat; items checked as completed |
-| **Plan editing** | User can modify the plan before agent begins execution |
-| **Setting** | `chat.agent.planning` — `auto`, `always`, `never` |
-| **Manual trigger** | Prompt with "create a plan first" to force planning |
-| **Iteration** | Agent re-plans when encountering obstacles |
+| **Invocation** | Select **Plan** from agents dropdown, or type `/plan` followed by task description |
+| **Behavior** | Researches codebase → asks clarifying questions → generates plan |
+| **Todo list** | Tracks progress through implementation steps |
+| **Plan storage** | Auto-saved to session memory (`/memories/session/plan.md`) |
+| **Model setting** | `chat.planAgent.defaultModel` — select default model for planning |
+| **Implementation model** | `github.copilot.chat.implementAgent.model` — model for implementation step |
+| **Extra tools** | `github.copilot.chat.planAgent.additionalTools` — additional tools for plan agent |
+| **Output** | Start implementation in same session, or open plan in editor for review |
 
 ### Memory
 
-Persistent context that agents remember across sessions.
+Agents retain context across sessions through a local memory tool and optional cloud-based Copilot Memory.
+
+#### Memory Tool (Preview)
 
 | Attribute | Details |
 | --- | --- |
-| **Memory file** | `.github/copilot-memory.md` — persistent facts Copilot remembers |
-| **Scope** | Workspace-level; shared across all chat sessions |
-| **Format** | Markdown; each fact as a bullet point or section |
-| **Auto-save** | Agent can be instructed to save learnings to memory |
-| **Retrieval** | Copilot automatically retrieves relevant memories |
-| **Setting** | `github.copilot.chat.memory.enabled` |
+| **Setting** | `github.copilot.chat.tools.memory.enabled` (default: `true`) |
+| **Storage** | Local files on your machine |
+| **Management** | **Chat: Show Memory Files**, **Chat: Clear All Memory Files** |
+| **Auto-load** | First 200 lines of user memory loaded at session start |
+
+**Memory scopes:**
+
+| Scope | Path | Persists Across Sessions | Persists Across Workspaces | Use For |
+| --- | --- | --- | --- | --- |
+| **User** | `/memories/` | Yes | Yes | Preferences, patterns, frequently used commands |
+| **Repository** | `/memories/repo/` | Yes | No | Codebase conventions, project structure, build commands |
+| **Session** | `/memories/session/` | No | No | Task-specific context, in-progress plans |
+
+#### Copilot Memory (Preview, GitHub-hosted)
+
+| Attribute | Details |
+| --- | --- |
+| **Setting** | `github.copilot.chat.copilotMemory.enabled` |
+| **Storage** | GitHub-hosted (remote) |
+| **Scope** | Repository-scoped only |
+| **Cross-agent** | Shared across VS Code, Copilot cloud agent, Copilot code review, Copilot CLI |
+| **Expiration** | Auto-deleted after 28 days |
 
 ### Agent Tools
 
@@ -375,17 +510,39 @@ Built-in tools available to Copilot in agent mode.
 | `git_log` | View git commit history |
 | `git_diff` | View git diffs |
 | `git_show` | Show git commit details |
+| `runSubagent` | Delegate subtask to a subagent |
+
+**Tool management:**
+
+| Feature | Details |
+| --- | --- |
+| **Configure** | Select **Configure Tools** in Chat view to enable/disable tools |
+| **Auto-approve** | `chat.tools.autoApprove` with tool ID allow-lists |
+| **Tool sets** | Group tools into named sets in `.vscode/settings.json` |
+| **Sandbox** | `chat.tools.sandbox.enabled` — run terminal commands in Docker sandbox |
 
 ### Subagents
 
-Agent mode can delegate subtasks to specialized subagents.
+Agent mode can delegate subtasks to context-isolated subagents for focused work.
 
 | Attribute | Details |
 | --- | --- |
-| **Concept** | The main agent can spawn specialized subagents for focused subtasks |
-| **Isolation** | Each subagent operates with its own context window |
-| **Use cases** | Parallel file analysis, independent module work, research tasks |
-| **Custom agents** | `.agent.md` files act as invocable subagents |
+| **Concept** | Independent AI agents with their own context window for focused subtasks |
+| **Isolation** | Each subagent gets a clean context; returns only results to main agent |
+| **Invocation** | Agent-initiated (via `runSubagent` tool); or user-hinted via prompt |
+| **Custom agents** | `.agent.md` files can be invoked as specialized subagents |
+| **Control** | `agents` frontmatter in `.agent.md` restricts which subagents an agent can use |
+| **Nested** | `chat.subagents.allowInvocationsFromSubagents` — enable recursive nesting (max depth 5) |
+| **Parallel** | Multiple subagents can run in parallel for independent subtasks |
+
+**Orchestration patterns:**
+
+| Pattern | Description |
+| --- | --- |
+| **Coordinator/Worker** | One agent manages workflow, delegates to specialized worker subagents |
+| **Multi-perspective review** | Multiple review perspectives run in parallel as subagents |
+| **Research-then-implement** | Subagent researches; main agent implements with clean context |
+| **Recursive divide-and-conquer** | Agent delegates to instances of itself for large tasks |
 
 ### Local Agents
 
@@ -401,13 +558,14 @@ Run agent sessions locally with full workspace access.
 
 ### Copilot CLI
 
-Command-line interface for Copilot interactions outside VS Code.
+Command-line interface for Copilot agent interactions outside VS Code.
 
 | Attribute | Details |
 | --- | --- |
-| **Install** | Part of GitHub CLI: `gh extension install github/gh-copilot` |
-| **Commands** | `gh copilot suggest` — command suggestions; `gh copilot explain` — explain commands |
-| **Shell integration** | Works in bash, zsh, PowerShell |
+| **Install** | `npm install -g @anthropic-ai/claude-code` or GitHub CLI extension |
+| **Environment** | Terminal-based; uses same customizations (instructions, skills, hooks, agents) |
+| **Capabilities** | Full agent mode with file editing, terminal, and tool use |
+| **MCP** | Supports same `.vscode/mcp.json` configuration |
 
 ### Cloud Agents (Copilot Coding Agent)
 
@@ -419,9 +577,8 @@ GitHub-hosted agent sessions that run in the cloud.
 | **Environment** | Runs in a cloud VM with repo access |
 | **Output** | Creates a pull request with changes |
 | **Config** | `copilot-setup-steps.yml` in `.github/` for environment setup |
-| **Session file** | `.github/copilot-setup-steps.yml` defines install/build/test steps |
+| **Customizations** | Uses repo's instructions, skills, hooks, and agents |
 | **Limits** | Bounded by Copilot plan quotas |
-| **Review** | PR review workflow; can iterate based on review comments |
 
 ### Third-Party Agents
 
@@ -430,9 +587,7 @@ Extend Copilot with external service integrations.
 | Attribute | Details |
 | --- | --- |
 | **Marketplace** | GitHub Marketplace Copilot extensions |
-| **Protocol** | Agents communicate via Copilot extension protocol |
 | **Invocation** | `@agent-name` in chat |
-| **Capabilities** | Can access external APIs, databases, services |
 | **Examples** | `@docker`, `@azure`, database agents |
 
 ### Copilot Smart Actions
@@ -459,12 +614,9 @@ Build custom `@name` chat participants via VS Code extensions.
 | API | Details |
 | --- | --- |
 | `vscode.chat.createChatParticipant(id, handler)` | Register a chat participant |
-| `ChatRequestHandler` | Callback receiving `ChatRequest`, `ChatContext`, `ChatResponseStream` |
 | `ChatResponseStream.markdown()` | Stream markdown responses |
 | `ChatResponseStream.button()` | Add action buttons to responses |
-| `ChatResponseStream.reference()` | Add file/symbol references |
-| `ChatResponseStream.progress()` | Show progress indicator |
-| `contributes.chatParticipants` | Package.json declaration with `id`, `name`, `description` |
+| `contributes.chatParticipants` | Package.json declaration |
 
 ### Language Model API
 
@@ -472,10 +624,8 @@ Access and invoke language models programmatically from extensions.
 
 | API | Details |
 | --- | --- |
-| `vscode.lm.selectChatModels()` | Select available models by family/vendor |
+| `vscode.lm.selectChatModels()` | Select available models |
 | `model.sendRequest(messages, options)` | Send chat completion request |
-| `LanguageModelChatMessage` | User, assistant, and system message types |
-| `LanguageModelToolCallPart` | Tool use integration in model responses |
 | `vscode.lm.registerLanguageModelChatProvider()` | Register custom model backends |
 
 ### Tool API
@@ -486,81 +636,63 @@ Register custom tools that agents and chat participants can invoke.
 | --- | --- |
 | `vscode.lm.registerTool(name, tool)` | Register a tool |
 | `contributes.languageModelTools` | Declare tools in package.json |
-| `LanguageModelTool.invoke()` | Tool implementation method |
-| `LanguageModelTool.prepareInvocation()` | Pre-invocation hook for confirmation UI |
+| `contributes.chatSkills` | Declare skills in package.json |
 | **Annotations** | `confirmationMessages`, `readonlyHint`, `defaultApproval` |
 
-### Other Extension Guide Surfaces
-
-Additional VS Code extension capabilities relevant to AI-assisted workflows.
+### Other Extension Surfaces
 
 | Surface | Relevance to BMAD |
 | --- | --- |
-| **Command API** | Register commands invocable from command palette or keybindings |
-| **Webview API** | Rich HTML panels for dashboards, visualizations |
+| **Command API** | Register commands invocable from command palette |
+| **Webview API** | Rich HTML panels for dashboards |
 | **Tree View API** | Sidebar trees for skill/workflow navigation |
-| **Task Provider API** | Register build/test tasks; integrate with agent `runTasks` |
-| **SCM Provider API** | Custom source control; track BMAD artifact changes |
-| **Debugger Extension** | Custom debug configurations for workflow debugging |
-| **Testing API** | Test runner integration; connect to Copilot test generation |
-| **Custom Editor API** | Visual editors for YAML configs, workflow diagrams |
-| **Markdown Extension** | Custom markdown rendering for BMAD artifacts |
-| **Telemetry API** | Usage tracking for BMAD skill invocations |
+| **Task Provider API** | Register build/test tasks |
+| **Testing API** | Test runner integration |
+| **Custom Editor API** | Visual editors for YAML configs |
 
 ## Guides & Best Practices
 
 ### Context Engineering
-
-Principles for providing optimal context to Copilot.
 
 | Practice | Details |
 | --- | --- |
 | **Instruction hierarchy** | Global instructions → scoped instructions → prompt files → chat context |
 | **Context budget** | Be selective; too much context degrades quality |
 | **Grounding files** | Use `#file:` to attach architecture docs, type definitions, examples |
-| **Negative instructions** | Explicitly state what to avoid |
 | **Convention files** | `.github/copilot-instructions.md` for repo-wide conventions |
-| **Scoped rules** | `.github/instructions/*.md` with `applyTo` for file-type-specific rules |
+| **Scoped rules** | `.instructions.md` with `applyTo` for file-type-specific rules |
 
 ### Test-Driven Development with Copilot
-
-Using Copilot in a TDD workflow.
 
 | Practice | Details |
 | --- | --- |
 | **Test-first** | Write test files first; Copilot infers implementation from tests |
 | **Test context** | Attach test files via `#file:` when requesting implementations |
-| **Test generation** | Use "Generate Tests" smart action or prompt for test generation |
-| **Coverage** | Ask Copilot to identify untested code paths |
-
-### Debugging with Copilot
-
-Leverage Copilot during debugging sessions.
-
-| Practice | Details |
-| --- | --- |
-| **Debug context** | Use `#debugContext` to share current debug state |
-| **Exception analysis** | Copilot analyzes stack traces and variable state |
-| **Fix suggestions** | Copilot proposes fixes based on runtime state |
+| **Test generation** | Use "Generate Tests" smart action or `/create-skill` for testing workflows |
 
 ## VS Code Settings Reference
 
-All Copilot-related settings that can be configured in `.vscode/settings.json`.
+Key Copilot-related settings for `.vscode/settings.json`.
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `chat.agent.enabled` | boolean | `true` | Enable agent mode |
 | `chat.agent.maxRequests` | number | `15` | Max autonomous iterations per agent turn |
-| `chat.agent.planning` | string | `"auto"` | Planning behavior: `auto`, `always`, `never` |
 | `github.copilot.chat.agent.autoFix` | boolean | `true` | Auto-fix lint/build errors |
 | `github.copilot.chat.agent.runTasks` | boolean | `true` | Allow agent to run VS Code tasks |
-| `github.copilot.chat.agent.hooks` | object | `{}` | Pre/post hooks for agent file operations |
-| `chat.tools.autoApprove` | boolean | `false` | Auto-approve tool calls without user confirmation |
+| `chat.tools.autoApprove` | boolean | `false` | Auto-approve tool calls |
 | `chat.tools.terminal.backgroundNotifications` | boolean | `true` | Notify on background terminal activity |
-| `chat.promptFiles` | boolean | `true` | Enable `.prompt.md` file discovery |
+| `chat.tools.sandbox.enabled` | boolean | `false` | Run terminal commands in Docker sandbox |
 | `chat.mcp.discovery.enabled` | boolean | `true` | Auto-discover MCP server configs |
-| `github.copilot.chat.codeGeneration.useInstructionFiles` | boolean | `true` | Use instruction files for code generation |
-| `github.copilot.chat.memory.enabled` | boolean | `true` | Enable persistent memory |
+| `github.copilot.chat.codeGeneration.useInstructionFiles` | boolean | `true` | Use instruction files |
+| `github.copilot.chat.tools.memory.enabled` | boolean | `true` | Enable memory tool |
+| `github.copilot.chat.copilotMemory.enabled` | boolean | `false` | Enable GitHub-hosted Copilot Memory |
+| `chat.planAgent.defaultModel` | string | — | Default model for Plan agent |
+| `chat.plugins.enabled` | boolean | `false` | Enable agent plugins (Preview) |
+| `chat.artifacts.enabled` | boolean | `false` | Enable artifacts panel (Preview) |
+| `chat.useCustomizationsInParentRepositories` | boolean | `false` | Discover customizations from parent repo root |
+| `chat.subagents.allowInvocationsFromSubagents` | boolean | `false` | Allow nested subagents |
+| `workbench.browser.enableChatTools` | boolean | `false` | Enable browser tools for agents |
 | `github.copilot.selectedCompletionModel` | string | — | Override completion model |
 
 ## File System Layout
@@ -570,22 +702,23 @@ Summary of all Copilot-related files and directories.
 ```text
 .github/
 ├── copilot-instructions.md          # Global custom instructions
-├── copilot-memory.md                # Persistent agent memory
 ├── copilot-setup-steps.yml          # Cloud agent environment setup
 ├── instructions/                    # Scoped instruction files
-│   ├── typescript.md                #   applyTo: "**/*.ts"
-│   └── tests.md                     #   applyTo: "**/*.test.*"
+│   ├── typescript.instructions.md   #   applyTo: "**/*.ts"
+│   └── tests.instructions.md       #   applyTo: "**/*.test.*"
 ├── prompts/                         # Prompt file templates
 │   └── component.prompt.md          #   Reusable slash commands
-├── agents/                          # Custom chat agents
-│   └── reviewer.agent.md            #   @reviewer participant
+├── agents/                          # Custom agents
+│   └── reviewer.agent.md            #   Agent with persona and tools
 ├── skills/                          # Agent skills
 │   └── bmad-help/                   #   Skill directories
 │       └── SKILL.md                 #     Skill entry point
-└── chat-modes/                      # Custom chat modes
-    └── review.chatmode.md           #   Mode definitions
+└── hooks/                           # Hook configuration
+    └── format.json                  #   Lifecycle event hooks
+
+AGENTS.md                            # Always-on instructions (root-level)
 
 .vscode/
-├── settings.json                    # Copilot settings & hooks
+├── settings.json                    # Copilot settings
 └── mcp.json                         # MCP server configuration
 ```

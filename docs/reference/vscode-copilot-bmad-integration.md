@@ -11,7 +11,7 @@ For the full catalog of VS Code Copilot capabilities, see [VS Code Copilot Capab
 
 ## Custom Instructions for BMAD
 
-BMAD projects should use `.github/copilot-instructions.md` to establish repo-wide conventions that Copilot follows automatically.
+BMAD projects should use `.github/copilot-instructions.md` (and optionally `AGENTS.md` at root) to establish repo-wide conventions that Copilot follows automatically.
 
 ### Recommended BMAD Custom Instructions
 
@@ -40,16 +40,20 @@ This project uses the BMAD-METHOD framework for structured, agent-assisted softw
 - Reference the active story in `_bmad-output/epics/` for task scope
 ```
 
+### AGENTS.md Compatibility
+
+BMAD's existing `AGENTS.md` file at the repo root is automatically read by VS Code Copilot as always-on custom instructions. BMAD projects already benefit from this — the `AGENTS.md` file that ships with BMAD-METHOD contains quality rules, skill validation rules, and commit conventions that Copilot will follow automatically.
+
 ### Scoped Instructions for BMAD Artifacts
 
-Create scoped instruction files in `.github/instructions/` for BMAD-specific file types:
+Create `.instructions.md` files (anywhere in the repo) for BMAD-specific file types:
 
 | File | `applyTo` Pattern | Instructions |
 | --- | --- | --- |
-| `bmad-yaml.md` | `**/_bmad/**/*.yaml` | BMAD YAML config conventions; reference `config.yaml` schema |
-| `bmad-skills.md` | `**/SKILL.md` | BMAD skill frontmatter requirements; `name` must match directory |
-| `bmad-workflows.md` | `**/workflow.md` | BMAD workflow structure; step-file architecture conventions |
-| `bmad-output.md` | `**/_bmad-output/**` | BMAD artifact format conventions; preserve frontmatter |
+| `bmad-yaml.instructions.md` | `**/_bmad/**/*.yaml` | BMAD YAML config conventions; reference `config.yaml` schema |
+| `bmad-skills.instructions.md` | `**/SKILL.md` | BMAD skill frontmatter requirements; `name` must match directory |
+| `bmad-workflows.instructions.md` | `**/workflow.md` | BMAD workflow structure; step-file architecture conventions |
+| `bmad-output.instructions.md` | `**/_bmad-output/**` | BMAD artifact format conventions; preserve frontmatter |
 
 ## Prompt Files for BMAD Workflows
 
@@ -61,7 +65,7 @@ BMAD workflows can be exposed as `.prompt.md` files so users can invoke them via
 
 ```markdown
 ---
-mode: "agent"
+agent: "agent"
 description: "Get BMAD help — what to do next in your project"
 ---
 Run the bmad-help skill. Analyze the current project state by checking:
@@ -76,8 +80,9 @@ Recommend the next BMAD workflow to run based on what artifacts exist.
 
 ```markdown
 ---
-mode: "agent"
+agent: "agent"
 description: "Implement the next BMAD story"
+tools: ['terminal', 'test', 'diagnostics', 'edit_file', 'create_file']
 ---
 Run the bmad-dev-story workflow:
 1. Read #file:_bmad-output/sprint-status.yaml to find the next ready story
@@ -91,8 +96,9 @@ Run the bmad-dev-story workflow:
 
 ```markdown
 ---
-mode: "agent"
+agent: "agent"
 description: "Run BMAD code review on current changes"
+tools: ['read_file', 'grep_search', 'diagnostics', 'test', 'git_diff']
 ---
 Run the bmad-code-review skill on the current changes.
 Use #changes to see what was modified.
@@ -101,20 +107,20 @@ Check against #file:_bmad-output/project-context.md for convention compliance.
 
 ## Custom Agents for BMAD Personas
 
-BMAD agents (Analyst, PM, Architect, Developer, etc.) can be mapped to VS Code custom agent files.
+BMAD agents (Analyst, PM, Architect, Developer, etc.) map directly to VS Code custom agent files with handoffs between phases.
 
 ### Agent File Mapping
 
-| BMAD Agent | File | `@` Handle | Tools |
+| BMAD Agent | File | Tools | Handoffs |
 | --- | --- | --- | --- |
-| Analyst (Mary) | `analyst.agent.md` | `@analyst` | `codebase_search`, `read_file`, `create_file` |
-| Product Manager (John) | `pm.agent.md` | `@pm` | `read_file`, `create_file`, `edit_file` |
-| Architect (Winston) | `architect.agent.md` | `@architect` | `codebase_search`, `read_file`, `create_file`, `edit_file` |
-| Developer (Amelia) | `dev.agent.md` | `@dev` | All tools |
-| UX Designer (Sally) | `ux.agent.md` | `@ux` | `read_file`, `create_file`, `edit_file` |
-| Technical Writer (Paige) | `writer.agent.md` | `@writer` | `read_file`, `create_file`, `edit_file`, `codebase_search` |
+| Analyst (Mary) | `analyst.agent.md` | `codebase_search`, `read_file`, `create_file`, `fetch` | → PM, → Architect |
+| Product Manager (John) | `pm.agent.md` | `read_file`, `create_file`, `edit_file` | → Architect, → UX |
+| Architect (Winston) | `architect.agent.md` | `codebase_search`, `read_file`, `create_file`, `edit_file` | → Developer |
+| Developer (Amelia) | `dev.agent.md` | All tools | → Reviewer |
+| UX Designer (Sally) | `ux.agent.md` | `read_file`, `create_file`, `edit_file` | → PM |
+| Technical Writer (Paige) | `writer.agent.md` | `read_file`, `create_file`, `edit_file`, `codebase_search` | — |
 
-### Example Agent File
+### Example Agent File with Handoffs
 
 **`.github/agents/dev.agent.md`:**
 
@@ -134,6 +140,13 @@ tools:
   - diagnostics
   - git_diff
   - git_log
+handoffs:
+  - label: Run Code Review
+    agent: reviewer
+    prompt: Review the implementation I just completed against the story acceptance criteria.
+  - label: Update Sprint Status
+    agent: agent
+    prompt: Update _bmad-output/sprint-status.yaml to mark the current story as complete.
 ---
 
 You are Amelia, the BMAD Developer agent. Your expertise is implementing
@@ -156,16 +169,96 @@ user stories from the BMAD backlog with high-quality, tested code.
 - **SP** (Sprint Planning) — initialize sprint tracking
 ```
 
-## Chat Modes for BMAD Phases
+### BMAD Phase Agents (Workflow Restrictors)
 
-Define custom chat modes that restrict Copilot behavior to match BMAD workflow phases.
+Define agents that restrict tools by BMAD phase:
 
-| Mode | File | Purpose | Allowed Tools |
+| Agent | File | Purpose | Allowed Tools |
 | --- | --- | --- | --- |
-| Planning | `planning.chatmode.md` | Analysis and planning phase — read-only research | `codebase_search`, `read_file`, `file_search`, `grep_search`, `fetch` |
-| Solutioning | `solutioning.chatmode.md` | Architecture and story creation | `codebase_search`, `read_file`, `create_file`, `edit_file`, `file_search` |
-| Implementation | `implementation.chatmode.md` | Full development — all tools available | _(all tools)_ |
-| Review | `review.chatmode.md` | Code review — read-only with diagnostics | `codebase_search`, `read_file`, `grep_search`, `git_diff`, `diagnostics`, `test` |
+| Planning | `planning.agent.md` | Analysis and planning — read-only research | `codebase_search`, `read_file`, `file_search`, `grep_search`, `fetch` |
+| Solutioning | `solutioning.agent.md` | Architecture and story creation | `codebase_search`, `read_file`, `create_file`, `edit_file`, `file_search` |
+| Implementation | `implementation.agent.md` | Full development — all tools | _(all tools)_ |
+| Review | `review.agent.md` | Code review — read-only with diagnostics | `codebase_search`, `read_file`, `grep_search`, `git_diff`, `diagnostics`, `test` |
+
+## Agent Skills Mapping
+
+BMAD skills use the same directory structure and naming conventions as VS Code Agent Skills. When installed to `.github/skills/`, BMAD skills are natively discovered and invocable via `/skill-name` in chat.
+
+### BMAD Skill → VS Code Skill Compatibility
+
+| BMAD Skill Concept | VS Code Agent Skills Equivalent |
+| --- | --- |
+| `SKILL.md` entry point | Identical — VS Code reads `SKILL.md` with frontmatter |
+| `name` in frontmatter | Must match directory name (same rule in both) |
+| `description` in frontmatter | Used for auto-discovery and relevance matching |
+| `workflow.md` → `./steps/` | Linked files loaded on-demand when referenced in SKILL.md |
+| Slash command invocation | Type `/skill-name` in chat |
+| Auto-invocation by agent | Agent loads skill based on description relevance |
+
+### Making BMAD Skills Portable
+
+To make BMAD skills work seamlessly across VS Code, Copilot CLI, and cloud agents:
+
+1. **Ensure `SKILL.md` frontmatter is complete** — `name` and `description` are required
+2. **Use relative links** — Reference `workflow.md` and `./steps/*.md` with Markdown link syntax
+3. **Include `user-invocable` and `disable-model-invocation`** where appropriate
+4. **Add `argument-hint`** for skills that benefit from user input context
+
+## Subagent Orchestration for BMAD
+
+BMAD's multi-agent architecture maps naturally to VS Code's subagent system.
+
+### BMAD Session Orchestrator → VS Code Subagents
+
+The `bmad-session-orchestrator` skill recommends parallel sessions. VS Code subagents provide the execution mechanism:
+
+| BMAD Concept | VS Code Subagent Feature |
+| --- | --- |
+| Parallel session recommendations | Parallel subagent execution |
+| Session briefs | Custom agent instructions per subagent |
+| Conflict detection (same output file) | Independent context per subagent |
+| Sprint dashboard | Main agent aggregates subagent results |
+
+### Coordinator Agent for BMAD
+
+A BMAD coordinator agent can orchestrate the full lifecycle:
+
+**`.github/agents/bmad-coordinator.agent.md`:**
+
+```markdown
+---
+description: "BMAD lifecycle coordinator — delegates to specialized BMAD agents"
+tools: ['agent', 'read_file', 'codebase_search']
+agents: ['analyst', 'pm', 'architect', 'dev', 'reviewer']
+---
+You are the BMAD lifecycle coordinator. For each feature request:
+
+1. Use the analyst agent as a subagent to research and gather requirements
+2. Use the pm agent as a subagent to create/validate the PRD
+3. Use the architect agent as a subagent to design the architecture
+4. Use the dev agent as a subagent to implement stories
+5. Use the reviewer agent as a subagent to validate the implementation
+
+Iterate between phases as needed until the feature is complete.
+```
+
+### Multi-Perspective BMAD Code Review
+
+Run BMAD's review skills as parallel subagents:
+
+```markdown
+---
+description: "BMAD comprehensive code review — multiple review perspectives"
+tools: ['agent', 'read_file', 'grep_search', 'git_diff']
+agents: ['review-adversarial', 'review-edge-case', 'review-structure']
+---
+Run these review perspectives in parallel as subagents:
+1. Use review-adversarial for adversarial general review
+2. Use review-edge-case for edge case hunting
+3. Use review-structure for editorial structure review
+
+Consolidate findings into a single prioritized review summary.
+```
 
 ## MCP Servers for BMAD
 
@@ -188,9 +281,8 @@ BMAD can leverage MCP servers for external tool integration.
 {
   "servers": {
     "github": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp",
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:githubToken}"
       }
@@ -201,52 +293,105 @@ BMAD can leverage MCP servers for external tool integration.
 
 ## Copilot Hooks for BMAD
 
-Configure hooks to enforce BMAD conventions automatically.
+Configure hooks to enforce BMAD conventions automatically at lifecycle points.
 
 ### Recommended Hooks
 
-**`.vscode/settings.json`:**
+**`.github/hooks/bmad-quality.json`:**
 
 ```json
 {
-  "github.copilot.chat.agent.hooks": {
-    "postSave": [
+  "hooks": {
+    "PostToolUse": [
       {
-        "command": "npx prettier --write ${file}",
-        "glob": "**/*.{ts,js,json,yaml}"
-      },
-      {
-        "command": "npx markdownlint-cli2 ${file}",
-        "glob": "**/*.md"
+        "type": "command",
+        "command": "npx prettier --write \"$TOOL_INPUT_FILE_PATH\"",
+        "windows": "npx prettier --write \"%TOOL_INPUT_FILE_PATH%\""
       }
     ],
-    "postCreate": [
+    "SessionStart": [
       {
-        "command": "npx prettier --write ${file}",
-        "glob": "**/*.{ts,js,json,yaml}"
+        "type": "command",
+        "command": "echo 'BMAD project detected. Sprint status:' && cat _bmad-output/sprint-status.yaml 2>/dev/null || echo 'No sprint active'"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "npm run quality 2>&1 | tail -20"
       }
     ]
   }
 }
 ```
 
+### Agent-Scoped Hooks
+
+Hooks can be embedded in agent frontmatter to run only when that agent is active:
+
+```markdown
+---
+description: "BMAD Developer agent"
+hooks:
+  PostToolUse:
+    - type: command
+      command: "npx markdownlint-cli2 \"$TOOL_INPUT_FILE_PATH\""
+---
+```
+
 ## Memory Integration
 
-BMAD's memory-manager pattern maps to VS Code Copilot's memory feature.
+BMAD's memory-manager pattern maps to VS Code Copilot's three-scope memory system.
 
-| BMAD Concept | Copilot Feature | Notes |
+### Memory Scope Mapping
+
+| BMAD Concept | VS Code Memory Scope | Notes |
 | --- | --- | --- |
-| `bmad-memory-manager` sidecars | `.github/copilot-memory.md` | Copilot memory is a single flat file; BMAD sidecars are scoped per skill |
-| `_bmad/_memory/` directory | No direct equivalent | BMAD's memory is richer; Copilot memory is flat key-value |
-| `sprint-status.yaml` | Copilot memory entries | Sprint position can be persisted to Copilot memory for cross-session awareness |
-| Session recovery | Chat checkpoints | Copilot checkpoints capture conversation + file state |
+| `bmad-memory-manager` session scope | **Session memory** (`/memories/session/`) | Task-specific; cleared when chat ends |
+| `bmad-memory-manager` workspace scope | **Repository memory** (`/memories/repo/`) | Persists across conversations in workspace |
+| `_bmad/_memory/` directory | **Repository memory** | BMAD's memory is richer; sidecars are scoped per skill |
+| User preferences | **User memory** (`/memories/`) | Persists across all workspaces |
+| `sprint-status.yaml` | Repository memory entries | Sprint position for cross-session awareness |
+| Session recovery | Chat checkpoints + session memory | Checkpoints capture conversation + file state |
 
 ### Bridging Strategy
 
 BMAD skills should write key state to both systems:
 
 1. **Canonical state** → BMAD artifacts (`sprint-status.yaml`, `_bmad/_memory/`)
-2. **Advisory hints** → `.github/copilot-memory.md` for Copilot cross-session awareness
+2. **Repository memory** → Key facts about the workspace (e.g., "This project uses the BMAD-METHOD framework, current sprint is Sprint-3, active story is S3-001")
+3. **Session memory** → In-progress plans and task state during a session
+
+### Memory Checkpoint Pattern
+
+BMAD skills using the memory-manager consumer pattern can write to VS Code memory scopes:
+
+```markdown
+### Memory Checkpoint
+
+When this step completes successfully, invoke the memory tool:
+- persist | scope: repo | "Sprint status updated: story S3-001 moved to in-progress"
+- persist | scope: session | "Current task: implementing auth middleware per story S3-001"
+```
+
+## Planning ↔ Agent Planning
+
+| BMAD Feature | Copilot Agent Feature |
+| --- | --- |
+| BMAD workflow steps | Plan agent (`/plan`) creates structured implementation plans |
+| Step-file architecture | Plan agent generates checklist from skill instructions |
+| Workflow checkpoints | Chat checkpoints for restoring conversation state |
+| Phase gates | Custom agents restricting tools per phase |
+| Plan model selection | `chat.planAgent.defaultModel` for planning; separate model for implementation |
+| Plan persistence | Session memory stores plan at `/memories/session/plan.md` |
+
+### BMAD Plan → Copilot Plan Workflow
+
+1. Invoke BMAD planning skill (e.g., `bmad-create-epics-and-stories`)
+2. Select **Plan** agent from dropdown to create structured implementation plan
+3. Review and edit the generated plan
+4. Switch to **Agent** mode to execute the plan
+5. Checkpoints auto-created at each step for rollback
 
 ## Session Orchestrator ↔ VS Code Multi-Session
 
@@ -254,39 +399,10 @@ The `bmad-session-orchestrator` skill explicitly supports VS Code's multi-sessio
 
 | BMAD Feature | VS Code Feature |
 | --- | --- |
-| Parallel session recommendations | Multiple chat tabs |
-| Session briefs | Custom instructions per tab (paste from brief) |
-| Conflict detection | Independent context per tab |
+| Parallel session recommendations | Multiple chat tabs / subagent parallel execution |
+| Session briefs | Custom agent instructions per tab or subagent prompt |
+| Conflict detection | Independent context per tab/subagent |
 | Sprint dashboard | Chat panel with `#file:sprint-status.yaml` |
-
-## Planning ↔ Agent Planning
-
-| BMAD Feature | Copilot Agent Feature |
-| --- | --- |
-| BMAD workflow steps | Agent mode auto-planning (`chat.agent.planning: "always"`) |
-| Step-file architecture | Agent creates checklist plans from skill instructions |
-| Workflow checkpoints | Chat checkpoints for restoring conversation state |
-| Phase gates | Custom chat modes restricting tools per phase |
-
-## Recommended VS Code Settings for BMAD
-
-Complete `.vscode/settings.json` configuration for optimal BMAD + Copilot integration:
-
-```json
-{
-  "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 30,
-  "chat.agent.planning": "always",
-  "github.copilot.chat.agent.runTasks": true,
-  "github.copilot.chat.agent.autoFix": true,
-  "chat.tools.autoApprove": false,
-  "chat.tools.terminal.backgroundNotifications": true,
-  "chat.promptFiles": true,
-  "chat.mcp.discovery.enabled": true,
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "github.copilot.chat.memory.enabled": true
-}
-```
 
 ## Context Engineering for BMAD
 
@@ -340,3 +456,35 @@ steps:
 3. Assign issues to Copilot for autonomous implementation
 4. Review generated PRs against BMAD quality standards
 5. Use `bmad-code-review` on the PR diff
+
+## Agent Plugins for BMAD (Future)
+
+BMAD-METHOD could be distributed as an agent plugin, providing:
+
+| Plugin Component | BMAD Content |
+| --- | --- |
+| **Skills** | All BMAD skills (bmad-help, bmad-create-prd, bmad-dev-story, etc.) |
+| **Custom Agents** | BMAD persona agents (Analyst, PM, Architect, Developer) |
+| **Hooks** | BMAD quality enforcement (formatting, linting, conventional commits) |
+| **MCP Servers** | BMAD artifact management server |
+
+This would allow one-click installation of the full BMAD framework via the VS Code agent plugins system.
+
+## Recommended VS Code Settings for BMAD
+
+Complete `.vscode/settings.json` configuration for optimal BMAD + Copilot integration:
+
+```json
+{
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 30,
+  "github.copilot.chat.agent.runTasks": true,
+  "github.copilot.chat.agent.autoFix": true,
+  "chat.tools.autoApprove": false,
+  "chat.tools.terminal.backgroundNotifications": true,
+  "chat.mcp.discovery.enabled": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.tools.memory.enabled": true,
+  "chat.useCustomizationsInParentRepositories": true
+}
+```
