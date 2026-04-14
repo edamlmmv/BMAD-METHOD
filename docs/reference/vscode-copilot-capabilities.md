@@ -186,7 +186,7 @@ Configure which AI models Copilot uses for different tasks.
 | Tier | Examples | When to Use |
 | --- | --- | --- |
 | **Full** | GPT-4o, Claude Sonnet 4, Gemini 2.5 Pro | Complex reasoning, architecture, multi-step planning, large refactors |
-| **Mini / Haiku** | GPT-4o mini, Claude Haiku, Gemini Flash | Simpler tasks — formatting, boilerplate generation, lookups, linting suggestions, editorial review |
+| **Mini / Haiku** | GPT-4o mini, Claude Haiku, Gemini Flash | Simpler tasks—formatting, boilerplate generation, lookups, linting suggestions, editorial review |
 
 Use the `model` frontmatter field in `.prompt.md` and `.agent.md` files to assign lighter models to less compute-intensive tasks. This reduces latency and cost while reserving full-tier models for work that genuinely requires deeper reasoning.
 
