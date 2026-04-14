@@ -32,6 +32,7 @@ Create `{outputFile}`:
 
 ```yaml
 ---
+sessionTag: '{sessionTag}'
 stepsCompleted: [1, '1b']
 activity: 'Solve'
 tier: 'Quick'

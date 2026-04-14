@@ -74,6 +74,7 @@ Run this checklist against the compiled document:
 Update `{outputFile}` frontmatter:
 
 ```yaml
+sessionTag: '{sessionTag}'
 stepsCompleted: [1, 2, 3, 5] # or [1, 2, 3, 4, 5] if research conducted
 discoveryCounter: [N]
 lastStep: 'step-05-handoff'
@@ -112,4 +113,4 @@ Output the final State Ledger with all step summaries, including `Evidence:` and
 Per workflow.md §MEMORY CHECKPOINT. Additionally:
 
 - **persist** | scope: workspace | key: learned-patterns | caller: "discovery-rigor"
-- Content: reusable insights from this discovery run
+- Content: reusable insights from this discovery run (shared across sessions)

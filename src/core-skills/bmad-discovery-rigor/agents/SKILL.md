@@ -57,6 +57,13 @@ These rules survive context pressure and take precedence over convenience:
 | ---- | ----------- | ----- |
 | DR | Discovery Rigor: full structured discovery workflow with verified handoff | bmad-discovery-rigor |
 
+## Commands
+
+| Command | Action |
+| ------- | ------ |
+| `/SESSIONS` | List all `discovery-context-*.md` files in `{output_folder}`, showing `sessionTag`, `status`, `lastStep`, and `activity` from each file's frontmatter. Use this to find and resume a specific session. |
+| `/RESUME {sessionTag}` | Recover the State Ledger from the specified session's output file and resume from the last completed step. |
+
 ## On Activation
 
 1. Start with `/CLASSIFY` unless resuming from a State Ledger.

@@ -35,7 +35,7 @@ The output document (`{outputFile}`) should leave downstream skills with:
 
 ## Recovery
 
-If conversation context is compressed, re-read this file and [workflow.md](workflow.md). The `{outputFile}` frontmatter (`stepsCompleted`, `discoveryCounter`, `lastStep`) plus the State Ledger are the canonical recovery surfaces.
+If conversation context is compressed, re-read this file and [workflow.md](workflow.md). The `{outputFile}` frontmatter (`sessionTag`, `stepsCompleted`, `discoveryCounter`, `lastStep`) plus the State Ledger are the canonical recovery surfaces.
 
 ## On Activation
 

@@ -1,5 +1,5 @@
 ---
-outputFile: '{output_folder}/discovery-context.md'
+outputFile: '{output_folder}/discovery-context-{sessionTag}.md'
 ---
 
 # Discovery Rigor Workflow
@@ -26,6 +26,7 @@ Maintain this compact summary across the run. Update it whenever a halt gate or 
 ```
 State Ledger
 ---
+Session: [{sessionTag}]
 Problem: [one-line summary]
 Class: [activity] | [tier] | Convergence: [Y/N] | Domains: [fragments]
 Position: [current] ✅ → [next] [N/5]
@@ -75,13 +76,13 @@ Check `./resources/discovery-resources-index.csv` for the full index. Record app
 
 ## MEMORY CHECKPOINT
 
-Use `bmad-memory-manager` as the durable sidecar for recovery support. `{outputFile}` remains the canonical workflow artifact.
+Use `bmad-memory-manager` as the durable sidecar for recovery support. `{outputFile}` remains the canonical workflow artifact. Use `discovery-rigor-{sessionTag}` as the caller to scope sidecars to this session.
 
 | Event | Operation |
 |-------|-----------|
-| After each completed step | `persist | scope: session | key: state-ledger | caller: "discovery-rigor"` with current frontmatter + State Ledger |
-| Recovery mismatch | `recover | scope: session | key: state-ledger | caller: "discovery-rigor"` |
-| Workflow completion | `persist | scope: workspace | key: learned-patterns | caller: "discovery-rigor"` with reusable insights from the run |
+| After each completed step | `persist | scope: session | key: state-ledger | caller: "discovery-rigor-{sessionTag}"` with current frontmatter + State Ledger |
+| Recovery mismatch | `recover | scope: session | key: state-ledger | caller: "discovery-rigor-{sessionTag}"` |
+| Workflow completion | `persist | scope: workspace | key: learned-patterns | caller: "discovery-rigor"` with reusable insights from the run (shared across sessions) |
 
 ## QUALITY ENHANCEMENT
 
@@ -95,12 +96,29 @@ Optional skill invocations. Evaluate them at step 5 entry only, after the core d
 
 Skip any skill that is not installed.
 
-## MULTI-RUN ISOLATION
+## SESSION ANCHOR
 
-| Condition | Action |
-|-----------|--------|
-| Single investigation | Use `{outputFile}` directly |
-| Multiple concurrent | Use `{output_folder}/discovery-context-{topic-slug}.md` per run; add `runId` to frontmatter |
+Every step **must** update `{outputFile}` frontmatter before proceeding to the next step. The file is the single source of truth — chat memory is not reliable across context compressions. The minimum update at each step boundary:
+
+```yaml
+stepsCompleted: [1, 2, ...]  # append this step's number
+lastStep: 'step-NN-name'     # current step file stem
+sessionTag: '{sessionTag}'   # immutable after step 1
+```
+
+If the file already contains frontmatter that disagrees with chat memory, trust the file and announce a recovery.
+
+## SESSION TAGGING
+
+Every run gets a unique `{sessionTag}` so output files, memory sidecars, and State Ledger entries never collide with previous sessions. The tag is generated in step 1 and remains immutable for the rest of the run.
+
+| Component | Format | Example |
+|-----------|--------|---------|
+| `{sessionTag}` | `{YYYY-MM-DD}-{topic-slug}` | `2026-04-14-auth-token-rotation` |
+| `{outputFile}` | `{output_folder}/discovery-context-{sessionTag}.md` | `output/discovery-context-2026-04-14-auth-token-rotation.md` |
+| Memory caller | `discovery-rigor-{sessionTag}` | `discovery-rigor-2026-04-14-auth-token-rotation` |
+
+`{topic-slug}` is a kebab-case slug (≤ 5 words) derived from the classified problem statement. Step 1 generates both the tag and the resolved `{outputFile}` path.
 
 ## INITIALIZATION
 
@@ -110,6 +128,16 @@ Load config from `{project-root}/_bmad/core/config.yaml` and resolve:
 
 - `user_name`, `output_folder`, `communication_language`
 - `date` as system-generated current datetime
+
+### Session Resolution
+
+Resolve `{sessionTag}` before checking for existing work:
+
+1. If the user provides a session tag or references a specific discovery context file, use that tag.
+2. If recovering from an existing file, extract `sessionTag` from its frontmatter.
+3. Otherwise, defer tag generation to step 1 — the tag requires a classified problem statement.
+
+Once `{sessionTag}` is resolved, substitute it into `{outputFile}` to get the concrete path.
 
 ### Check for Existing Work
 
