@@ -171,14 +171,16 @@ user stories from the BMAD backlog with high-quality, tested code.
 
 ### BMAD Phase Agents (Workflow Restrictors)
 
-Define agents that restrict tools by BMAD phase:
+Define agents that restrict tools and right-size model tier by BMAD phase:
 
-| Agent | File | Purpose | Allowed Tools |
-| --- | --- | --- | --- |
-| Planning | `planning.agent.md` | Analysis and planning — read-only research | `codebase_search`, `read_file`, `file_search`, `grep_search`, `fetch` |
-| Solutioning | `solutioning.agent.md` | Architecture and story creation | `codebase_search`, `read_file`, `create_file`, `edit_file`, `file_search` |
-| Implementation | `implementation.agent.md` | Full development — all tools | _(all tools)_ |
-| Review | `review.agent.md` | Code review — read-only with diagnostics | `codebase_search`, `read_file`, `grep_search`, `git_diff`, `diagnostics`, `test` |
+| Agent | File | Purpose | Model Tier | Allowed Tools |
+| --- | --- | --- | --- | --- |
+| Planning | `planning.agent.md` | Analysis and planning — read-only research | Full | `codebase_search`, `read_file`, `file_search`, `grep_search`, `fetch` |
+| Solutioning | `solutioning.agent.md` | Architecture and story creation | Full | `codebase_search`, `read_file`, `create_file`, `edit_file`, `file_search` |
+| Implementation | `implementation.agent.md` | Full development — all tools | Full | _(all tools)_ |
+| Review | `review.agent.md` | Code review — read-only with diagnostics | Mini / Haiku | `codebase_search`, `read_file`, `grep_search`, `git_diff`, `diagnostics`, `test` |
+
+Use the `model` frontmatter field in each `.agent.md` file to assign lighter models (e.g., `GPT-4o mini`, `Claude Haiku`) to agents that perform simpler, less compute-intensive tasks such as editorial review, formatting checks, or boilerplate generation.
 
 ## Agent Skills Mapping
 
@@ -382,7 +384,7 @@ When this step completes successfully, invoke the memory tool:
 | Step-file architecture | Plan agent generates checklist from skill instructions |
 | Workflow checkpoints | Chat checkpoints for restoring conversation state |
 | Phase gates | Custom agents restricting tools per phase |
-| Plan model selection | `chat.planAgent.defaultModel` for planning; separate model for implementation |
+| Plan model selection | `chat.planAgent.defaultModel` for planning; separate model for implementation; use mini/haiku tier for simpler planning tasks |
 | Plan persistence | Session memory stores plan at `/memories/session/plan.md` |
 
 ### BMAD Plan → Copilot Plan Workflow

@@ -80,7 +80,7 @@ Reusable prompt templates for common tasks, invocable as slash commands in chat.
 | `name` | No | Display name after `/`; defaults to file name |
 | `argument-hint` | No | Hint text shown in chat input when prompt is invoked |
 | `agent` | No | Agent to use: `ask`, `agent`, `plan`, or a custom agent name |
-| `model` | No | Language model override (e.g., `GPT-4o`, `Claude Sonnet 4`) |
+| `model` | No | Language model override (e.g., `GPT-4o`, `Claude Sonnet 4`); use lighter models like `GPT-4o mini` or `Claude Haiku` for less compute-intensive prompts |
 | `tools` | No | List of tool or tool set names available for this prompt |
 
 **Tool list priority:** prompt file tools > referenced custom agent tools > default tools.
@@ -119,7 +119,7 @@ Custom agents (formerly custom chat modes) define specialized AI personas with s
 | --- | --- | --- |
 | `description` | No | Description shown in agent picker |
 | `tools` | No | Array of tool IDs the agent can use; empty = all tools |
-| `model` | No | Preferred language model(s) for this agent |
+| `model` | No | Preferred language model(s) for this agent; use lighter models (e.g., `GPT-4o mini`, `Claude Haiku`) for agents with simpler tasks |
 | `agents` | No | List of custom agents allowed as subagents (`*` = all, `[]` = none) |
 | `handoffs` | No | Array of handoff definitions for workflow transitions |
 | `hooks` | No | Agent-scoped hooks (run only when this agent is active) |
@@ -180,6 +180,15 @@ Configure which AI models Copilot uses for different tasks.
 | **Plan agent** | `chat.planAgent.defaultModel` — model for planning phase |
 | **BYOK** | Bring your own API key to access additional models |
 | **Custom models** | Extension API `lm.registerLanguageModelChatProvider()` for custom providers |
+
+**Model tiers — right-size for the task:**
+
+| Tier | Examples | When to Use |
+| --- | --- | --- |
+| **Full** | GPT-4o, Claude Sonnet 4, Gemini 2.5 Pro | Complex reasoning, architecture, multi-step planning, large refactors |
+| **Mini / Haiku** | GPT-4o mini, Claude Haiku, Gemini Flash | Simpler tasks — formatting, boilerplate generation, lookups, linting suggestions, editorial review |
+
+Use the `model` frontmatter field in `.prompt.md` and `.agent.md` files to assign lighter models to less compute-intensive tasks. This reduces latency and cost while reserving full-tier models for work that genuinely requires deeper reasoning.
 
 ### MCP Servers
 
