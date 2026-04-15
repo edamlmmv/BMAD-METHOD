@@ -1,0 +1,63 @@
+schema_version: 1
+bundle_id: openclaw-hermes-chief-of-staff
+description: >-
+  Runtime skill wiring for the OpenClaw/Hermes BMAD. Hermes receives the full
+  BMAD skill catalog as the chief-of-staff brain. OpenClaw receives only the
+  curated worker subset, adapted with handoff-first execution guardrails.
+
+catalogs:
+  - src/core-skills/module-help.csv
+  - src/bmm-skills/module-help.csv
+
+export:
+  root: build/runtime/openclaw-hermes
+
+runtimes:
+  hermes:
+    strategy: all-catalog-skills
+    install_dir: ~/.hermes/skills
+    notes:
+      - Hermes is the planner, memory holder, and user-facing BMAD router.
+      - Install the full BMAD catalog verbatim so Hermes can choose the next
+        skill without a reduced menu.
+
+  openclaw:
+    strategy: curated-worker-subset
+    install_dir: ~/.openclaw/skills
+    adaptation: worker-preamble
+    notes:
+      - OpenClaw is the delegated worker layer.
+      - Install only execution-heavy, research-heavy, review, and compression
+        skills.
+      - Inject worker guardrails so OpenClaw does not silently become the
+        planner or product owner.
+    include:
+      - bmad-distillator
+      - bmad-editorial-review-prose
+      - bmad-editorial-review-structure
+      - bmad-index-docs
+      - bmad-review-adversarial-general
+      - bmad-review-edge-case-hunter
+      - bmad-shard-doc
+      - bmad-document-project
+      - bmad-generate-project-context
+      - bmad-technical-research
+      - bmad-checkpoint-preview
+      - bmad-code-review
+      - bmad-dev-story
+      - bmad-qa-generate-e2e-tests
+      - bmad-quick-dev
+
+worker_contract:
+  handoff_file: _bmad-output/openclaw-hermes/handoff.md
+  read_first:
+    - bmad.config.yaml
+    - BMAD.md
+    - AGENTS.md
+    - _bmad-output/sprint-status.yaml
+    - _bmad-output/openclaw-hermes/handoff.md
+  rules:
+    - Do not change the BMAD phase on your own.
+    - Do not invent product scope or requirements.
+    - Stop and return a blocker if the handoff lacks required inputs.
+    - Return evidence, changed files, validation notes, and remaining risks to Hermes.

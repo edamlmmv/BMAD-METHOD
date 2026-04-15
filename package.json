@@ -24,8 +24,12 @@
     "bmad-method": "tools/installer/bmad-cli.js"
   },
   "scripts": {
+    "bmad": "node tools/installer/bmad-cli.js",
     "bmad:install": "node tools/installer/bmad-cli.js install",
+    "bmad:status": "node tools/installer/bmad-cli.js status",
     "bmad:uninstall": "node tools/installer/bmad-cli.js uninstall",
+    "bmad:update": "node tools/installer/bmad-cli.js update",
+    "bmad-method": "node tools/installer/bmad-cli.js",
     "docs:build": "node tools/build-docs.mjs",
     "docs:dev": "astro dev --root website",
     "docs:fix-links": "node tools/fix-doc-links.js",
@@ -41,6 +45,10 @@
     "prepare": "command -v husky >/dev/null 2>&1 && husky || exit 0",
     "quality": "npm run format:check && npm run lint && npm run lint:md && npm run docs:build && npm run test:install && npm run validate:refs && npm run validate:skills",
     "rebundle": "node tools/installer/bundlers/bundle-web.js rebundle",
+    "runtime:export": "node tools/runtime/openclaw-hermes-runtime.js export",
+    "runtime:install": "node tools/runtime/openclaw-hermes-runtime.js install",
+    "runtime:plan": "node tools/runtime/openclaw-hermes-runtime.js plan",
+    "runtime:smoke": "npm run runtime:plan && npm run runtime:export && npm run validate:skills",
     "test": "npm run test:refs && npm run test:install && npm run lint && npm run lint:md && npm run format:check",
     "test:install": "node test/test-installation-components.js",
     "test:refs": "node test/test-file-refs-csv.js",
