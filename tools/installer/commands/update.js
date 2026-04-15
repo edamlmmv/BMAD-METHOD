@@ -84,6 +84,19 @@ module.exports = {
       });
       const upstream = upstreamRefRaw?.toString().trim() || null;
 
+      const dirtyEntries = parsePorcelainStatus(runGit(gitRoot, ['status', '--porcelain', '--untracked-files=all']).toString());
+      const dirtyFiles = dirtyEntries.map((entry) => `${entry.code} ${entry.file}`);
+
+      if (options.apply && dirtyEntries.length > 0) {
+        await prompts.intro('BMAD Git Update');
+        await prompts.note(
+          [`Repo root: ${gitRoot}`, `Branch: ${branch}`, `Upstream: ${upstream || 'none'}`, 'Working tree dirty: yes'].join('\n'),
+          'Apply Blocked',
+        );
+        await prompts.note(summarizeList(dirtyFiles), 'Local Changes');
+        throw new Error('Refusing to apply update over a dirty worktree. Commit, stash, or branch your local changes first.');
+      }
+
       if (options.fetch || options.apply) {
         if (upstream) {
           const remoteName = upstream.split('/')[0];
@@ -95,9 +108,6 @@ module.exports = {
           throw new Error('Cannot apply update without an upstream branch configured.');
         }
       }
-
-      const dirtyEntries = parsePorcelainStatus(runGit(gitRoot, ['status', '--porcelain', '--untracked-files=all']).toString());
-      const dirtyFiles = dirtyEntries.map((entry) => `${entry.code} ${entry.file}`);
 
       let ahead = 0;
       let behind = 0;
@@ -167,10 +177,6 @@ module.exports = {
 
         await prompts.outro(nextSteps.join('\n'));
         process.exit(0);
-      }
-
-      if (dirtyEntries.length > 0) {
-        throw new Error('Refusing to apply update over a dirty worktree. Commit, stash, or branch your local changes first.');
       }
 
       if (!upstream) {
