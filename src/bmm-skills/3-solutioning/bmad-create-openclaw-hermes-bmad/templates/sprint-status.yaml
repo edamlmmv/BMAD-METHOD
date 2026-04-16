@@ -1,0 +1,8 @@
+phase: setup
+status: manifest_defined
+active_story: "stabilize-openclaw-hermes-bmad"
+updated_at: "{{date}}"
+blockers:
+  - Machine-level provisioning for ~/.hermes and ~/.openclaw is still pending.
+next_action: Hermes should read bmad.config.yaml first, then prepare the next provisioning or artifact step for the selected target environment.
+handoff_file: "{{output_folder}}/openclaw-hermes/handoff.md"

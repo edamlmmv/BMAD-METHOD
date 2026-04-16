@@ -74,6 +74,7 @@ Run this checklist against the compiled document:
 Update `{outputFile}` frontmatter:
 
 ```yaml
+sessionTag: '{sessionTag}'
 stepsCompleted: [1, 2, 3, 5] # or [1, 2, 3, 4, 5] if research conducted
 discoveryCounter: [N]
 lastStep: 'step-05-handoff'
@@ -86,10 +87,11 @@ Discover available skills from `{project-root}/_bmad/_config/bmad-help.csv` if i
 
 1. Load the CSV and ignore `_meta` rows.
 2. Use `phase`, `name`, `code`, `description`, `workflow-file`, and `command` as routing surfaces.
-3. Rank candidate rows by alignment with the classification, convergence signal, open items, and the kind of downstream artifact needed.
-4. Recommend the strongest fit, then record it in `State Ledger Skill:`.
+3. Consult workflow.md §SKILL GRAPH "At Handoff" table for signal-to-skill mapping.
+4. Rank candidate rows by alignment with the classification, convergence signal, open items, and the kind of downstream artifact needed.
+5. Recommend the strongest fit, then record it in `State Ledger Skill:`.
 
-Fallback routing:
+Fallback routing (when bmad-help.csv is unavailable):
 
 | Signal | Skill |
 |--------|-------|
@@ -101,7 +103,24 @@ Fallback routing:
 
 Present the completion summary with saved location, recommended next skill, and a reminder that the Discovery Context should inform downstream execution.
 
-**🛑 HALT — Use `vscode_askQuestions` to confirm whether to proceed with the recommended handoff or adjust it. In autonomous mode, self-serve and log the decision.**
+## Generate Handoff Brief
+
+Per workflow.md §CROSS-SKILL HANDOFF, append a structured handoff brief to `{outputFile}` that the downstream skill can parse directly:
+
+```markdown
+## Handoff Brief
+
+- **From:** discovery-rigor ({sessionTag})
+- **To:** {recommended-skill}
+- **Classification:** {activity} | {tier} | Convergence: {Y/N}
+- **Key findings:** [3-5 bullet summary from Interview + Blind Spots]
+- **Open items:** [items with owners from Open Items section]
+- **Constraints:** [from Constraints and Non-Goals section]
+- **Evidence manifest:** [key files from Evidence Manifest]
+- **Verification strategy:** [from Verification Strategy section]
+```
+
+**🛑 HALT — Use `vscode_askQuestions` to confirm whether to proceed with the recommended handoff or adjust it. In autonomous mode, self-serve and log the decision, then invoke the downstream skill immediately per §CROSS-SKILL HANDOFF seamless transition rules.**
 
 ## Final State Ledger
 
@@ -112,4 +131,4 @@ Output the final State Ledger with all step summaries, including `Evidence:` and
 Per workflow.md §MEMORY CHECKPOINT. Additionally:
 
 - **persist** | scope: workspace | key: learned-patterns | caller: "discovery-rigor"
-- Content: reusable insights from this discovery run
+- Content: reusable insights from this discovery run (shared across sessions)

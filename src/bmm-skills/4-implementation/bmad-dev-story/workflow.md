@@ -35,6 +35,25 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 - `project_context` = `**/project-context.md` (load if exists)
 
+### Resume Detection
+
+On activation, check for an in-progress session before asking the user for context:
+
+1. If `{sprint_status}` exists, read it and identify the first story with status `in-progress`.
+2. If an in-progress story is found, locate its story file and display a resume summary:
+
+```
+⏯️ Resuming sprint — {project_name}
+Active story: {story_key} ({story_title})
+Status: in-progress
+Story file: {story_path}
+```
+
+3. If no in-progress story is found but a `ready-for-dev` story exists, surface it as the next recommendation.
+4. Skip this check if `{story_path}` was provided explicitly.
+
+This ensures the agent never needs to ask "where were we?" — sprint-status.yaml is the single source of truth for story state.
+
 ---
 
 ## EXECUTION
@@ -484,3 +503,13 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
   </step>
 
 </workflow>
+
+## MEMORY CHECKPOINT
+
+Use `bmad-memory-manager` to persist story progress for recovery across context compressions. The story file and sprint-status.yaml remain the canonical artifacts.
+
+| Event | Operation |
+|-------|-----------|
+| After step 4 (mark in-progress) | `persist | scope: session | key: story-progress | caller: "dev-story"` with story_key, current task, and status |
+| After each task completion (step 8) | `persist | scope: session | key: story-progress | caller: "dev-story"` with updated task checklist state |
+| Story completion (step 9) | `persist | scope: workspace | key: learned-patterns | caller: "dev-story"` with reusable implementation insights |

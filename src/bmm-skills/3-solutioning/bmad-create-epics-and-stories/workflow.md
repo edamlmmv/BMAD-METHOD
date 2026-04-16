@@ -22,10 +22,21 @@ This uses **step-file architecture** for disciplined execution:
 
 1. **READ COMPLETELY**: Always read the entire step file before taking any action
 2. **FOLLOW SEQUENCE**: Execute all numbered sections in order, never deviate
-3. **WAIT FOR INPUT**: If a menu is presented, halt and wait for user selection
-4. **CHECK CONTINUATION**: If the step has a menu with Continue as an option, only proceed to next step when user selects 'C' (Continue)
+3. **WAIT FOR INPUT**: If a menu is presented, halt and wait for user selection (unless autonomous mode is active — see below)
+4. **CHECK CONTINUATION**: If the step has a menu with Continue as an option, only proceed to next step when user selects 'C' (Continue) — or auto-continue in autonomous mode when no user input is required
 5. **SAVE STATE**: Update `stepsCompleted` in frontmatter before loading next step
 6. **LOAD NEXT**: When directed, read fully and follow the next step file
+
+### Autonomous Mode
+
+When the invoking context requests autonomous execution (e.g., invoked from `bmad-discovery-rigor` handoff, or user says "run autonomously"):
+
+- **Auto-continue** past menus that only offer 'C' (Continue) when no user decision is pending — the agent has already produced the output and is waiting for confirmation, not input.
+- **Self-serve** document discovery (step 1) by scanning `{planning_artifacts}` for matching files without asking the user to confirm obvious matches.
+- **Halt only** when the step explicitly requires a user decision between alternatives (e.g., "which epics to include?", "approve this story?") or when extracted requirements need user validation.
+- **Log** auto-continued steps with a `🔍 Auto-continued: [step] — no user input required` marker in the output document.
+
+This mode does not bypass validation or skip steps — it only removes unnecessary pauses where the agent is asking for permission to continue work it has already completed.
 
 ### Critical Rules (NO EXCEPTIONS)
 
@@ -34,7 +45,7 @@ This uses **step-file architecture** for disciplined execution:
 - 🚫 **NEVER** skip steps or optimize the sequence
 - 💾 **ALWAYS** update frontmatter of output files when writing the final output for a specific step
 - 🎯 **ALWAYS** follow the exact instructions in the step file
-- ⏸️ **ALWAYS** halt at menus and wait for user input
+- ⏸️ **ALWAYS** halt at menus and wait for user input — unless autonomous mode is active and the menu requires no user decision (see §Autonomous Mode)
 - 📋 **NEVER** create mental todo lists from future steps
 
 ## Activation

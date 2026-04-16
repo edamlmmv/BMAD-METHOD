@@ -42,10 +42,20 @@ If Convergence = Yes, note that downstream handoff should strongly consider `bma
 
 Identify applicable domain fragments from `../resources/discovery-resources-index.csv` per workflow.md §DOMAIN FRAGMENT LOADING and record them in State Ledger `Decisions:`.
 
+### Generate Session Tag
+
+Generate `{sessionTag}` per workflow.md §SESSION TAGGING:
+
+1. Take the current date as `{YYYY-MM-DD}`.
+2. Derive a `{topic-slug}` from the classified problem statement — kebab-case, ≤ 5 words, capturing the essence of the task (e.g., `auth-token-rotation`, `deploy-pipeline-refactor`).
+3. Set `{sessionTag}` = `{YYYY-MM-DD}-{topic-slug}`.
+4. Resolve `{outputFile}` = `{output_folder}/discovery-context-{sessionTag}.md`.
+
 Create `{outputFile}`:
 
 ```yaml
 ---
+sessionTag: '{sessionTag}'
 stepsCompleted: [1]
 activity: '[activity]'
 tier: '[tier]'
@@ -67,7 +77,7 @@ Append:
 - **Confirmed:** [date]
 ```
 
-Initialize and output the State Ledger using workflow.md §STATE LEDGER. Record any files or workspace surfaces consulted so far in `Evidence:` and leave `Skill:` blank until handoff.
+Initialize and output the State Ledger using workflow.md §STATE LEDGER. Set `Depth:` to empty (top level). Record any files or workspace surfaces consulted so far in `Evidence:` and leave `Skill:` blank until handoff.
 
 ## Memory Checkpoint
 

@@ -100,7 +100,7 @@ When analyzing the user's situation, check for indicators that `bmad-discovery-r
 - The user has already classified the problem and provided clear requirements
 - The user is mid-workflow and needs help continuing rather than restarting
 
-**Discovery Context detection**: Check `{output_folder}/discovery-context.md` first, then topic-slugged `discovery-context-*.md` artifacts when the current task appears to be part of a multi-run discovery flow. If multiple complete artifacts are plausible matches, ask rather than guess. If a matching artifact exists and contains `status: 'complete'`, treat discovery as already done and recommend the next downstream skill based on its classification and recommendation sections.
+**Discovery Context detection**: Check `{output_folder}/discovery-context-*.md` for session-tagged artifacts. Each file contains a `sessionTag` in its frontmatter (format: `{YYYY-MM-DD}-{topic-slug}`). If multiple complete artifacts are plausible matches, list them by sessionTag and ask which one to use. If a matching artifact exists and contains `status: 'complete'`, treat discovery as already done and recommend the next downstream skill based on its classification and recommendation sections.
 
 ## State Ledger Awareness
 

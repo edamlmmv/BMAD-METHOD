@@ -1,0 +1,23 @@
+model: {{default_model}}
+
+terminal:
+  backend: local
+  cwd: "{{project_root}}"
+  timeout: 180
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+
+worktree: true
+group_sessions_per_user: true
+
+display:
+  streaming: true
+  show_reasoning: true
+
+approvals:
+  mode: manual
+
+agent:
+  max_turns: 90

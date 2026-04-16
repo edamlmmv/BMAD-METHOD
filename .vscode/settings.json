@@ -4,6 +4,8 @@
   "github.copilot.chat.agent.runTasks": true,
   "github.copilot.chat.agent.autoFix": true,
   "chat.tools.autoApprove": false,
+  "chat.tools.terminal.backgroundNotifications": true,
+  "workbench.browser.enableChatTools": true,
   "cSpell.words": [
     "Agentic",
     "atlasing",
@@ -30,6 +32,7 @@
     "metroidvania",
     "NACLs",
     "nodegroup",
+    "orchestrator",
     "platformconfigs",
     "Playfocus",
     "playtesting",

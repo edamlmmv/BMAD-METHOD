@@ -35,7 +35,7 @@ Process each response with this table:
 | Contradicts earlier info | Challenge the contradiction and wait for resolution |
 | Ambiguous | Ask a follow-up; do not interpret silently |
 
-**Autonomous mode:** self-serve from workspace evidence with a `🔍` prefix. Only increment Counter for genuinely unresolvable gaps.
+**Autonomous mode:** self-serve from workspace evidence with a `🔍` prefix. Only increment Counter for genuinely unresolvable gaps. For ambiguous findings, consult workflow.md §UNCERTAINTY RESOLUTION — invoke `bmad-party-mode --solo` for medium-confidence items or `bmad-advanced-elicitation` for low-confidence items before incrementing Counter.
 
 If more questions remain, present the next batch and repeat the same halt-and-process loop.
 

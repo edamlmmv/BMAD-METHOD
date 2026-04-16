@@ -21,7 +21,13 @@ Create a compact plan:
 |---|-----|----------|-------|
 | 1 | [gap] | Workspace search / User input / External reference | Agent / User |
 
-For deeper investigation, consider invoking `bmad-domain-research` for domain gaps or `bmad-technical-research` for architecture and technology gaps when those skills are installed.
+For deeper investigation, consult workflow.md §SKILL GRAPH "During Discovery" table:
+
+- Invoke `bmad-domain-research` for domain gaps
+- Invoke `bmad-technical-research` for architecture and technology gaps
+- Invoke `bmad-market-research` for market context gaps
+
+When invoking a sub-skill, follow workflow.md §SKILL GRAPH "Invocation Protocol" — push `Position:` onto `Depth:`, log the invocation, and restore position when complete. Skip any skill that is not installed.
 
 ## Resolve Gaps
 

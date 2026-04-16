@@ -16,7 +16,7 @@ Keep each step self-contained so the workflow can recover cleanly from context c
 | 2 | `step-02-define.md` | Discover surfaces, define contracts, and add inline compliance questions | No |
 | 3 | `step-03-finalize.md` | Verify completeness, save the contract, and recommend next steps | No |
 
-## Recovery Protocol
+## RECOVERY PROTOCOL
 
 | Condition | Action |
 |-----------|--------|
@@ -50,3 +50,13 @@ Load `./resources/contract-surface-types.csv` — this drives which contract typ
 ## EXECUTION
 
 Read fully and follow: `./steps/step-01-init.md`
+
+## MEMORY CHECKPOINT
+
+Use `bmad-memory-manager` to persist contract state for recovery across context compressions. `{outputFile}` remains the canonical workflow artifact.
+
+| Event | Operation |
+|-------|-----------|
+| After each completed step | `persist | scope: session | key: contract-state | caller: "create-workflow-contract"` with current frontmatter + systems map |
+| Recovery mismatch | `recover | scope: session | key: contract-state | caller: "create-workflow-contract"` |
+| Workflow completion | `persist | scope: workspace | key: learned-patterns | caller: "create-workflow-contract"` with reusable contract definition insights |
