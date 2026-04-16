@@ -33,8 +33,19 @@ function runGit(cwd, args, options = {}) {
   }
 }
 
+function normalizeGitOutput(output) {
+  return output ? output.toString().trim() : '';
+}
+
+function splitLines(output) {
+  return normalizeGitOutput(output)
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+}
+
 function parsePorcelainStatus(output) {
-  return output
+  return normalizeGitOutput(output)
     .split('\n')
     .map((line) => line.trimEnd())
     .filter(Boolean)
@@ -58,95 +69,277 @@ function boolLabel(value) {
   return value ? 'yes' : 'no';
 }
 
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+function intersectFiles(left, right) {
+  const rightSet = new Set(right);
+  return left.filter((file) => rightSet.has(file));
+}
+
+function getCommitSummaries(cwd, rangeSpec) {
+  return splitLines(runGit(cwd, ['log', '--reverse', '--format=%H%x09%s', rangeSpec])).map((line) => {
+    const [sha, subject] = line.split('\t');
+    return { sha, subject };
+  });
+}
+
+function getCommitFiles(cwd, sha) {
+  return splitLines(runGit(cwd, ['diff-tree', '--no-commit-id', '--name-only', '-r', sha]));
+}
+
+function getDiffFiles(cwd, rangeSpec) {
+  return splitLines(runGit(cwd, ['diff', '--name-only', rangeSpec]));
+}
+
+function getRemotes(cwd) {
+  return splitLines(runGit(cwd, ['remote']));
+}
+
+function parseRemoteTrackingRef(cwd, ref) {
+  if (!ref || ref.startsWith('refs/')) {
+    return null;
+  }
+
+  const slashIndex = ref.indexOf('/');
+  if (slashIndex <= 0) {
+    return null;
+  }
+
+  const remote = ref.slice(0, slashIndex);
+  const branch = ref.slice(slashIndex + 1);
+
+  return getRemotes(cwd).includes(remote) && branch ? { remote, branch } : null;
+}
+
+function classifyMergeStatus({ ahead, behind, overlapFiles }) {
+  if (behind === 0) return 'already-contained';
+  if (ahead === 0) return 'fast-forward';
+  if (overlapFiles.length === 0) return 'diverged-no-overlap';
+  return 'conflict-risk';
+}
+
+function mergeStatusSummary(status) {
+  switch (status) {
+    case 'already-contained': {
+      return 'Target ref is already contained in the current branch.';
+    }
+    case 'fast-forward': {
+      return 'Current branch can be fast-forwarded to the target ref.';
+    }
+    case 'diverged-no-overlap': {
+      return 'Both sides changed since the merge base, but no overlapping files were detected.';
+    }
+    case 'conflict-risk': {
+      return 'Both sides changed overlapping files since the merge base; manual merge analysis is recommended.';
+    }
+    default: {
+      return 'Merge status is unknown.';
+    }
+  }
+}
+
+async function writeBmadUpdateBrief(gitRoot, context) {
+  const outputFolder = await installer.getOutputFolder(gitRoot);
+  const outputDir = path.join(gitRoot, outputFolder);
+  await fs.ensureDir(outputDir);
+
+  const created = new Date().toISOString();
+  const dateStamp = created.slice(0, 10);
+  const briefPath = path.join(outputDir, `git-update-brief-${dateStamp}-${slugify(context.targetRef)}.md`);
+
+  const formatCommitSection = (title, commits) => {
+    const lines = [`## ${title}`, ''];
+
+    if (commits.length === 0) {
+      lines.push('- none', '');
+      return lines.join('\n');
+    }
+
+    for (const commit of commits) {
+      lines.push(`### ${commit.sha.slice(0, 8)} ${commit.subject}`);
+      if (commit.files.length === 0) {
+        lines.push('- files: none detected');
+      } else {
+        lines.push('- files:');
+        for (const file of commit.files) {
+          lines.push(`  - ${file}`);
+        }
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  };
+
+  const contents = [
+    '---',
+    'type: bmad-git-update-brief',
+    `created: "${created}"`,
+    `source_branch: "${context.branch}"`,
+    `target_ref: "${context.targetRef}"`,
+    `merge_base: "${context.mergeBase}"`,
+    `ahead: ${context.ahead}`,
+    `behind: ${context.behind}`,
+    `merge_status: "${context.mergeStatus}"`,
+    '---',
+    '',
+    '## Summary',
+    '',
+    `- source branch: \`${context.branch}\``,
+    `- target ref: \`${context.targetRef}\``,
+    `- ahead / behind relative to target: ${context.ahead} / ${context.behind}`,
+    `- merge status: \`${context.mergeStatus}\``,
+    `- interpretation: ${mergeStatusSummary(context.mergeStatus)}`,
+    `- overlapping files since merge base: ${context.overlapFiles.length}`,
+    '',
+    '## File Delta Summary',
+    '',
+    `- current-branch-only files: ${context.currentOnlyFiles.length}`,
+    `- target-only files: ${context.targetOnlyFiles.length}`,
+    '',
+    '## Overlap Files',
+    '',
+    ...(context.overlapFiles.length > 0 ? context.overlapFiles.map((file) => `- ${file}`) : ['- none']),
+    '',
+    formatCommitSection('Target-Only Commits', context.targetOnlyCommits),
+    formatCommitSection('Current-Branch-Only Commits', context.currentOnlyCommits),
+    '## Recommended BMAD Flow',
+    '',
+    '- Start with `bmad-discovery-rigor` using this brief as the source artifact.',
+    '- If the target branch introduces conventions you want to adopt, update source BMAD surfaces rather than generated installs.',
+    '- If overlap files are present, use `bmad-quick-dev` or `bmad-code-review` to resolve the merge intentionally after discovery.',
+    '- Regenerate generated BMAD/runtime surfaces only after source-level decisions are complete.',
+    '',
+  ].join('\n');
+
+  await fs.writeFile(briefPath, contents, 'utf8');
+  return briefPath;
+}
+
 module.exports = {
   command: 'update',
   description: 'Plan or apply a safe git-based BMAD update for this checkout',
   options: [
     ['--directory <path>', 'Project directory or git checkout to inspect (default: current directory)'],
-    ['--apply', 'Apply the plan with git pull --ff-only and refresh generated BMAD/runtime surfaces'],
-    ['--fetch', 'Fetch upstream refs before computing update status (apply implies fetch)'],
-    ['--skip-quick-update', 'Skip BMAD quick-update after a successful pull'],
-    ['--skip-runtime-install', 'Skip runtime bundle reinstall after a successful pull'],
+    ['--target <ref>', 'Explicit git ref to compare against (for example: upstream/main)'],
+    ['--apply', 'Apply the plan when the target is fast-forward compatible and refresh generated BMAD/runtime surfaces'],
+    ['--fetch', 'Fetch the target remote before computing update status (apply implies fetch when target is remote-tracking)'],
+    ['--skip-quick-update', 'Skip BMAD quick-update after a successful fast-forward update'],
+    ['--skip-runtime-install', 'Skip runtime bundle reinstall after a successful fast-forward update'],
     ['-y, --yes', 'Accept prompts automatically where possible'],
   ],
   action: async (options) => {
     try {
       const projectDir = path.resolve(options.directory || process.cwd());
-      const gitRootRaw = runGit(projectDir, ['rev-parse', '--show-toplevel']);
-      const gitRoot = gitRootRaw.toString().trim();
-
+      const gitRoot = normalizeGitOutput(runGit(projectDir, ['rev-parse', '--show-toplevel']));
       const { bmadDir } = await installer.findBmadDir(gitRoot);
       const hasBmadInstall = await fs.pathExists(bmadDir);
 
-      const branch = runGit(gitRoot, ['rev-parse', '--abbrev-ref', 'HEAD']).toString().trim();
-      const upstreamRefRaw = runGit(gitRoot, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], {
-        allowFailure: true,
-      });
-      const upstream = upstreamRefRaw?.toString().trim() || null;
+      const branch = normalizeGitOutput(runGit(gitRoot, ['rev-parse', '--abbrev-ref', 'HEAD']));
+      const upstream = normalizeGitOutput(
+        runGit(gitRoot, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], {
+          allowFailure: true,
+        }),
+      );
+      const targetRef = options.target?.trim() || upstream || null;
 
-      const dirtyEntries = parsePorcelainStatus(runGit(gitRoot, ['status', '--porcelain', '--untracked-files=all']).toString());
-      const dirtyFiles = dirtyEntries.map((entry) => `${entry.code} ${entry.file}`);
+      if (!targetRef) {
+        throw new Error('No target ref configured. Set a branch upstream or pass --target <ref>.');
+      }
+
+      const dirtyEntries = parsePorcelainStatus(runGit(gitRoot, ['status', '--porcelain', '--untracked-files=all']));
+      const dirtyFiles = dirtyEntries.map((entry) => `${entry.code.trim() || '??'} ${entry.file}`);
 
       if (options.apply && dirtyEntries.length > 0) {
         await prompts.intro('BMAD Git Update');
         await prompts.note(
-          [`Repo root: ${gitRoot}`, `Branch: ${branch}`, `Upstream: ${upstream || 'none'}`, 'Working tree dirty: yes'].join('\n'),
+          [`Repo root: ${gitRoot}`, `Branch: ${branch}`, `Target ref: ${targetRef}`, 'Working tree dirty: yes'].join('\n'),
           'Apply Blocked',
         );
         await prompts.note(summarizeList(dirtyFiles), 'Local Changes');
         throw new Error('Refusing to apply update over a dirty worktree. Commit, stash, or branch your local changes first.');
       }
 
-      if (options.fetch || options.apply) {
-        if (upstream) {
-          const remoteName = upstream.split('/')[0];
+      const remoteTarget = parseRemoteTrackingRef(gitRoot, targetRef);
+      if (options.fetch || (options.apply && remoteTarget)) {
+        if (remoteTarget) {
           const s = await prompts.spinner();
-          s.start(`Fetching ${remoteName}...`);
-          runGit(gitRoot, ['fetch', '--prune', remoteName]);
-          s.stop(`Fetched ${remoteName}`);
-        } else if (options.apply) {
-          throw new Error('Cannot apply update without an upstream branch configured.');
+          s.start(`Fetching ${remoteTarget.remote}/${remoteTarget.branch}...`);
+          runGit(gitRoot, ['fetch', '--prune', remoteTarget.remote, remoteTarget.branch]);
+          s.stop(`Fetched ${remoteTarget.remote}/${remoteTarget.branch}`);
+        } else if (options.fetch) {
+          await prompts.log.warn(`Target ref ${targetRef} is not a remote-tracking ref; skipping fetch.`);
         }
       }
 
-      let ahead = 0;
-      let behind = 0;
-      let incomingFiles = [];
+      const counts = normalizeGitOutput(runGit(gitRoot, ['rev-list', '--left-right', '--count', `HEAD...${targetRef}`])).split(/\s+/);
+      const ahead = Number.parseInt(counts[0] || '0', 10);
+      const behind = Number.parseInt(counts[1] || '0', 10);
+      const incomingFiles = behind > 0 ? getDiffFiles(gitRoot, `HEAD..${targetRef}`) : [];
 
-      if (upstream) {
-        const counts = runGit(gitRoot, ['rev-list', '--left-right', '--count', `HEAD...${upstream}`])
-          .toString()
-          .trim()
-          .split(/\s+/);
-        ahead = Number.parseInt(counts[0] || '0', 10);
-        behind = Number.parseInt(counts[1] || '0', 10);
+      const mergeBase = normalizeGitOutput(runGit(gitRoot, ['merge-base', 'HEAD', targetRef], { allowFailure: true }));
+      const currentOnlyFiles = mergeBase ? getDiffFiles(gitRoot, `${mergeBase}..HEAD`) : [];
+      const targetOnlyFiles = mergeBase ? getDiffFiles(gitRoot, `${mergeBase}..${targetRef}`) : [];
+      const overlapFiles = intersectFiles(currentOnlyFiles, targetOnlyFiles);
+      const mergeStatus = classifyMergeStatus({ ahead, behind, overlapFiles });
 
-        if (behind > 0) {
-          incomingFiles = runGit(gitRoot, ['diff', '--name-only', `HEAD..${upstream}`])
-            .toString()
-            .split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean);
-        }
-      }
+      const currentOnlyCommits =
+        mergeBase && ahead > 0
+          ? getCommitSummaries(gitRoot, `${mergeBase}..HEAD`).map((commit) => ({
+              ...commit,
+              files: getCommitFiles(gitRoot, commit.sha),
+            }))
+          : [];
+      const targetOnlyCommits =
+        mergeBase && behind > 0
+          ? getCommitSummaries(gitRoot, `${mergeBase}..${targetRef}`).map((commit) => ({
+              ...commit,
+              files: getCommitFiles(gitRoot, commit.sha),
+            }))
+          : [];
 
       const quickUpdateFiles = listMatches(incomingFiles, QUICK_UPDATE_PREFIXES, QUICK_UPDATE_EXACT);
       const runtimeInstallFiles = listMatches(incomingFiles, RUNTIME_INSTALL_PREFIXES, RUNTIME_INSTALL_EXACT);
-
       const shouldQuickUpdate = hasBmadInstall && quickUpdateFiles.length > 0 && !options.skipQuickUpdate;
       const shouldRuntimeInstall = runtimeInstallFiles.length > 0 && !options.skipRuntimeInstall;
+
+      const shouldWriteBrief = mergeBase && (ahead > 0 || behind > 0);
+      const briefPath = shouldWriteBrief
+        ? await writeBmadUpdateBrief(gitRoot, {
+            branch,
+            targetRef,
+            mergeBase,
+            ahead,
+            behind,
+            mergeStatus,
+            overlapFiles,
+            currentOnlyFiles,
+            targetOnlyFiles,
+            currentOnlyCommits,
+            targetOnlyCommits,
+          })
+        : null;
 
       await prompts.intro('BMAD Git Update');
       await prompts.note(
         [
           `Repo root: ${gitRoot}`,
           `Branch: ${branch}`,
-          `Upstream: ${upstream || 'none'}`,
+          `Target ref: ${targetRef}`,
+          `Branch upstream: ${upstream || 'none'}`,
           `Working tree dirty: ${boolLabel(dirtyEntries.length > 0)}`,
-          `Ahead / Behind: ${ahead} / ${behind}`,
+          `Ahead / Behind relative to target: ${ahead} / ${behind}`,
+          `Merge status: ${mergeStatus}`,
           `BMAD install detected: ${boolLabel(hasBmadInstall)}`,
           `Would run BMAD quick update: ${boolLabel(shouldQuickUpdate)}`,
           `Would run runtime install: ${boolLabel(shouldRuntimeInstall)}`,
+          `BMAD update brief: ${briefPath || 'not needed'}`,
         ].join('\n'),
         'Plan Summary',
       );
@@ -156,7 +349,11 @@ module.exports = {
       }
 
       if (incomingFiles.length > 0) {
-        await prompts.note(summarizeList(incomingFiles), 'Incoming Git Changes');
+        await prompts.note(summarizeList(incomingFiles), 'Incoming Target Changes');
+      }
+
+      if (overlapFiles.length > 0) {
+        await prompts.note(summarizeList(overlapFiles), 'Overlap Files');
       }
 
       if (!options.apply) {
@@ -165,34 +362,24 @@ module.exports = {
         if (dirtyEntries.length > 0) {
           nextSteps.push('Clean up or commit your local changes before running apply mode.');
         }
-        if (!upstream) {
-          nextSteps.push('Configure an upstream branch before using apply mode.');
-        }
-        if (upstream && behind > 0) {
+        if (mergeStatus === 'already-contained') {
+          nextSteps.push('Target ref is already contained in the current branch.');
+        } else if (mergeStatus === 'fast-forward') {
           nextSteps.push('Run `bmad update --apply` when you want to fast-forward this checkout.');
-        }
-        if (upstream && behind === 0) {
-          nextSteps.push('No incoming git updates are currently visible from the configured upstream.');
+        } else {
+          nextSteps.push(`Review the BMAD update brief at ${briefPath} before attempting a manual merge or rebase.`);
         }
 
         await prompts.outro(nextSteps.join('\n'));
         process.exit(0);
       }
 
-      if (!upstream) {
-        throw new Error('Cannot apply update without an upstream branch configured.');
-      }
-
-      if (ahead > 0 && behind > 0) {
-        throw new Error('Branch has diverged from upstream. Rebase or merge manually before running this command.');
-      }
-
-      if (behind === 0) {
-        await prompts.log.info('No incoming git commits detected. Skipping pull.');
-      } else {
+      if (mergeStatus === 'already-contained') {
+        await prompts.log.info('No incoming target commits detected. Current branch already contains the target ref.');
+      } else if (mergeStatus === 'fast-forward') {
         if (!options.yes) {
           const confirmed = await prompts.confirm({
-            message: `Fast-forward ${branch} from ${upstream}?`,
+            message: `Fast-forward ${branch} to ${targetRef}?`,
             default: true,
           });
 
@@ -203,9 +390,13 @@ module.exports = {
         }
 
         const s = await prompts.spinner();
-        s.start(`Fast-forwarding ${branch} from ${upstream}...`);
-        runGit(gitRoot, ['pull', '--ff-only'], { inherit: true });
+        s.start(`Fast-forwarding ${branch} to ${targetRef}...`);
+        runGit(gitRoot, ['merge', '--ff-only', targetRef], { inherit: true });
         s.stop(`Updated ${branch}`);
+      } else {
+        throw new Error(
+          `Target ${targetRef} is not fast-forward compatible with ${branch}. Review ${briefPath} and resolve the merge deliberately via BMAD.`,
+        );
       }
 
       if (shouldQuickUpdate) {

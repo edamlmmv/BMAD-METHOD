@@ -7,6 +7,12 @@ sidebar:
 
 Skills are pre-built prompts that load agents, run workflows, or execute tasks inside your IDE. The BMad installer generates them from your installed modules at install time. If you later add, remove, or change modules, re-run the installer to keep skills in sync (see [Troubleshooting](#troubleshooting)).
 
+For the OpenClaw/Hermes runtime bundle specifically, the repo also exposes
+operator commands such as `npm run runtime:bootstrap`,
+`npm run runtime:install`, `npm run runtime:doctor`, and
+`npm run runtime:live-smoke`. Those are runtime management commands, not IDE
+skill invocations.
+
 ## Skills vs. Agent Menu Triggers
 
 BMad offers two ways to start work, and they serve different purposes.
@@ -41,12 +47,26 @@ The installer writes skill files into an IDE-specific directory inside your proj
 
 | IDE / CLI | Skills directory |
 | --- | --- |
+| Codex | `.agents/skills/` |
 | Claude Code | `.claude/skills/` |
 | Cursor | `.cursor/skills/` |
 | Windsurf | `.windsurf/skills/` |
 | Other IDEs | See the installer output for the target path |
 
-Each skill is a directory containing a `SKILL.md` file. For example, a Claude Code installation looks like:
+Each skill is a directory containing a `SKILL.md` file. For example, a Codex installation looks like:
+
+```text
+.agents/skills/
+├── bmad-openclaw-hermes-loop/
+│   └── SKILL.md
+├── bmad-help/
+│   └── SKILL.md
+├── bmad-create-prd/
+│   └── SKILL.md
+└── ...
+```
+
+Or, for a Claude Code installation:
 
 ```text
 .claude/skills/
@@ -91,6 +111,7 @@ Workflow skills run a structured, multi-step process without loading an agent pe
 
 | Example skill | Purpose |
 | --- | --- |
+| `bmad-openclaw-hermes-loop` | Codex-native front door for the manifest-first Hermes/OpenClaw BMAD; reads the contract first and starts with discovery rigor by default |
 | `bmad-product-brief` | Create a product brief — guided discovery when your concept is clear |
 | `bmad-prfaq` | [Working Backwards PRFAQ](../explanation/analysis-phase.md#prfaq-working-backwards) challenge to stress-test your product concept |
 | `bmad-create-prd` | Create a Product Requirements Document |

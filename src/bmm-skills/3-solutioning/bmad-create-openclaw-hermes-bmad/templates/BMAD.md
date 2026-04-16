@@ -28,6 +28,13 @@ Use these files in this order:
 5. `{{output_folder}}/openclaw-hermes/handoff.md`
 6. `{{output_folder}}/sprint-status.yaml`
 
+Operator entrypoints:
+
+- In Copilot, start with `/bmad-openclaw-hermes-loop`.
+- In Codex, start with `bmad-openclaw-hermes-loop`.
+- Use `bmad-discovery-rigor` when you want explicit discovery as a separate
+  first step.
+
 ## Runtime Skill Wiring
 
 - Hermes gets the full BMAD skill catalog installed verbatim into
@@ -36,6 +43,15 @@ Use these files in this order:
   `~/.openclaw/skills`.
 - OpenClaw copies are adapted with a handoff-first preamble so workers stay
   bounded to Hermes delegation instead of taking over planning.
+
+Use these reusable commands:
+
+1. `npm run runtime:doctor`
+2. `npm run runtime:bootstrap`
+3. `npm run runtime:live-smoke`
+4. `npm run runtime:plan`
+5. `npm run runtime:export`
+6. `npm run runtime:install`
 
 ## Runtime Topology
 
@@ -110,10 +126,14 @@ Hermes:
 OpenClaw:
 
 - `~/.openclaw/openclaw.json`
+- `~/.openclaw/.env`
 - `OPENCLAW_GATEWAY_TOKEN`
 - provider credentials
 - channel and plugin state
 - `~/.openclaw/skills/`
+
+Use `npm run runtime:bootstrap -- --apply` to scaffold missing machine-local
+starter files before hand-editing them.
 
 ### Workspace-local state
 

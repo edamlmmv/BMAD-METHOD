@@ -77,8 +77,11 @@ and clearly mark assumptions in the generated files.
    host-hardening baseline for VPS use.
 7. Add a runtime bundle manifest or equivalent reusable config that maps which
    existing BMAD skills install to Hermes versus OpenClaw.
-8. Make local versus tracked state explicit.
-9. If a recurring automation or prompt exists in the repo, update it to follow
+8. Add a reusable bootstrap path for `~/.hermes/config.yaml`,
+   `~/.hermes/.env`, and `~/.openclaw/openclaw.json`, and make the human
+   guidance point to it instead of assuming hand-authored machine-local config.
+9. Make local versus tracked state explicit.
+10. If a recurring automation or prompt exists in the repo, update it to follow
    the manifest-first read order.
 
 ## File Writing Order

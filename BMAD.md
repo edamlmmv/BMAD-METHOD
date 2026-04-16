@@ -45,6 +45,13 @@ Use these files in this order:
 5. `_bmad-output/openclaw-hermes/handoff.md` — current cross-agent contract
 6. `_bmad-output/sprint-status.yaml` — current phase and next action
 
+Operator entrypoints:
+
+- In Copilot, start with `/bmad-openclaw-hermes-loop`.
+- In Codex, start with `bmad-openclaw-hermes-loop`.
+- Use `bmad-discovery-rigor` when you want to force explicit discovery as a
+  distinct first step.
+
 ## Why It Materializes As Files
 
 The BMAD is file-based on purpose:
@@ -60,6 +67,56 @@ So the model is:
 - `bmad.config.yaml` defines the BMAD.
 - Supporting Markdown and YAML files implement it.
 - Automations, prompts, and installers are wrappers around that contract.
+
+## Autonomous Operating Doctrine
+
+This BMAD is designed so Codex, Hermes, and OpenClaw can act autonomously
+without inventing their own workflow.
+
+The required doctrine is:
+
+- Read the manifest first, not just the last chat turn.
+- Start with discovery rigor unless the task is already clearly bounded and
+  low-risk.
+- Keep shared truth in tracked files and `_bmad-output/`, not only in runtime
+  memory.
+- Let Codex or Hermes choose the next BMAD phase after classification.
+- Delegate to OpenClaw only when the slice is bounded enough to express in the
+  handoff file.
+- Reconcile evidence and results back into the shared artifacts before changing
+  phase.
+- Ask the human only when intent is missing or when a decision has non-obvious
+  consequences.
+
+## When To Use What
+
+Use these routing rules:
+
+- Use direct BMAD skills in Codex for repo-local, bounded, single-session work.
+  Examples: `bmad-quick-dev`, `bmad-code-review`, `bmad-create-prd`.
+- Use the Hermes/OpenClaw loop when continuity, delegation, long-lived memory,
+  background progress, cron behavior, or channel-heavy/tool-heavy work matter.
+- If you are unsure which path to choose, start with the loop entrypoint and let
+  discovery rigor classify and route the work.
+- Do not force Hermes/OpenClaw for every small task. Memory helps, but runtime
+  complexity should only be paid when it adds value.
+- Do not bypass the loop for long-lived or asynchronous goals. Those are the
+  cases where Hermes/OpenClaw is materially better than a one-shot skill run.
+
+## Autonomous Handoff Pattern
+
+When Codex or Hermes is operating autonomously, use this pattern:
+
+1. Read `bmad.config.yaml`, `BMAD.md`, `.hermes.md`, `AGENTS.md`, and current
+   `_bmad-output/`.
+2. Classify the request and decide whether discovery rigor is needed.
+3. Choose the next BMAD phase.
+4. Decide whether the work should stay in the current surface or be delegated
+   to OpenClaw.
+5. If delegating, write a bounded brief into
+   `_bmad-output/openclaw-hermes/handoff.md`.
+6. Reconcile the result back into the shared artifacts.
+7. Report status, next action, and any blockers.
 
 ## Runtime Skill Wiring
 
@@ -77,9 +134,20 @@ The reusable runtime bundle manifest lives at
 
 Use these reusable commands:
 
-1. `npm run runtime:plan`
-2. `npm run runtime:export`
-3. `npm run runtime:install`
+1. `npm run runtime:doctor`
+2. `npm run runtime:bootstrap`
+3. `npm run runtime:live-smoke`
+4. `npm run runtime:plan`
+5. `npm run runtime:export`
+6. `npm run runtime:install`
+
+Bootstrap the machine-local slice with:
+
+1. `npm run runtime:bootstrap`
+2. `npm run runtime:bootstrap -- --apply`
+3. fill in the generated secrets and provider values
+4. `npm run runtime:install`
+5. `npm run runtime:doctor`
 
 For the human operator flow, read:
 
@@ -97,6 +165,8 @@ Hermes is the chief of staff:
   bounded
 - chooses the next BMAD phase
 - builds and sends bounded briefs to OpenClaw workers
+- should keep critical repo guardrails mirrored in `.hermes.md` because live
+  Hermes sessions prioritize that file as startup project context
 
 ### OpenClaw
 
@@ -105,6 +175,30 @@ OpenClaw is the worker layer:
 - exposes typed tools and channel integrations through the Gateway
 - runs delegated subagents with explicit scope
 - returns evidence, artifacts, and risks back to Hermes
+
+## Live Runtime Reliability
+
+Use `npm run runtime:doctor` to separate three states cleanly:
+
+- repo-valid
+- runtime-configured
+- runtime-ready
+- runtime-live
+
+Do not assume that a passing repo-side smoke test means the live Hermes or
+OpenClaw runtimes are healthy.
+
+If the runtime is not configured yet, start with `npm run runtime:bootstrap` to
+plan the machine-local starter files and `npm run runtime:bootstrap -- --apply`
+to create them.
+
+Use `npm run runtime:live-smoke` after `runtime:doctor` is green through
+runtime-ready. That command probes the real Hermes and OpenClaw CLIs without
+trying to execute product work.
+
+For scheduled or background work, prompts must be self-contained. Fresh runtime
+sessions should be able to recover from the manifest and `_bmad-output/`
+without depending on the current chat turn.
 
 ## OpenClaw Security
 
@@ -179,10 +273,15 @@ Hermes:
 OpenClaw:
 
 - `~/.openclaw/openclaw.json`
+- `~/.openclaw/.env`
 - `OPENCLAW_GATEWAY_TOKEN`
 - provider credentials
 - channel/plugin state
 - `~/.openclaw/skills/`
+
+Use `npm run runtime:bootstrap -- --apply` to scaffold the missing starter
+files for these machine-local surfaces without hand-authoring them from
+scratch.
 
 ### Workspace-local state
 

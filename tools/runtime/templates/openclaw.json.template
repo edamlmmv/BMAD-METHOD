@@ -1,0 +1,45 @@
+{
+  "gateway": {
+    "bind": "loopback",
+    "port": {{gateway_port}},
+    "auth": {
+      "mode": "token",
+      "token": "${{gateway_token_env}}"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "{{openclaw_workspace}}",
+      "userTimezone": "{{timezone}}",
+      "model": {
+        "primary": "{{default_model}}"
+      }
+    }
+  },
+  "session": {
+    "scope": "per-sender",
+    "dmScope": "per-channel-peer"
+  },
+  "browser": {
+    "enabled": true,
+    "defaultProfile": "openclaw"
+  },
+  "cron": {
+    "enabled": false,
+    "store": "{{openclaw_cron_store}}"
+  },
+  "channels": {},
+  "plugins": {
+    "entries": {
+      "browser": {
+        "enabled": true
+      }
+    }
+  },
+  "tools": {
+    "elevated": {
+      "enabled": true,
+      "allowFrom": {}
+    }
+  }
+}

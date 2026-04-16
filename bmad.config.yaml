@@ -17,6 +17,7 @@ canonical_sources:
   repo_rules: AGENTS.md
   copilot_instructions: .github/copilot-instructions.md
   reusable_prompt: .github/prompts/bmad-openclaw-hermes-loop.prompt.md
+  codex_entrypoint_skill: bmad-openclaw-hermes-loop
   artifact_guidance: bmad-output.instructions.md
   runtime_bundle_manifest: tools/runtime/openclaw-hermes-runtime.yaml
 
@@ -41,6 +42,9 @@ runtime_skill_bundles:
   manifest: tools/runtime/openclaw-hermes-runtime.yaml
   export_root: build/runtime/openclaw-hermes
   commands:
+    bootstrap: npm run runtime:bootstrap
+    doctor: npm run runtime:doctor
+    live_smoke: npm run runtime:live-smoke
     plan: npm run runtime:plan
     export: npm run runtime:export
     install: npm run runtime:install
@@ -71,6 +75,38 @@ runtime_topology:
     handoff_file: _bmad-output/openclaw-hermes/handoff.md
     default_strategy: Hermes is human-facing; OpenClaw is internal unless a
       dedicated channel is explicitly needed.
+
+entrypoints:
+  copilot:
+    primary: /bmad-openclaw-hermes-loop
+    default_behavior: read the BMAD contract first and start with discovery
+      rigor unless the task is already clearly bounded
+  codex:
+    primary: bmad-openclaw-hermes-loop
+    explicit_discovery: bmad-discovery-rigor
+    default_behavior: use the loop when you want Codex to read the BMAD
+      contract, classify the work, choose the next phase, and route between
+      direct BMAD execution and Hermes/OpenClaw delegation
+  direct_phase_skills:
+    examples:
+      - bmad-quick-dev
+      - bmad-code-review
+      - bmad-create-prd
+      - bmad-create-architecture
+
+autonomy_model:
+  goal: allow Codex or Hermes to drive the BMAD autonomously while keeping
+    shared truth in files and routing only bounded work to OpenClaw
+  principles:
+    - read the manifest and current artifacts before choosing a phase
+    - default to discovery rigor unless the task is already clearly bounded
+    - keep repo-tracked files and _bmad-output as the portable source of truth
+    - use direct BMAD skills for repo-local, bounded, single-session work
+    - use Hermes/OpenClaw when continuity, delegation, background progress,
+      channels, or long-lived memory materially help
+    - delegate only bounded slices to OpenClaw and reconcile evidence before
+      changing phase
+    - escalate to the human only for missing intent or non-obvious tradeoffs
 
 machine_config:
   hermes:
@@ -112,6 +148,7 @@ machine_config:
   openclaw:
     home: ~/.openclaw
     config_file: ~/.openclaw/openclaw.json
+    secrets_file: ~/.openclaw/.env
     gateway:
       mode: local
       bind_host: 127.0.0.1
@@ -199,8 +236,21 @@ operating_rules:
     the BMAD.
   - Default to discovery rigor at the start of new work unless the request is
     already inside a clearly bounded follow-on execution slice.
+  - Codex may act as the initiating control surface for the full
+    Hermes/OpenClaw loop.
   - Hermes owns planning, memory, and user-facing synthesis.
   - OpenClaw owns delegated execution and channel/tool-heavy work.
+  - Use direct BMAD skills when the task is already repo-local and bounded.
+  - Prefer the loop when the task needs routing, persistence, delegation,
+    background progress, or runtime memory.
+  - Use `npm run runtime:bootstrap` to scaffold missing machine-local starter
+    config before expecting runtime configuration checks to pass.
+  - Treat `npm run runtime:doctor` as the staged health boundary and
+    `npm run runtime:live-smoke` as the non-destructive live CLI probe.
+  - Keep critical live-runtime guardrails mirrored in `.hermes.md`; do not rely
+    on top-level `AGENTS.md` being the only startup context for Hermes.
+  - Treat scheduled or background runs as fresh sessions and make their prompts
+    self-contained against durable artifacts.
   - Prefer durable config, skills, prompts, and docs over one-off commands.
   - Do not invent product scope; document blockers in the handoff and ask one
     focused question.
@@ -209,14 +259,18 @@ provisioning_targets:
   local:
     hermes:
       - install Hermes Agent
+      - scaffold starter config via npm run runtime:bootstrap -- --apply
       - configure ~/.hermes/config.yaml and ~/.hermes/.env
       - install BMAD runtime bundle into ~/.hermes/skills via npm run runtime:install
+      - verify with npm run runtime:doctor
       - load chief-of-staff context and skills
     openclaw:
       - install OpenClaw
-      - configure ~/.openclaw/openclaw.json
+      - scaffold starter config via npm run runtime:bootstrap -- --apply
+      - configure ~/.openclaw/openclaw.json and ~/.openclaw/.env
       - start the Gateway with token auth
       - install BMAD worker bundle into ~/.openclaw/skills via npm run runtime:install
+      - verify with npm run runtime:doctor
       - create dedicated worker agents and skills
   vps:
     hermes:

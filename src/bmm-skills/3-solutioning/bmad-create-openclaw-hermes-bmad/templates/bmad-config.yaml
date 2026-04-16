@@ -17,6 +17,7 @@ canonical_sources:
   repo_rules: AGENTS.md
   copilot_instructions: .github/copilot-instructions.md
   reusable_prompt: .github/prompts/bmad-openclaw-hermes-loop.prompt.md
+  codex_entrypoint_skill: bmad-openclaw-hermes-loop
   artifact_guidance: bmad-output.instructions.md
   runtime_bundle_manifest: tools/runtime/openclaw-hermes-runtime.yaml
 
@@ -41,6 +42,9 @@ runtime_skill_bundles:
   manifest: tools/runtime/openclaw-hermes-runtime.yaml
   export_root: build/runtime/openclaw-hermes
   commands:
+    bootstrap: npm run runtime:bootstrap
+    doctor: npm run runtime:doctor
+    live_smoke: npm run runtime:live-smoke
     plan: npm run runtime:plan
     export: npm run runtime:export
     install: npm run runtime:install
@@ -70,6 +74,13 @@ runtime_topology:
     control_plane: openclaw_gateway
     handoff_file: "{{output_folder}}/openclaw-hermes/handoff.md"
 
+entrypoints:
+  copilot:
+    primary: /bmad-openclaw-hermes-loop
+  codex:
+    primary: bmad-openclaw-hermes-loop
+    explicit_discovery: bmad-discovery-rigor
+
 machine_config:
   hermes:
     home: ~/.hermes
@@ -90,6 +101,7 @@ machine_config:
   openclaw:
     home: ~/.openclaw
     config_file: ~/.openclaw/openclaw.json
+    secrets_file: ~/.openclaw/.env
     gateway:
       bind_host: 127.0.0.1
       auth_mode: token
@@ -141,6 +153,8 @@ operating_rules:
   - Treat plain files as the source of truth; installers and automations are
     wrappers around those files.
   - "Keep {{output_folder}} as local operational state, not the sole definition of the BMAD."
+  - Use `npm run runtime:bootstrap` to scaffold missing machine-local starter
+    config before expecting runtime configuration checks to pass.
   - Hermes owns planning, memory, and user-facing synthesis.
   - OpenClaw owns delegated execution and channel-heavy work.
   - Prefer durable config, skills, prompts, and docs over one-off commands.
