@@ -1,0 +1,29 @@
+version: 1
+method: manifest-first
+workspace: BMAD-METHOD
+subject: bmad-method-framework
+active_track: framework-provisioning
+current_phase: coordination
+hermes:
+  role: chief-of-staff
+  responsibilities:
+    - maintain user-facing coordination
+    - choose phase and next workflow
+    - preserve durable context
+openclaw:
+  role: delegated-worker
+  use_only_for:
+    - bounded execution
+    - tool-heavy work
+    - channel-specific tasks
+  handoff_file: _bmad-output/openclaw-hermes/handoff.md
+artifacts:
+  contract: BMAD.md
+  hermes_context: .hermes.md
+  sprint_status: _bmad-output/sprint-status.yaml
+  ops_state_dir: _bmad-output
+guardrails:
+  - do not invent missing product scope
+  - if BMAD itself is active subject, refine contract or provisioning guidance
+  - do not edit application source without active scoped story or provisioning task
+  - keep secrets and provider tokens out of tracked files
