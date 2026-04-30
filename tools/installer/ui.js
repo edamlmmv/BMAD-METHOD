@@ -16,6 +16,7 @@ const {
 } = require('./modules/channel-plan');
 const channelResolver = require('./modules/channel-resolver');
 const prompts = require('./prompts');
+const { parseSetEntries } = require('./set-overrides');
 
 const manifest = new Manifest();
 
@@ -200,12 +201,15 @@ class UI {
         actionType = options.action;
         await prompts.log.info(`Using action from command-line: ${actionType}`);
       } else if (options.yes) {
-        // Default to quick-update if available, otherwise first available choice
+        // Default to quick-update if available, unless flags that require the
+        // full update path are present (e.g. --custom-source which re-clones
+        // modules at a new version — quick-update skips that entirely).
         if (choices.length === 0) {
           throw new Error('No valid actions available for this installation');
         }
         const hasQuickUpdate = choices.some((c) => c.value === 'quick-update');
-        actionType = hasQuickUpdate ? 'quick-update' : choices[0].value;
+        const needsFullUpdate = !!options.customSource;
+        actionType = hasQuickUpdate && !needsFullUpdate ? 'quick-update' : (choices.find((c) => c.value === 'update') || choices[0]).value;
         await prompts.log.info(`Non-interactive mode (--yes): defaulting to ${actionType}`);
       } else {
         actionType = await prompts.select({
@@ -241,8 +245,11 @@ class UI {
             .map((m) => m.trim())
             .filter(Boolean);
           await prompts.log.info(`Using modules from command-line: ${selectedModules.join(', ')}`);
-        } else if (options.customSource) {
-          // Custom source without --modules: start with empty list (core added below)
+        } else if (options.customSource && !options.yes) {
+          // Custom source without --modules or --yes: start with empty list
+          // (only custom source modules + core will be installed).
+          // When --yes is also set, fall through to the --yes branch so all
+          // installed modules are included alongside the custom source modules.
           selectedModules = [];
         } else if (options.yes) {
           selectedModules = await this.getDefaultModules(installedModuleIds);
@@ -281,7 +288,7 @@ class UI {
         // Get tool selection
         const toolSelection = await this.promptToolSelection(confirmedDirectory, options);
 
-        const moduleConfigs = await this.collectModuleConfigs(confirmedDirectory, selectedModules, {
+        const { moduleConfigs, setOverrides } = await this.collectModuleConfigs(confirmedDirectory, selectedModules, {
           ...options,
           channelOptions,
         });
@@ -307,6 +314,7 @@ class UI {
           skipIde: toolSelection.skipIde,
           coreConfig: moduleConfigs.core || {},
           moduleConfigs: moduleConfigs,
+          setOverrides,
           skipPrompts: options.yes || false,
           channelOptions,
         };
@@ -358,7 +366,7 @@ class UI {
     await this._interactiveChannelGate({ options, channelOptions, selectedModules });
 
     let toolSelection = await this.promptToolSelection(confirmedDirectory, options);
-    const moduleConfigs = await this.collectModuleConfigs(confirmedDirectory, selectedModules, {
+    const { moduleConfigs, setOverrides } = await this.collectModuleConfigs(confirmedDirectory, selectedModules, {
       ...options,
       channelOptions,
     });
@@ -384,6 +392,7 @@ class UI {
       skipIde: toolSelection.skipIde,
       coreConfig: moduleConfigs.core || {},
       moduleConfigs: moduleConfigs,
+      setOverrides,
       skipPrompts: options.yes || false,
       channelOptions,
     };
@@ -398,6 +407,37 @@ class UI {
    * @param {Object} options - Command-line options
    * @returns {Object} Tool configuration
    */
+  _parseToolsFlag(toolsArg, allKnownValues) {
+    const selectedIdes = toolsArg
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    if (selectedIdes.length === 0) {
+      const err = new Error(
+        '--tools was passed empty. Provide at least one tool ID (e.g. --tools claude-code) or run with --list-tools to see valid IDs.',
+      );
+      err.expected = true;
+      throw err;
+    }
+
+    const unknown = selectedIdes.filter((id) => !allKnownValues.has(id));
+    if (unknown.length > 0) {
+      const err = new Error(
+        [
+          `Unknown tool ID${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}`,
+          '',
+          'Run with --list-tools to see all valid IDs.',
+          'Common: claude-code, cursor, copilot, windsurf, cline',
+        ].join('\n'),
+      );
+      err.expected = true;
+      throw err;
+    }
+
+    return selectedIdes;
+  }
+
   async promptToolSelection(projectDir, options = {}) {
     const { ExistingInstall } = require('./core/existing-install');
     const { Installer } = require('./core/installer');
@@ -432,15 +472,10 @@ class UI {
       const allTools = [...preferredIdes, ...otherIdes];
 
       // Non-interactive: handle --tools and --yes flags before interactive prompt
-      if (options.tools) {
-        if (options.tools.toLowerCase() === 'none') {
-          await prompts.log.info('Skipping tool configuration (--tools none)');
-          return { ides: [], skipIde: true };
-        }
-        const selectedIdes = options.tools
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
+      // Use !== undefined so an explicit --tools "" falls through to _parseToolsFlag and
+      // gets a specific "passed empty" error instead of being silently ignored.
+      if (options.tools !== undefined) {
+        const selectedIdes = this._parseToolsFlag(options.tools, allKnownValues);
         await prompts.log.info(`Using tools from command-line: ${selectedIdes.join(', ')}`);
         await this.displaySelectedTools(selectedIdes, preferredIdes, allTools);
         return { ides: selectedIdes, skipIde: false };
@@ -516,21 +551,13 @@ class UI {
 
     let selectedIdes = [];
 
-    // Check if tools are provided via command-line
-    if (options.tools) {
-      // Check for explicit "none" value to skip tool installation
-      if (options.tools.toLowerCase() === 'none') {
-        await prompts.log.info('Skipping tool configuration (--tools none)');
-        return { ides: [], skipIde: true };
-      } else {
-        selectedIdes = options.tools
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
-        await prompts.log.info(`Using tools from command-line: ${selectedIdes.join(', ')}`);
-        await this.displaySelectedTools(selectedIdes, preferredIdes, allTools);
-        return { ides: selectedIdes, skipIde: false };
-      }
+    // Check if tools are provided via command-line.
+    // Use !== undefined so an explicit --tools "" still hits _parseToolsFlag's empty-value error.
+    if (options.tools !== undefined) {
+      selectedIdes = this._parseToolsFlag(options.tools, allKnownValues);
+      await prompts.log.info(`Using tools from command-line: ${selectedIdes.join(', ')}`);
+      await this.displaySelectedTools(selectedIdes, preferredIdes, allTools);
+      return { ides: selectedIdes, skipIde: false };
     } else if (options.yes) {
       // If --yes flag is set, skip tool prompt and use previously configured tools or empty
       if (configuredIdes.length > 0) {
@@ -538,8 +565,18 @@ class UI {
         await this.displaySelectedTools(configuredIdes, preferredIdes, allTools);
         return { ides: configuredIdes, skipIde: false };
       } else {
-        await prompts.log.info('Skipping tool configuration (--yes flag, no previous tools)');
-        return { ides: [], skipIde: true };
+        const err = new Error(
+          [
+            '--tools is required for non-interactive install (--yes / -y) when no tools are previously configured.',
+            '',
+            'Common: claude-code, cursor, copilot, windsurf, cline',
+            'See all supported tools: bmad-method install --list-tools',
+            '',
+            'Example: bmad-method install --modules bmm --tools claude-code -y',
+          ].join('\n'),
+        );
+        err.expected = true;
+        throw err;
       }
     }
 
@@ -675,6 +712,33 @@ class UI {
    */
   async collectModuleConfigs(directory, modules, options = {}) {
     const { OfficialModules } = require('./modules/official-modules');
+
+    // Parse --set up front purely to surface user-error before the install
+    // burns time on the network / filesystem. The actual application happens
+    // in installer.install() as a post-write TOML patch — see
+    // `tools/installer/set-overrides.js`. We also warn about overrides
+    // targeting modules the user didn't include, since those will silently
+    // miss the file the patch step looks for.
+    let setOverrides = {};
+    try {
+      setOverrides = parseSetEntries(options.set || []);
+    } catch (error) {
+      // install.js validated already; rethrow as-is for the user.
+      throw error;
+    }
+    // Drop overrides for modules that aren't in the install set so the
+    // post-install patch step doesn't create orphan sections in config.toml
+    // for modules that were never installed.
+    const selectedModuleSet = new Set(['core', ...modules]);
+    for (const moduleCode of Object.keys(setOverrides)) {
+      if (!selectedModuleSet.has(moduleCode)) {
+        await prompts.log.warn(
+          `--set ${moduleCode}.* — module '${moduleCode}' is not in the install set; values will be ignored. Add it to --modules to apply.`,
+        );
+        delete setOverrides[moduleCode];
+      }
+    }
+
     const configCollector = new OfficialModules({ channelOptions: options.channelOptions });
 
     // Seed core config from CLI options if provided
@@ -724,6 +788,9 @@ class UI {
         const defaultUsername = safeUsername.charAt(0).toUpperCase() + safeUsername.slice(1);
         configCollector.collectedConfig.core = {
           user_name: defaultUsername,
+          // {directory_name} default per src/core-skills/module.yaml — matches what the
+          // interactive flow resolves via buildQuestion()'s {directory_name} placeholder.
+          project_name: path.basename(directory),
           communication_language: 'English',
           document_output_language: 'English',
           output_folder: '_bmad-output',
@@ -737,7 +804,7 @@ class UI {
       skipPrompts: options.yes || false,
     });
 
-    return configCollector.collectedConfig;
+    return { moduleConfigs: configCollector.collectedConfig, setOverrides };
   }
 
   /**
