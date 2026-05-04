@@ -29,6 +29,7 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
     renderSetupGate(status),
     renderResultLedger(status),
     renderReview(status, review),
+    renderCloseout(status),
     renderBaseImprovement(status),
     renderNextRoute(status, packet),
     renderReadOnlyBoundary(),
@@ -173,6 +174,23 @@ function renderReview(status, review) {
 ${repos.length > 0 ? repos.join('\n') : '- repos: None recorded'}`;
 }
 
+function renderCloseout(status) {
+  const closeout = status.closeout || { state: 'none', count: 0, latest: null, entries: [] };
+  const lines = (closeout.entries || []).map((entry) => {
+    if (!entry.valid) {
+      return `- ${entry.closeoutId}: invalid; ref=${entry.ref}`;
+    }
+    return `- ${entry.closeoutId}: outcome=${entry.outcome}; nextAction=${entry.nextAction}; ref=${entry.ref}`;
+  });
+
+  return `## Closeout
+
+- state: \`${closeout.state}\`
+- count: \`${closeout.count || 0}\`
+- latest: ${closeout.latest ? `\`${closeout.latest.closeoutId}\` (${closeout.latest.outcome})` : 'None recorded'}
+${lines.length > 0 ? lines.join('\n') : '- closeout: None recorded'}`;
+}
+
 function renderBaseImprovement(status) {
   if (!status.baseImprovementReadiness) {
     return `## Base Improvement Readiness
@@ -211,6 +229,9 @@ function recommendRoute(status, packet) {
   }
   if (codes.has('REVIEW_MISSING')) {
     return `\`bmad workspace review ${status.sessionId} --runtime-root ${runtimeRoot}\``;
+  }
+  if (status.closeout?.latest) {
+    return `manual next action \`${status.closeout.latest.nextAction}\` from closeout \`${status.closeout.latest.closeoutId}\``;
   }
   if (status.status === 'ready' && packet?.renderedPromptRef) {
     const workflow = status.routing?.selectedWorkflow ? ` for \`${status.routing.selectedWorkflow}\`` : '';

@@ -196,6 +196,7 @@ function runTests() {
   assert(output.includes('--output <path>'), 'workspace help lists --output', output);
   assert(output.includes('--input <path>'), 'workspace help lists --input', output);
   assert(output.includes('--result-id <id>'), 'workspace help lists --result-id', output);
+  assert(output.includes('--closeout-id <id>'), 'workspace help lists --closeout-id', output);
   for (const subcommand of [
     'launch',
     'intake',
@@ -204,6 +205,7 @@ function runTests() {
     'status',
     'handoff',
     'result',
+    'closeout',
     'archive',
     'verify-archive',
     'review',
@@ -1160,6 +1162,20 @@ function runTests() {
     );
     fs.writeFileSync(packetOutput.executorContractPath, originalExecutorContractContent);
 
+    const closeoutCompletedInputPath = path.join(tempRoot, 'closeout-completed.json');
+    fs.writeFileSync(
+      closeoutCompletedInputPath,
+      `${JSON.stringify(
+        {
+          outcome: 'completed',
+          nextAction: 'manual-target-review',
+          summary: 'Manual work finished and review evidence is ready.',
+          evidenceRefs: ['review/summary.json'],
+        },
+        null,
+        2,
+      )}\n`,
+    );
     fs.writeFileSync(packetOutput.executorContractPath, `${JSON.stringify({ kind: 'not-executor-contract' }, null, 2)}\n`);
     const invalidExecutorStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -1172,6 +1188,29 @@ function runTests() {
       invalidExecutorStatusOutput.checks.some((item) => item.code === 'EXECUTOR_CONTRACT_INVALID'),
       'status names invalid executor contract',
       invalidExecutorStatusText,
+    );
+    const invalidExecutorCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'invalid-executor-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidExecutorCloseoutText = `${invalidExecutorCloseout.stdout}\n${invalidExecutorCloseout.stderr}`;
+    assert(invalidExecutorCloseout.status !== 0, 'closeout with invalid executor contract exits nonzero', invalidExecutorCloseoutText);
+    assert(
+      invalidExecutorCloseoutText.includes('EXECUTOR_CONTRACT_INVALID'),
+      'closeout invalid executor contract names stable error',
+      invalidExecutorCloseoutText,
     );
     fs.writeFileSync(packetOutput.executorContractPath, originalExecutorContractContent);
 
@@ -1406,6 +1445,56 @@ function runTests() {
       missingPacketResultText,
     );
 
+    section('Workspace Closeout Preconditions');
+
+    const missingSessionCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        'missing-session',
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'missing-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingSessionCloseoutText = `${missingSessionCloseout.stdout}\n${missingSessionCloseout.stderr}`;
+    assert(missingSessionCloseout.status !== 0, 'closeout missing session exits nonzero', missingSessionCloseoutText);
+    assert(
+      missingSessionCloseoutText.includes('SESSION_NOT_FOUND'),
+      'closeout missing session names SESSION_NOT_FOUND',
+      missingSessionCloseoutText,
+    );
+
+    const missingPacketCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        multiRepoOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'no-packet-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingPacketCloseoutText = `${missingPacketCloseout.stdout}\n${missingPacketCloseout.stderr}`;
+    assert(missingPacketCloseout.status !== 0, 'closeout without packet exits nonzero', missingPacketCloseoutText);
+    assert(
+      missingPacketCloseoutText.includes('CLOSEOUT_PACKET_MISSING'),
+      'closeout without packet names CLOSEOUT_PACKET_MISSING',
+      missingPacketCloseoutText,
+    );
+
     const invalidJsonInputPath = path.join(tempRoot, 'result-invalid-json.json');
     fs.writeFileSync(invalidJsonInputPath, '{nope\n');
     const invalidJsonResult = runCli(
@@ -1498,6 +1587,130 @@ function runTests() {
     );
     assert(!secretResultText.includes(secretToken), 'result secret-positive stderr is redacted', secretResultText);
     assert(!fs.existsSync(path.join(launchOutput.sessionRoot, 'results')), 'result failures write no partial artifacts');
+
+    const completedBeforeReviewCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'before-review',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const completedBeforeReviewCloseoutText = `${completedBeforeReviewCloseout.stdout}\n${completedBeforeReviewCloseout.stderr}`;
+    assert(completedBeforeReviewCloseout.status !== 0, 'completed closeout before review exits nonzero', completedBeforeReviewCloseoutText);
+    assert(
+      completedBeforeReviewCloseoutText.includes('CLOSEOUT_REVIEW_MISSING'),
+      'completed closeout before review names CLOSEOUT_REVIEW_MISSING',
+      completedBeforeReviewCloseoutText,
+    );
+
+    const unsafeCloseoutId = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        '../escape',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const unsafeCloseoutIdText = `${unsafeCloseoutId.stdout}\n${unsafeCloseoutId.stderr}`;
+    assert(unsafeCloseoutId.status !== 0, 'closeout unsafe id exits nonzero', unsafeCloseoutIdText);
+    assert(unsafeCloseoutIdText.includes('CLOSEOUT_ID_UNSAFE'), 'closeout unsafe id names CLOSEOUT_ID_UNSAFE', unsafeCloseoutIdText);
+
+    const invalidJsonCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        invalidJsonInputPath,
+        '--closeout-id',
+        'bad-json-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidJsonCloseoutText = `${invalidJsonCloseout.stdout}\n${invalidJsonCloseout.stderr}`;
+    assert(invalidJsonCloseout.status !== 0, 'closeout invalid JSON exits nonzero', invalidJsonCloseoutText);
+    assert(
+      invalidJsonCloseoutText.includes('CLOSEOUT_INPUT_INVALID_JSON'),
+      'closeout invalid JSON names stable error',
+      invalidJsonCloseoutText,
+    );
+
+    const secretCloseoutInputPath = path.join(tempRoot, 'closeout-secret.json');
+    fs.writeFileSync(
+      secretCloseoutInputPath,
+      `${JSON.stringify({ outcome: 'blocked', nextAction: 'manual-continuation-review', summary: secretToken }, null, 2)}\n`,
+    );
+    const secretCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        secretCloseoutInputPath,
+        '--closeout-id',
+        'secret-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const secretCloseoutText = `${secretCloseout.stdout}\n${secretCloseout.stderr}`;
+    assert(secretCloseout.status !== 0, 'closeout secret-positive input exits nonzero', secretCloseoutText);
+    assert(
+      secretCloseoutText.includes('CLOSEOUT_SECRET_DETECTED'),
+      'closeout secret-positive input names CLOSEOUT_SECRET_DETECTED',
+      secretCloseoutText,
+    );
+    assert(!secretCloseoutText.includes(secretToken), 'closeout secret-positive stderr is redacted', secretCloseoutText);
+
+    const invalidCloseoutInputPath = path.join(tempRoot, 'closeout-invalid-action.json');
+    fs.writeFileSync(
+      invalidCloseoutInputPath,
+      `${JSON.stringify({ outcome: 'approved', nextAction: 'merge', summary: 'Bad closeout.' }, null, 2)}\n`,
+    );
+    const invalidCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        invalidCloseoutInputPath,
+        '--closeout-id',
+        'bad-action-closeout',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidCloseoutText = `${invalidCloseout.stdout}\n${invalidCloseout.stderr}`;
+    assert(invalidCloseout.status !== 0, 'closeout invalid outcome or action exits nonzero', invalidCloseoutText);
+    assert(invalidCloseoutText.includes('CLOSEOUT_INVALID'), 'closeout invalid outcome or action names stable error', invalidCloseoutText);
+    assert(!fs.existsSync(path.join(launchOutput.sessionRoot, 'closeout')), 'closeout failures write no partial artifacts');
 
     const recordResult = runCli(
       [
@@ -1691,6 +1904,194 @@ function runTests() {
     assert(reviewedStatusOutput.review.state === 'present', 'status after review reports review present', reviewedStatusText);
     assert(reviewedStatusOutput.status === 'ready', 'status after review reports ready', reviewedStatusText);
 
+    section('Workspace Closeout');
+
+    const recordCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'closeout-001',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const recordCloseoutText = `${recordCloseout.stdout}\n${recordCloseout.stderr}`;
+    assert(recordCloseout.status === 0, 'valid closeout exits zero', recordCloseoutText);
+    const recordCloseoutOutput = JSON.parse(recordCloseout.stdout);
+    assertSessionOutput(recordCloseoutOutput, 'closeout output');
+    assert(recordCloseoutOutput.closeoutId === 'closeout-001', 'closeout output records closeout id', recordCloseoutText);
+    assert(fs.existsSync(recordCloseoutOutput.closeoutPath), 'closeout writes artifact', recordCloseoutText);
+    const closeoutArtifact = readJson(recordCloseoutOutput.closeoutPath);
+    assert(closeoutArtifact.kind === 'bmad-workspace-closeout', 'closeout records kind', JSON.stringify(closeoutArtifact, null, 2));
+    assert(closeoutArtifact.schemaVersion === 1, 'closeout records schemaVersion 1', JSON.stringify(closeoutArtifact, null, 2));
+    assert(closeoutArtifact.sessionId === launchOutput.sessionId, 'closeout records sessionId', JSON.stringify(closeoutArtifact, null, 2));
+    assert(closeoutArtifact.closeoutId === 'closeout-001', 'closeout records closeoutId', JSON.stringify(closeoutArtifact, null, 2));
+    assert(closeoutArtifact.outcome === 'completed', 'closeout records outcome', JSON.stringify(closeoutArtifact, null, 2));
+    assert(
+      closeoutArtifact.nextAction === 'manual-target-review',
+      'closeout records next action',
+      JSON.stringify(closeoutArtifact, null, 2),
+    );
+    assert(
+      closeoutArtifact.packetRef === 'packets/bmad-work-packet.json',
+      'closeout records packet ref',
+      JSON.stringify(closeoutArtifact, null, 2),
+    );
+    assert(
+      closeoutArtifact.executorContractRef === 'packets/executor-contract.json',
+      'closeout records executor contract ref',
+      JSON.stringify(closeoutArtifact, null, 2),
+    );
+    assert(closeoutArtifact.reviewRef === 'review/summary.json', 'closeout records review ref', JSON.stringify(closeoutArtifact, null, 2));
+    assert(
+      closeoutArtifact.resultRefs.includes('results/result-001.json'),
+      'closeout records result ref',
+      JSON.stringify(closeoutArtifact, null, 2),
+    );
+
+    const duplicateCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'closeout-001',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const duplicateCloseoutText = `${duplicateCloseout.stdout}\n${duplicateCloseout.stderr}`;
+    assert(duplicateCloseout.status !== 0, 'duplicate closeout exits nonzero', duplicateCloseoutText);
+    assert(duplicateCloseoutText.includes('CLOSEOUT_EXISTS'), 'duplicate closeout names CLOSEOUT_EXISTS', duplicateCloseoutText);
+
+    const closeoutStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const closeoutStatusText = `${closeoutStatus.stdout}\n${closeoutStatus.stderr}`;
+    assert(closeoutStatus.status === 0, 'status after closeout exits zero', closeoutStatusText);
+    const closeoutStatusOutput = JSON.parse(closeoutStatus.stdout);
+    assert(closeoutStatusOutput.closeout.count === 1, 'status reports closeout count', closeoutStatusText);
+    assert(closeoutStatusOutput.closeout.latest.closeoutId === 'closeout-001', 'status reports latest closeout', closeoutStatusText);
+    assert(closeoutStatusOutput.closeout.latest.outcome === 'completed', 'status reports latest closeout outcome', closeoutStatusText);
+    assert(closeoutStatusOutput.derivedLifecycle === 'closeout-recorded', 'status reports closeout derived lifecycle', closeoutStatusText);
+
+    const closeoutList = runCli(['workspace', 'list', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const closeoutListText = `${closeoutList.stdout}\n${closeoutList.stderr}`;
+    assert(closeoutList.status === 0, 'list after closeout exits zero', closeoutListText);
+    const closeoutListOutput = JSON.parse(closeoutList.stdout);
+    const listedCloseoutSession = closeoutListOutput.sessions.find((session) => session.sessionId === launchOutput.sessionId);
+    assert(listedCloseoutSession?.closeout.count === 1, 'list reports closeout count', closeoutListText);
+    assert(listedCloseoutSession?.closeout.latest.closeoutId === 'closeout-001', 'list reports latest closeout', closeoutListText);
+    assert(listedCloseoutSession?.derivedLifecycle === 'closeout-recorded', 'list reports closeout derived lifecycle', closeoutListText);
+
+    const closeoutHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const closeoutHandoffText = `${closeoutHandoff.stdout}\n${closeoutHandoff.stderr}`;
+    assert(closeoutHandoff.status === 0, 'handoff after closeout exits zero', closeoutHandoffText);
+    assert(closeoutHandoff.stdout.includes('## Closeout'), 'handoff includes Closeout section', closeoutHandoffText);
+    assert(closeoutHandoff.stdout.includes('closeout-001'), 'handoff includes closeout id', closeoutHandoffText);
+    assert(closeoutHandoff.stdout.includes('manual-target-review'), 'handoff includes manual closeout guidance', closeoutHandoffText);
+
+    const invalidStoredCloseoutPath = path.join(launchOutput.sessionRoot, 'closeout', 'invalid-closeout.json');
+    fs.writeFileSync(invalidStoredCloseoutPath, `${JSON.stringify({ kind: 'not-closeout' }, null, 2)}\n`);
+    const invalidCloseoutStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidCloseoutStatusText = `${invalidCloseoutStatus.stdout}\n${invalidCloseoutStatus.stderr}`;
+    assert(invalidCloseoutStatus.status === 0, 'status with invalid closeout exits zero', invalidCloseoutStatusText);
+    assert(
+      JSON.parse(invalidCloseoutStatus.stdout).checks.some((item) => item.code === 'CLOSEOUT_INVALID'),
+      'status with invalid closeout names CLOSEOUT_INVALID',
+      invalidCloseoutStatusText,
+    );
+    fs.rmSync(invalidStoredCloseoutPath);
+
+    const secretStoredCloseoutPath = path.join(launchOutput.sessionRoot, 'closeout', 'secret-closeout.json');
+    fs.writeFileSync(
+      secretStoredCloseoutPath,
+      `${JSON.stringify({ ...closeoutArtifact, closeoutId: 'secret-closeout', summary: secretToken }, null, 2)}\n`,
+    );
+    const secretCloseoutStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const secretCloseoutStatusText = `${secretCloseoutStatus.stdout}\n${secretCloseoutStatus.stderr}`;
+    assert(secretCloseoutStatus.status === 0, 'status with secret-positive closeout exits zero', secretCloseoutStatusText);
+    assert(
+      JSON.parse(secretCloseoutStatus.stdout).checks.some((item) => item.code === 'CLOSEOUT_SECRET_DETECTED'),
+      'status with secret-positive closeout names CLOSEOUT_SECRET_DETECTED',
+      secretCloseoutStatusText,
+    );
+    assert(!secretCloseoutStatusText.includes(secretToken), 'status with secret-positive closeout is redacted', secretCloseoutStatusText);
+    fs.rmSync(secretStoredCloseoutPath);
+
+    const noResultIntake = runCli(['workspace', 'intake', multiRepoOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const noResultIntakeText = `${noResultIntake.stdout}\n${noResultIntake.stderr}`;
+    assert(noResultIntake.status === 0, 'no-result closeout fixture intake exits zero', noResultIntakeText);
+    const noResultPacket = runCli(
+      [
+        'workspace',
+        'packet',
+        multiRepoOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--zoom-out-ref',
+        'docs/workspace/v4-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const noResultPacketText = `${noResultPacket.stdout}\n${noResultPacket.stderr}`;
+    assert(noResultPacket.status === 0, 'no-result closeout fixture packet exits zero', noResultPacketText);
+    const noResultReview = runCli(['workspace', 'review', multiRepoOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const noResultReviewText = `${noResultReview.stdout}\n${noResultReview.stderr}`;
+    assert(noResultReview.status === 0, 'no-result closeout fixture review exits zero', noResultReviewText);
+    const noResultCloseout = runCli(
+      [
+        'workspace',
+        'closeout',
+        multiRepoOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        closeoutCompletedInputPath,
+        '--closeout-id',
+        'closeout-no-results',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const noResultCloseoutText = `${noResultCloseout.stdout}\n${noResultCloseout.stderr}`;
+    assert(noResultCloseout.status === 0, 'valid closeout without results exits zero', noResultCloseoutText);
+    const noResultCloseoutArtifact = readJson(JSON.parse(noResultCloseout.stdout).closeoutPath);
+    assert(noResultCloseoutArtifact.resultRefs.length === 0, 'closeout without results records empty result refs', noResultCloseoutText);
+
     const reviewRepoPack = readJson(launchOutput.repoPackPath);
     const worktreeReadme = path.join(reviewRepoPack.repos[0].worktreePath, 'README.md');
     fs.appendFileSync(worktreeReadme, 'Worktree review change.\n');
@@ -1765,6 +2166,11 @@ function runTests() {
       'archive copies result artifact',
       archiveText,
     );
+    assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'closeout', 'closeout-001.json')),
+      'archive copies closeout artifact',
+      archiveText,
+    );
     assert(!fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'worktrees')), 'archive does not copy worktrees', archiveText);
     assert(
       !fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'docs', 'workspace', 'v4-zoom-out.md')),
@@ -1782,6 +2188,11 @@ function runTests() {
     assert(
       manifest.artifacts.executorContract.present === true,
       'archive manifest records executor contract artifact',
+      JSON.stringify(manifest, null, 2),
+    );
+    assert(
+      manifest.artifacts.closeouts.some((entry) => entry.closeout.present === true),
+      'archive manifest records closeout artifact',
       JSON.stringify(manifest, null, 2),
     );
     const manifestPaths = manifest.files.map((file) => file.path);
@@ -1824,6 +2235,12 @@ function runTests() {
       JSON.stringify(archivedStatus, null, 2),
     );
     assert(archivedStatus.results.count === 1, 'archive status preserves result count', JSON.stringify(archivedStatus, null, 2));
+    assert(archivedStatus.closeout.count === 1, 'archive status preserves closeout count', JSON.stringify(archivedStatus, null, 2));
+    assert(
+      archivedStatus.derivedLifecycle === 'closeout-recorded',
+      'archive status preserves closeout lifecycle',
+      JSON.stringify(archivedStatus, null, 2),
+    );
     const archivedExecutorContract = readJson(path.join(archiveRoot, 'session-artifacts', 'packets', 'executor-contract.json'));
     assert(
       archivedExecutorContract.executionMode === 'manual',
@@ -1832,6 +2249,14 @@ function runTests() {
     );
     const archivedResult = readJson(path.join(archiveRoot, 'session-artifacts', 'results', 'result-001.json'));
     assert(archivedResult.outcome === 'succeeded', 'archive preserves result outcome', JSON.stringify(archivedResult, null, 2));
+    const archivedCloseout = readJson(path.join(archiveRoot, 'session-artifacts', 'closeout', 'closeout-001.json'));
+    assert(archivedCloseout.outcome === 'completed', 'archive preserves closeout outcome', JSON.stringify(archivedCloseout, null, 2));
+    const archiveCloseoutMarkdown = fs.readFileSync(path.join(archiveRoot, 'closeout.md'), 'utf8');
+    assert(
+      archiveCloseoutMarkdown.includes('latestCloseout'),
+      'archive closeout markdown mentions latest closeout',
+      archiveCloseoutMarkdown,
+    );
 
     const archiveCollision = runCli(
       ['workspace', 'archive', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', archiveRoot],
@@ -1888,6 +2313,22 @@ function runTests() {
       invalidResultArchiveText.includes('ARCHIVE_RESULT_INVALID'),
       'verify-archive invalid result shape names ARCHIVE_RESULT_INVALID',
       invalidResultArchiveText,
+    );
+
+    const invalidCloseoutArchiveRoot = path.join(tempRoot, 'invalid-closeout-archive');
+    copyTree(archiveRoot, invalidCloseoutArchiveRoot);
+    const invalidArchivedCloseoutPath = path.join(invalidCloseoutArchiveRoot, 'session-artifacts', 'closeout', 'closeout-001.json');
+    fs.writeFileSync(invalidArchivedCloseoutPath, `${JSON.stringify({ kind: 'not-a-closeout' }, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidCloseoutArchiveRoot);
+    const invalidCloseoutArchive = runCli(['workspace', 'verify-archive', invalidCloseoutArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidCloseoutArchiveText = `${invalidCloseoutArchive.stdout}\n${invalidCloseoutArchive.stderr}`;
+    assert(invalidCloseoutArchive.status !== 0, 'verify-archive invalid closeout shape exits nonzero', invalidCloseoutArchiveText);
+    assert(
+      invalidCloseoutArchiveText.includes('ARCHIVE_CLOSEOUT_INVALID'),
+      'verify-archive invalid closeout shape names ARCHIVE_CLOSEOUT_INVALID',
+      invalidCloseoutArchiveText,
     );
 
     const archivedStatusPath = path.join(archiveRoot, 'status.json');

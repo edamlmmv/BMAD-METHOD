@@ -6,6 +6,7 @@ const { readSessionStatus } = require('./status');
 const { renderSessionHandoff } = require('./handoff');
 const { validateExecutorContract } = require('./executor-contract');
 const { scanForSecrets, validateResultArtifact } = require('./result');
+const { validateCloseoutArtifact } = require('./closeout');
 
 const ARCHIVE_VERSION = 1;
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -28,6 +29,9 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
   }
   if (status.checks.some((item) => item.code === 'RESULT_SECRET_DETECTED')) {
     throw new Error(`RESULT_SECRET_DETECTED: result ledger contains secret-like content for ${sessionId}`);
+  }
+  if (status.checks.some((item) => item.code === 'CLOSEOUT_SECRET_DETECTED')) {
+    throw new Error(`CLOSEOUT_SECRET_DETECTED: closeout ledger contains secret-like content for ${sessionId}`);
   }
 
   const handoff = renderSessionHandoff({ sessionId, runtimeRoot });
@@ -122,6 +126,7 @@ function verifyArchive({ archivePath }) {
       throw new Error(`ARCHIVE_CHECKSUM_MISMATCH: ${file.path}`);
     }
     validateArchivedResultFile(filePath, file.path);
+    validateArchivedCloseoutFile(filePath, file.path, archiveRoot);
     verifiedFiles.push(file.path);
   }
 
@@ -172,6 +177,7 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
     executorContract: copyIfPresent(sessionRoot, archiveRoot, status.executorContract?.ref),
     results: copyResultArtifacts({ sessionRoot, archiveRoot, status }),
     review: copyIfPresent(sessionRoot, archiveRoot, 'review/summary.json'),
+    closeouts: copyCloseoutArtifacts({ sessionRoot, archiveRoot, status }),
   };
 
   const review = readOptionalJson(path.join(sessionRoot, 'review/summary.json'));
@@ -195,6 +201,17 @@ function copyResultArtifacts({ sessionRoot, archiveRoot, status }) {
     copied.push({
       resultId: result.resultId,
       result: result.valid ? copyIfPresent(sessionRoot, archiveRoot, result.ref) : { present: false, ref: result.ref },
+    });
+  }
+  return copied;
+}
+
+function copyCloseoutArtifacts({ sessionRoot, archiveRoot, status }) {
+  const copied = [];
+  for (const closeout of status.closeout?.entries || []) {
+    copied.push({
+      closeoutId: closeout.closeoutId,
+      closeout: closeout.valid ? copyIfPresent(sessionRoot, archiveRoot, closeout.ref) : { present: false, ref: closeout.ref },
     });
   }
   return copied;
@@ -285,6 +302,9 @@ function renderCloseout(status) {
 - results: \`${status.results?.count || 0}\`
 - latestResult: \`${status.results?.latest?.resultId || 'Not found'}\`
 - review: \`${status.review?.state || 'missing'}\`
+- closeout: \`${status.closeout?.state || 'none'}\`
+- latestCloseout: \`${status.closeout?.latest?.closeoutId || 'Not found'}\`
+- latestCloseoutOutcome: \`${status.closeout?.latest?.outcome || 'Not found'}\`
 - Base Improvement readiness: \`${readiness}\`
 
 ## Blockers
@@ -448,6 +468,44 @@ function validateArchivedResultFile(filePath, archiveRef) {
   const validation = validateResultArtifact(result);
   if (!validation.ok) {
     throw new Error(`ARCHIVE_RESULT_INVALID: ${archiveRef}: ${validation.errors.join('; ')}`);
+  }
+}
+
+function validateArchivedCloseoutFile(filePath, archiveRef, archiveRoot) {
+  if (!archiveRef.startsWith('session-artifacts/closeout/') || !archiveRef.endsWith('.json')) {
+    return;
+  }
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const secretFindings = scanForSecrets(raw);
+  if (secretFindings.length > 0) {
+    throw new Error(`ARCHIVE_CLOSEOUT_SECRET_DETECTED: ${archiveRef}`);
+  }
+  let closeout;
+  try {
+    closeout = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`ARCHIVE_CLOSEOUT_INVALID: ${archiveRef}: ${error.message}`);
+  }
+  const validation = validateCloseoutArtifact(closeout);
+  if (!validation.ok) {
+    throw new Error(`ARCHIVE_CLOSEOUT_INVALID: ${archiveRef}: ${validation.errors.join('; ')}`);
+  }
+
+  for (const ref of [
+    closeout.packetRef,
+    closeout.executorContractRef,
+    closeout.reviewRef,
+    ...(closeout.resultRefs || []),
+    ...(closeout.evidenceRefs || []),
+  ]) {
+    if (!ref) {
+      continue;
+    }
+    const archivedRef = path.posix.join('session-artifacts', toPosix(ref));
+    const archivedPath = path.join(archiveRoot, archivedRef);
+    if (!fs.existsSync(archivedPath) || !fs.statSync(archivedPath).isFile()) {
+      throw new Error(`ARCHIVE_CLOSEOUT_REF_MISSING: ${ref}`);
+    }
   }
 }
 

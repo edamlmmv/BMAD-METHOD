@@ -21,8 +21,8 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `result`, `archive`, `verify-archive`, `review`,
-`destroy`, and `authorize`.
+`list`, `status`, `handoff`, `result`, `closeout`, `archive`,
+`verify-archive`, `review`, `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -50,6 +50,7 @@ bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace handoff <session-id> --runtime-root <runtime-root>
 bmad workspace result <session-id> --runtime-root <runtime-root> --input <result-json>
 bmad workspace review <session-id> --runtime-root <runtime-root>
+bmad workspace closeout <session-id> --runtime-root <runtime-root> --input <closeout-json> --closeout-id <id>
 bmad workspace archive <session-id> --runtime-root <runtime-root> --output <archive-dir>
 bmad workspace verify-archive <archive-dir>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
@@ -120,6 +121,37 @@ Result recording fails before writing when:
 Results are manual evidence only. They do not restore, replay, schedule,
 execute, merge, promote, or call live adapters.
 
+## Manual Closeout
+
+Use closeout to record a final manual Session decision after packet, result, and
+review evidence:
+
+```bash
+bmad workspace closeout <session-id> --runtime-root <runtime-root> --input <closeout-json> --closeout-id <id>
+```
+
+The input is JSON data only. Workspace records outcome, next action, summary,
+packet ref, routing, Executor Contract ref, valid result refs, review ref, and
+optional evidence refs under `closeout/<closeoutId>.json`. It never executes
+commands from the input.
+
+Allowed `outcome` values are `completed`, `blocked`, `abandoned`, and
+`continued`. Allowed `nextAction` values are `manual-target-review`,
+`manual-base-review`, `manual-archive-review`,
+`manual-continuation-review`, and `manual-discard-review`.
+
+Closeout recording fails before writing when:
+
+- the session or BMAD Work Packet is missing or invalid
+- the declared Executor Contract is missing or invalid
+- completed closeout is requested before Worktree Review exists
+- `--closeout-id` is unsafe or already exists
+- input JSON is malformed or has invalid outcome/next action
+- high-confidence secrets are detected
+
+Closeouts are manual evidence only. They do not archive, destroy, execute,
+restore, replay, schedule, watch, merge, promote, or call live adapters.
+
 ## Setup Gate
 
 Every BMAD Work Packet requires setup entries for:
@@ -149,8 +181,10 @@ bmad workspace status <session-id> --runtime-root <runtime-root>
 
 Status reads session artifacts and reports blockers such as missing intake,
 stale intake, missing packet, setup checksum drift, invalid or secret-positive
-results, missing review, and Base Improvement readiness. Missing results are
-not blockers.
+results, invalid or secret-positive closeouts, missing review, and Base
+Improvement readiness. Missing results and missing closeouts are not blockers.
+Status also reports `derivedLifecycle` from stored artifacts only; it does not
+persist or authorize workflow state.
 
 Status does not create, repair, resume, run, fetch, schedule, watch, promote, or
 merge anything.
@@ -177,7 +211,7 @@ bmad workspace handoff <session-id> --runtime-root <runtime-root>
 
 Handoff emits raw Markdown with fixed sections for identity, status, blockers,
 BMAD Work Packet, Executor Contract, Setup Gate, Result Ledger, Worktree Review,
-Base Improvement readiness, next BMAD route, and read-only boundary.
+Closeout, Base Improvement readiness, next BMAD route, and read-only boundary.
 
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
@@ -192,7 +226,8 @@ bmad workspace archive <session-id> --runtime-root <runtime-root> --output <arch
 
 Archive creates the exact requested output directory and fails if it already
 exists. It writes only that output directory. It copies known Session artifacts,
-valid result artifacts, status, handoff, closeout notes, and checksums. It does
+valid result artifacts, valid closeout artifacts, status, handoff, closeout
+notes, and checksums. It does
 not copy target repo contents, Workspace Base contents, local setup evidence
 files, secrets, or whole runtime directories.
 
@@ -208,8 +243,9 @@ bmad workspace verify-archive <archive-dir>
 ```
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
-checksums, and archived result shape. It does not fetch, repair, probe repos,
-restore, import, execute, schedule, merge, or change durable state.
+checksums, archived result shape, and archived closeout shape. It does not
+fetch, repair, probe repos, restore, import, execute, schedule, merge, or change
+durable state.
 
 ## Base Improvement Session
 
@@ -247,5 +283,7 @@ run, expand grants, or promote changes.
 - Treat Executor Contract artifacts as manual readiness declarations, not
   runtime permission or execution output.
 - Do not treat Result Ledger artifacts as execution, restore, or replay input.
+- Do not treat Closeout artifacts as approval, execution, restore, replay,
+  merge, promotion, archive, destroy, scheduler, watcher, or adapter input.
 - Treat archives as evidence bundles only; never as restore or execution inputs.
 - Keep unrelated dirty files untouched.

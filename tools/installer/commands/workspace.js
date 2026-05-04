@@ -9,6 +9,7 @@ const { listSessions } = require('../../workspace/list');
 const { renderSessionHandoff } = require('../../workspace/handoff');
 const { archiveSession, verifyArchive } = require('../../workspace/archive');
 const { recordSessionResult } = require('../../workspace/result');
+const { recordSessionCloseout } = require('../../workspace/closeout');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
@@ -20,6 +21,7 @@ Workspace subcommands:
   status   inspect Workspace Session state without writing or fetching
   handoff  emit copy-ready Codex continuation context
   result   record a manual execution result artifact without executing commands
+  closeout record a manual Session closeout artifact without executing commands
   archive  create a portable Session evidence bundle
   verify-archive verify a portable Session archive without writing or fetching
   review   emit Git worktree status and patch artifacts for review
@@ -49,6 +51,7 @@ module.exports = {
     ['--output <path>', 'Output directory for Workspace archive.'],
     ['--input <path>', 'Manual Workspace result JSON input.'],
     ['--result-id <id>', 'Deterministic Workspace result id.'],
+    ['--closeout-id <id>', 'Deterministic Workspace closeout id.'],
     ['--workflow <skill[:action]>', 'Explicit BMAD workflow route for Work Packet creation.'],
     ['--zoom-out-ref <ref>', 'Setup Gate artifact ref for zoom-out.'],
     ['--ubiquitous-language-ref <ref>', 'Setup Gate artifact ref for ubiquitous language.'],
@@ -71,6 +74,7 @@ module.exports = {
         'status',
         'handoff',
         'result',
+        'closeout',
         'archive',
         'verify-archive',
         'review',
@@ -151,6 +155,15 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
       runtimeRoot: options.runtimeRoot,
       inputPath: options.input,
       resultId: options.resultId,
+    });
+  }
+
+  if (workspaceCommand === 'closeout') {
+    return recordSessionCloseout({
+      sessionId,
+      runtimeRoot: options.runtimeRoot,
+      inputPath: options.input,
+      closeoutId: options.closeoutId,
     });
   }
 

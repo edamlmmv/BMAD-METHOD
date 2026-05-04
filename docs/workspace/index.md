@@ -59,6 +59,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V11 Acceptance Tests](./v11-acceptance-tests.md) | Lists behavior tests for V11 Manual Closeout. |
 | [V11 Backlog](./v11-backlog.md) | Defines TDD-first stories for V11. |
 | [V11 Traceability](./v11-traceability.md) | Maps V11 acceptance tests to stories, tests, and files. |
+| [V12 PRD](./v12-prd.md) | Defines lifecycle closure and contract hardening. |
+| [V12 Acceptance Tests](./v12-acceptance-tests.md) | Lists behavior tests for V12 lifecycle closure. |
+| [V12 Backlog](./v12-backlog.md) | Defines TDD-first stories for V12. |
+| [V12 Traceability](./v12-traceability.md) | Maps V12 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

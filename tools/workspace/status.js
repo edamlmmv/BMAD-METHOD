@@ -7,6 +7,7 @@ const { validateWorkPacket } = require('./contracts');
 const { readExecutorContractStatus } = require('./executor-contract');
 const { createLegacyRouting } = require('./routing');
 const { readResultLedger } = require('./result');
+const { readCloseoutLedger } = require('./closeout');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -70,6 +71,8 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     executorContract: { state: 'missing', present: false, valid: false },
     results: { state: 'none', count: 0, latest: null, entries: [] },
     review: { state: 'missing', clean: null, changedRepos: [] },
+    closeout: { state: 'none', count: 0, latest: null, entries: [] },
+    derivedLifecycle: 'launched',
     checks,
   };
 
@@ -77,15 +80,22 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   readPacketStatus({ sessionRoot, status, checks });
   readResultStatus({ sessionRoot, status, checks });
   readReviewStatus({ sessionRoot, status, checks });
+  readCloseoutStatus({ sessionRoot, status, checks });
   readBaseImprovementReadiness({ instance, grants, sessionRoot, status, checks });
 
   status.status = summarizeStatus(status);
+  status.derivedLifecycle = deriveLifecycle(status);
   return status;
 }
 
 function readResultStatus({ sessionRoot, status, checks }) {
   status.artifacts.results = artifactStatus(sessionRoot, 'results');
   status.results = readResultLedger({ sessionRoot, sessionId: status.sessionId, checks });
+}
+
+function readCloseoutStatus({ sessionRoot, status, checks }) {
+  status.artifacts.closeout = artifactStatus(sessionRoot, 'closeout');
+  status.closeout = readCloseoutLedger({ sessionRoot, sessionId: status.sessionId, checks });
 }
 
 function readRequiredJson(filePath, code) {
@@ -313,6 +323,31 @@ function summarizeStatus(status) {
     return 'blocked';
   }
   return 'ready';
+}
+
+function deriveLifecycle(status) {
+  if (status.checks.some((item) => item.severity === 'error')) {
+    return 'blocked';
+  }
+  if ((status.closeout?.count || 0) > 0) {
+    return 'closeout-recorded';
+  }
+  if (status.review?.state === 'present') {
+    return 'review-recorded';
+  }
+  if ((status.results?.count || 0) > 0) {
+    return 'result-recorded';
+  }
+  if (status.executorContract?.state === 'valid' || status.executorContract?.state === 'legacy-missing') {
+    return 'executor-ready';
+  }
+  if (status.artifacts.packet?.present && status.setup?.state !== 'invalid') {
+    return 'packet-ready';
+  }
+  if (status.intake?.state === 'fresh') {
+    return 'intake-recorded';
+  }
+  return 'launched';
 }
 
 function check(code, severity, message, checkPath) {

@@ -10,6 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
 const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
 const { buildSessionSetup } = require('../tools/workspace/packet');
 const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
@@ -143,6 +144,25 @@ function validExecutorContract() {
     allowedWriteRoots: [path.join(os.tmpdir(), 'bmad-workspace-contract-root')],
     forbiddenActions: [...FORBIDDEN_EXECUTOR_ACTIONS],
     manualExecutionSteps: ['Inspect status.', 'Use rendered prompt.', 'Record result.'],
+  };
+}
+
+function validCloseoutArtifact() {
+  return {
+    kind: 'bmad-workspace-closeout',
+    schemaVersion: 1,
+    sessionId: 'session-2026-05-04-example',
+    closeoutId: 'closeout-001',
+    createdAt: '2026-05-04T00:00:00.000Z',
+    packetRef: 'packets/bmad-work-packet.json',
+    routing: validRouting(),
+    executorContractRef: 'packets/executor-contract.json',
+    resultRefs: ['results/result-001.json'],
+    reviewRef: 'review/summary.json',
+    outcome: 'completed',
+    nextAction: 'manual-target-review',
+    summary: 'Manual work finished and review evidence is ready.',
+    evidenceRefs: ['results/result-001.json', 'review/summary.json'],
   };
 }
 
@@ -446,6 +466,92 @@ function runTests() {
     assert(!JSON.stringify(findings).includes(token), 'result secret scanner does not expose token');
   }
 
+  section('Workspace Closeout');
+
+  {
+    const result = validateCloseoutArtifact(validCloseoutArtifact(), { expectedSessionId: 'session-2026-05-04-example' });
+    assert(result.ok === true, 'valid closeout artifact is accepted', result.errors.join('; '));
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.kind = 'not-closeout';
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects invalid kind');
+    assert(
+      result.errors.some((error) => error.includes('kind')),
+      'closeout kind rejection names kind',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.schemaVersion = 2;
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects unsupported schema version');
+    assert(
+      result.errors.some((error) => error.includes('schemaVersion')),
+      'closeout schema rejection names schemaVersion',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.closeoutId = '../escape';
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects unsafe closeout id');
+    assert(
+      result.errors.some((error) => error.includes('closeoutId')),
+      'closeout id rejection names closeoutId',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.outcome = 'approved';
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects invalid outcome');
+    assert(
+      result.errors.some((error) => error.includes('outcome')),
+      'closeout outcome rejection names outcome',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.nextAction = 'merge';
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects forbidden next action');
+    assert(
+      result.errors.some((error) => error.includes('nextAction')),
+      'closeout next action rejection names nextAction',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const closeout = validCloseoutArtifact();
+    closeout.packetRef = '../escape.json';
+    const result = validateCloseoutArtifact(closeout);
+    assert(result.ok === false, 'closeout rejects unsafe refs');
+    assert(
+      result.errors.some((error) => error.includes('packetRef')),
+      'closeout unsafe ref rejection names packetRef',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const token = 'ghp_1234567890abcdefghijklmnopqrstuvwxyzABCDE';
+    const findings = scanForSecrets(`{"summary":"${token}"}`);
+    assert(findings.length === 1, 'closeout secret scanner detects GitHub token');
+    assert(!JSON.stringify(findings).includes(token), 'closeout secret scanner does not expose token');
+  }
+
   section('Workspace Routing');
 
   {
@@ -662,6 +768,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
     assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
+    assert(skillContent.includes('bmad workspace closeout'), 'source skill documents workspace closeout');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
     assert(skillContent.includes('bmad workspace verify-archive'), 'source skill documents workspace verify-archive');
     assert(skillContent.includes('Executor Contract'), 'source skill documents Executor Contract');
@@ -782,6 +889,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT10-001', 'S94', 'tools/workspace/executor-contract.js', 'EXECUTOR_CONTRACT_INVALID']) {
       assert(traceability.includes(text), `V10 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V12 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v12-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V12 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT12-001', 'S115', 'tools/workspace/closeout.js', 'CLOSEOUT_SECRET_DETECTED']) {
+      assert(traceability.includes(text), `V12 traceability maps ${text}`, traceability);
     }
   }
 

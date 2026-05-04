@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { readResultLedger } = require('./result');
+const { readCloseoutLedger } = require('./closeout');
 
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
@@ -63,6 +64,8 @@ function readSessionInventory(sessionsRoot, entry) {
     valid: false,
     artifacts: createArtifactMap(sessionRoot),
     results: { state: 'none', count: 0, latest: null, entries: [] },
+    closeout: { state: 'none', count: 0, latest: null, entries: [] },
+    derivedLifecycle: 'blocked',
     checks,
   };
 
@@ -99,6 +102,8 @@ function readSessionInventory(sessionsRoot, entry) {
   session.createdAt = instance.createdAt || null;
   session.artifacts = createArtifactMap(sessionRoot, instance);
   session.results = readResultLedger({ sessionRoot, sessionId, checks });
+  session.closeout = readCloseoutLedger({ sessionRoot, sessionId, checks });
+  session.derivedLifecycle = deriveInventoryLifecycle(session);
   session.valid = true;
   session.status = checks.some((item) => item.severity === 'error') ? 'blocked' : 'valid';
   return session;
@@ -114,7 +119,36 @@ function createArtifactMap(sessionRoot, instance = {}) {
     executorContract: artifactStatus(sessionRoot, instance.executorContractRef || 'packets/executor-contract.json'),
     results: artifactStatus(sessionRoot, 'results'),
     review: artifactStatus(sessionRoot, instance.reviewRef || 'review/summary.json'),
+    closeout: artifactStatus(sessionRoot, 'closeout'),
   };
+}
+
+function deriveInventoryLifecycle(session) {
+  if (session.checks.some((item) => item.severity === 'error')) {
+    return 'blocked';
+  }
+  if ((session.closeout?.count || 0) > 0) {
+    return 'closeout-recorded';
+  }
+  if (session.artifacts.review.present) {
+    return 'review-recorded';
+  }
+  if ((session.results?.count || 0) > 0) {
+    return 'result-recorded';
+  }
+  if (session.artifacts.executorContract.present) {
+    return 'executor-ready';
+  }
+  if (session.artifacts.packet.present) {
+    return 'packet-ready';
+  }
+  if (session.artifacts.intake.present) {
+    return 'intake-recorded';
+  }
+  if (session.artifacts.instance.present) {
+    return 'launched';
+  }
+  return 'blocked';
 }
 
 function artifactStatus(sessionRoot, relativePath) {
