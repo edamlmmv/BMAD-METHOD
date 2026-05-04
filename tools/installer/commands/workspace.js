@@ -3,6 +3,7 @@ const { runRepoIntake } = require('../../workspace-distro/intake');
 const { buildMissionPacket } = require('../../workspace-distro/packet');
 const { runWorktreeReview } = require('../../workspace-distro/review');
 const { destroyMission } = require('../../workspace-distro/destroy');
+const { authorizeDurableWrite } = require('../../workspace-distro/grant-guard');
 
 const WORKSPACE_HELP = `BMAD Workspace Distro mission lifecycle.
 
@@ -11,7 +12,8 @@ V1 subcommands:
   intake   record Repo Intake evidence and target repo provenance
   packet   create a BMAD Mission Packet from fresh intake and goal evidence
   review   emit Git worktree status and patch artifacts for review
-  destroy  remove disposable runtime state without deleting target repo changes`;
+  destroy  remove disposable runtime state without deleting target repo changes
+  authorize validate a durable write path against Mission Workspace grants`;
 
 function collect(value, previous) {
   return [...(previous || []), value];
@@ -30,6 +32,8 @@ module.exports = {
     ['--runtime-root <path>', 'Mission runtime root. Defaults to OS temp storage.'],
     ['--mission-id <id>', 'Deterministic mission id for tests and scripted runs.'],
     ['--keep-review', 'Retain review artifacts after destroying runtime state.'],
+    ['--write-path <path>', 'Durable write path to validate through Grant Guard.'],
+    ['--base-improvement', 'Launch a Base Improvement Mission; requires explicit Base Mutation Grant.'],
   ],
   action: (workspaceCommand, missionId, options) => {
     if (!workspaceCommand) {
@@ -37,7 +41,7 @@ module.exports = {
       process.exit(0);
     }
 
-    if (!['launch', 'intake', 'packet', 'review', 'destroy'].includes(workspaceCommand)) {
+    if (!['launch', 'intake', 'packet', 'review', 'destroy', 'authorize'].includes(workspaceCommand)) {
       process.stderr.write(`Workspace command not implemented in V1 yet: ${workspaceCommand}\n`);
       process.exit(1);
     }
@@ -62,6 +66,7 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
       runtimeRoot: options.runtimeRoot,
       missionId: options.missionId,
       workspaceDistroPath: process.cwd(),
+      baseImprovement: options.baseImprovement,
     });
   }
 
@@ -84,6 +89,14 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
       missionId,
       runtimeRoot: options.runtimeRoot,
       keepReview: options.keepReview,
+    });
+  }
+
+  if (workspaceCommand === 'authorize') {
+    return authorizeDurableWrite({
+      missionId,
+      writePath: options.writePath,
+      runtimeRoot: options.runtimeRoot,
     });
   }
 

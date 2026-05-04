@@ -69,6 +69,7 @@ function launchMission({
   runtimeRoot = DEFAULT_RUNTIME_ROOT,
   missionId = createMissionId(),
   workspaceDistroPath = process.cwd(),
+  baseImprovement = false,
 }) {
   if (!Array.isArray(repoPaths) || repoPaths.length === 0) {
     throw new Error('launch requires at least one --repo path');
@@ -80,6 +81,10 @@ function launchMission({
   }
 
   assertMissionId(missionId);
+
+  if (baseImprovement) {
+    throw new Error('base-improvement-requires-base-mutation-grant');
+  }
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
   const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);

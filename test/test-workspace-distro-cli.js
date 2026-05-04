@@ -100,7 +100,7 @@ function runTests() {
 
   assert(result.status === 0, 'workspace help exits zero', output);
   assert(output.includes('BMAD Workspace Distro'), 'workspace help names BMAD Workspace Distro', output);
-  for (const subcommand of ['launch', 'intake', 'packet', 'review', 'destroy']) {
+  for (const subcommand of ['launch', 'intake', 'packet', 'review', 'destroy', 'authorize']) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
 
@@ -137,6 +137,51 @@ function runTests() {
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
     assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
+
+    section('Workspace Grant Guard');
+
+    const guardRepoPack = readJson(launchOutput.repoPackPath);
+    const targetWritePath = path.join(guardRepoPack.repos[0].worktreePath, 'README.md');
+    const allowedWrite = runCli(
+      ['workspace', 'authorize', launchOutput.missionId, '--write-path', targetWritePath, '--runtime-root', runtimeRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const allowedWriteText = `${allowedWrite.stdout}\n${allowedWrite.stderr}`;
+    assert(allowedWrite.status === 0, 'Grant Guard allows target worktree write', allowedWriteText);
+    const allowedWriteOutput = JSON.parse(allowedWrite.stdout);
+    assert(allowedWriteOutput.allowed === true, 'Grant Guard reports allowed target write', allowedWriteText);
+
+    const baseWritePath = path.join(baseRepo.path, 'BMAD.md');
+    const deniedWrite = runCli(
+      ['workspace', 'authorize', launchOutput.missionId, '--write-path', baseWritePath, '--runtime-root', runtimeRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const deniedWriteText = `${deniedWrite.stdout}\n${deniedWrite.stderr}`;
+    assert(deniedWrite.status !== 0, 'Grant Guard denies base write without grant', deniedWriteText);
+    assert(deniedWriteText.includes('base-write-denied'), 'Grant Guard denial names base-write-denied', deniedWriteText);
+    const violationsDir = path.join(launchOutput.missionRoot, 'violations');
+    const violationFiles = fs.existsSync(violationsDir) ? fs.readdirSync(violationsDir).filter((file) => file.endsWith('.json')) : [];
+    assert(violationFiles.length === 1, 'Grant Guard records one violation artifact', JSON.stringify(violationFiles, null, 2));
+    const violation = readJson(path.join(violationsDir, violationFiles[0]));
+    assert(violation.reason === 'base-write-denied', 'Grant Guard violation records denial reason', JSON.stringify(violation, null, 2));
+
+    const baseImprovementLaunch = runCli(
+      ['workspace', 'launch', '--repo', baseRepo.path, '--goal', goalPath, '--runtime-root', runtimeRoot, '--base-improvement'],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const baseImprovementText = `${baseImprovementLaunch.stdout}\n${baseImprovementLaunch.stderr}`;
+    assert(baseImprovementLaunch.status !== 0, 'Base Improvement launch without grant exits nonzero', baseImprovementText);
+    assert(
+      baseImprovementText.includes('base-improvement-requires-base-mutation-grant'),
+      'Base Improvement launch without grant names missing grant',
+      baseImprovementText,
+    );
 
     section('Workspace Packet Freshness');
 
