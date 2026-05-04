@@ -311,7 +311,9 @@ function runTests() {
     const skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : '';
     assert(skillContent.includes('Workspace Session'), 'source skill uses Workspace Session language');
     assert(skillContent.includes('BMAD Work Packet'), 'source skill uses BMAD Work Packet language');
+    assert(skillContent.includes('bmad workspace list'), 'source skill documents workspace list');
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
+    assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
     assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
 
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
@@ -366,6 +368,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT5-001', 'S33', 'test/test-workspace-cli.js', 'tools/workspace/status.js']) {
       assert(traceability.includes(text), `V5 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V6 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v6-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V6 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT6-001', 'S43', 'tools/workspace/list.js', 'tools/workspace/handoff.js']) {
+      assert(traceability.includes(text), `V6 traceability maps ${text}`, traceability);
     }
   }
 

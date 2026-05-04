@@ -160,7 +160,7 @@ function runTests() {
   for (const option of ['--zoom-out-ref', '--ubiquitous-language-ref', '--grill-decisions-ref', '--tdd-plan-ref', '--skip-setup']) {
     assert(output.includes(option), `workspace help lists ${option}`, output);
   }
-  for (const subcommand of ['launch', 'intake', 'packet', 'status', 'review', 'destroy', 'authorize']) {
+  for (const subcommand of ['launch', 'intake', 'packet', 'list', 'status', 'handoff', 'review', 'destroy', 'authorize']) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
 
@@ -235,6 +235,60 @@ function runTests() {
       launchStatusText,
     );
 
+    section('Workspace List');
+
+    const emptyRuntimeRoot = path.join(tempRoot, 'empty-runtime');
+    const emptyList = runCli(['workspace', 'list', '--runtime-root', emptyRuntimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const emptyListText = `${emptyList.stdout}\n${emptyList.stderr}`;
+    assert(emptyList.status === 0, 'list empty runtime exits zero', emptyListText);
+    assert(emptyList.stderr === '', 'list empty runtime has no stderr noise', emptyListText);
+    const emptyListOutput = JSON.parse(emptyList.stdout);
+    assert(emptyListOutput.schemaVersion === 1, 'list output records schemaVersion 1', emptyListText);
+    assert(
+      Array.isArray(emptyListOutput.sessions) && emptyListOutput.sessions.length === 0,
+      'list empty runtime has no sessions',
+      emptyListText,
+    );
+
+    const brokenSessionRoot = path.join(runtimeRoot, 'sessions', 'broken-session');
+    fs.mkdirSync(brokenSessionRoot, { recursive: true });
+    const symlinkSessionRoot = path.join(runtimeRoot, 'sessions', 'session-symlink');
+    fs.symlinkSync(launchOutput.sessionRoot, symlinkSessionRoot);
+
+    const beforeList = fingerprintTree(runtimeRoot);
+    const sessionList = runCli(['workspace', 'list', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const sessionListText = `${sessionList.stdout}\n${sessionList.stderr}`;
+    const afterList = fingerprintTree(runtimeRoot);
+    assert(sessionList.status === 0, 'list runtime exits zero', sessionListText);
+    assert(beforeList === afterList, 'list is read-only', sessionListText);
+    const sessionListOutput = JSON.parse(sessionList.stdout);
+    assert(sessionListOutput.runtimeRoot === runtimeRoot, 'list records runtime root', sessionListText);
+    const listedIds = sessionListOutput.sessions.map((session) => session.sessionId);
+    assert(JSON.stringify(listedIds) === JSON.stringify([...listedIds].sort()), 'list sorts sessions by sessionId', sessionListText);
+    const listedLaunch = sessionListOutput.sessions.find((session) => session.sessionId === launchOutput.sessionId);
+    assert(listedLaunch?.valid === true, 'list reports launched session valid', sessionListText);
+    assert(listedLaunch?.sessionType === 'normal', 'list reports launched session type', sessionListText);
+    assert(listedLaunch?.artifacts.instance.present === true, 'list reports instance artifact present', sessionListText);
+    assert(listedLaunch?.artifacts.packet.present === false, 'list reports missing packet artifact', sessionListText);
+    const listedBroken = sessionListOutput.sessions.find((session) => session.sessionId === 'broken-session');
+    assert(listedBroken?.valid === false, 'list reports broken session invalid', sessionListText);
+    assert(
+      listedBroken?.checks.some((item) => item.code === 'SESSION_INVALID'),
+      'broken session list row names SESSION_INVALID',
+      sessionListText,
+    );
+    const listedSymlink = sessionListOutput.sessions.find((session) => session.sessionId === 'session-symlink');
+    assert(listedSymlink?.valid === false, 'list does not follow symlink session', sessionListText);
+    assert(
+      listedSymlink?.checks.some((item) => item.code === 'SESSION_INVALID'),
+      'symlink session list row names SESSION_INVALID',
+      sessionListText,
+    );
+
     section('Workspace Session Id');
 
     const sessionLaunch = runCli(
@@ -274,6 +328,22 @@ function runTests() {
       'status with malformed packet names WORK_PACKET_INVALID_JSON',
       malformedPacketStatusText,
     );
+
+    const invalidHandoff = runCli(['workspace', 'handoff', sessionLaunchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidHandoffText = `${invalidHandoff.stdout}\n${invalidHandoff.stderr}`;
+    assert(invalidHandoff.status !== 0, 'handoff for invalid session exits nonzero', invalidHandoffText);
+    assert(invalidHandoff.stdout === '', 'invalid handoff emits no partial Markdown', invalidHandoffText);
+    assert(invalidHandoffText.includes('SESSION_INVALID'), 'invalid handoff names SESSION_INVALID', invalidHandoffText);
+
+    const missingHandoff = runCli(['workspace', 'handoff', 'missing-session', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingHandoffText = `${missingHandoff.stdout}\n${missingHandoff.stderr}`;
+    assert(missingHandoff.status !== 0, 'handoff for missing session exits nonzero', missingHandoffText);
+    assert(missingHandoff.stdout === '', 'missing handoff emits no partial Markdown', missingHandoffText);
+    assert(missingHandoffText.includes('SESSION_NOT_FOUND'), 'missing handoff names SESSION_NOT_FOUND', missingHandoffText);
 
     const legacyMissionOption = runCli(
       [
@@ -515,6 +585,15 @@ function runTests() {
       'Base Improvement status reports ready for human review',
       readyBaseStatusText,
     );
+
+    const readyBaseHandoff = runCli(['workspace', 'handoff', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const readyBaseHandoffText = `${readyBaseHandoff.stdout}\n${readyBaseHandoff.stderr}`;
+    assert(readyBaseHandoff.status === 0, 'Base Improvement handoff exits zero', readyBaseHandoffText);
+    assert(readyBaseHandoff.stdout.includes('ready-for-human-review'), 'Base Improvement handoff reports readiness', readyBaseHandoffText);
+    assert(readyBaseHandoff.stdout.includes('Base Improvement'), 'Base Improvement handoff names session type', readyBaseHandoffText);
+    assert(!readyBaseHandoff.stdout.includes('promote'), 'Base Improvement handoff avoids promotion wording', readyBaseHandoffText);
 
     const deniedBaseWrite = runCli(
       [
@@ -808,6 +887,41 @@ function runTests() {
       'status reports external setup warning',
       externalStatusText,
     );
+
+    const packetHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const packetHandoffText = `${packetHandoff.stdout}\n${packetHandoff.stderr}`;
+    assert(packetHandoff.status === 0, 'handoff after packet exits zero', packetHandoffText);
+    assert(packetHandoff.stdout.startsWith('# BMAD Workspace Handoff'), 'handoff emits raw Markdown heading', packetHandoffText);
+    assert(!packetHandoff.stdout.trim().startsWith('{'), 'handoff is not JSON output', packetHandoffText);
+    for (const heading of [
+      '## Identity',
+      '## Status',
+      '## Blockers',
+      '## BMAD Work Packet',
+      '## Setup Gate',
+      '## Worktree Review',
+      '## Base Improvement Readiness',
+      '## Next BMAD Route',
+      '## Read-only Boundary',
+    ]) {
+      assert(packetHandoff.stdout.includes(heading), `handoff includes ${heading}`, packetHandoffText);
+    }
+    assert(packetHandoff.stdout.includes(launchOutput.sessionId), 'handoff includes sessionId', packetHandoffText);
+    assert(packetHandoff.stdout.includes('packets/bmad-work-packet.json'), 'handoff includes Work Packet ref', packetHandoffText);
+    assert(packetHandoff.stdout.includes('packets/rendered-prompt.md'), 'handoff includes rendered prompt ref', packetHandoffText);
+    assert(packetHandoff.stdout.includes('external:zoom-out-thread-note'), 'handoff includes external setup ref', packetHandoffText);
+    assert(packetHandoff.stdout.includes('external-unverified'), 'handoff includes external setup warning', packetHandoffText);
+    assert(packetHandoff.stdout.includes('SETUP_REF_EXTERNAL_UNVERIFIED'), 'handoff includes status checks', packetHandoffText);
+    assert(
+      packetHandoff.stdout.includes('Worktree Review has not been created.'),
+      'handoff includes missing review blocker',
+      packetHandoffText,
+    );
+    assert(packetHandoff.stdout.includes('`bmad workspace review'), 'handoff recommends deterministic review route', packetHandoffText);
+    assert(!packetHandoff.stdout.includes('latest'), 'handoff does not infer latest session', packetHandoffText);
+    assert(!packetHandoff.stdout.includes('merge'), 'handoff avoids merge wording', packetHandoffText);
 
     const invalidSkipPacket = runCli(
       ['workspace', 'packet', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--skip-setup', 'badStep=nope'],

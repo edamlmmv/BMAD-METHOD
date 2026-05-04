@@ -21,7 +21,7 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`status`, `review`, `destroy`, and `authorize`.
+`list`, `status`, `handoff`, `review`, `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -43,7 +43,9 @@ bmad workspace packet <session-id> --runtime-root <runtime-root> \
   --ubiquitous-language-ref <ref> \
   --grill-decisions-ref <ref> \
   --tdd-plan-ref <ref>
+bmad workspace list --runtime-root <runtime-root>
 bmad workspace status <session-id> --runtime-root <runtime-root>
+bmad workspace handoff <session-id> --runtime-root <runtime-root>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 ```
@@ -84,6 +86,33 @@ Improvement readiness.
 
 Status does not create, repair, resume, run, fetch, schedule, watch, promote, or
 merge anything.
+
+## List
+
+Use list to inventory Workspace Sessions without changing them:
+
+```bash
+bmad workspace list --runtime-root <runtime-root>
+```
+
+List emits JSON for known session directories. It reports invalid entries with
+`SESSION_INVALID`, does not follow symlinks, and does not infer latest/current
+sessions.
+
+## Handoff
+
+Use handoff to produce copy-ready Codex continuation context:
+
+```bash
+bmad workspace handoff <session-id> --runtime-root <runtime-root>
+```
+
+Handoff emits raw Markdown with fixed sections for identity, status, blockers,
+BMAD Work Packet, Setup Gate, Worktree Review, Base Improvement readiness, next
+BMAD route, and read-only boundary.
+
+Handoff requires an explicit session id. It does not create, repair, resume,
+fetch, schedule, watch, execute, apply changes, or change durable state.
 
 ## Base Improvement Session
 

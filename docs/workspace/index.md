@@ -35,6 +35,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V5 Acceptance Tests](./v5-acceptance-tests.md) | Lists behavior tests for V5 inspectability. |
 | [V5 Backlog](./v5-backlog.md) | Defines TDD-first stories for V5. |
 | [V5 Traceability](./v5-traceability.md) | Maps V5 acceptance tests to stories, tests, and files. |
+| [V6 PRD](./v6-prd.md) | Defines read-only Session inventory and Codex handoff. |
+| [V6 Acceptance Tests](./v6-acceptance-tests.md) | Lists behavior tests for V6 inventory and handoff. |
+| [V6 Backlog](./v6-backlog.md) | Defines TDD-first stories for V6. |
+| [V6 Traceability](./v6-traceability.md) | Maps V6 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

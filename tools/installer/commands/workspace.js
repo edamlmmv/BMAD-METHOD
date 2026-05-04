@@ -5,6 +5,8 @@ const { runWorktreeReview } = require('../../workspace/review');
 const { destroySession } = require('../../workspace/destroy');
 const { authorizeDurableWrite } = require('../../workspace/grant-guard');
 const { readSessionStatus } = require('../../workspace/status');
+const { listSessions } = require('../../workspace/list');
+const { renderSessionHandoff } = require('../../workspace/handoff');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
@@ -12,7 +14,9 @@ Workspace subcommands:
   launch   create a disposable Workspace Session for selected repo paths
   intake   record Repo Intake evidence and target repo provenance
   packet   create a BMAD Work Packet from fresh intake and goal evidence
+  list     inventory Workspace Sessions without writing or fetching
   status   inspect Workspace Session state without writing or fetching
+  handoff  emit copy-ready Codex continuation context
   review   emit Git worktree status and patch artifacts for review
   destroy  remove disposable runtime state without deleting target repo changes
   authorize validate a durable write path against Workspace Session grants`;
@@ -49,14 +53,18 @@ module.exports = {
       process.exit(0);
     }
 
-    if (!['launch', 'intake', 'packet', 'status', 'review', 'destroy', 'authorize'].includes(workspaceCommand)) {
+    if (!['launch', 'intake', 'packet', 'list', 'status', 'handoff', 'review', 'destroy', 'authorize'].includes(workspaceCommand)) {
       process.stderr.write(`Workspace command not implemented: ${workspaceCommand}\n`);
       process.exit(1);
     }
 
     try {
       const result = runWorkspaceCommand(workspaceCommand, sessionId, options);
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      if (workspaceCommand === 'handoff') {
+        process.stdout.write(`${result}\n`);
+      } else {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      }
     } catch (error) {
       process.stderr.write(`Workspace ${workspaceCommand} failed: ${error.message}\n`);
       process.exit(1);
@@ -93,8 +101,21 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
     });
   }
 
+  if (workspaceCommand === 'list') {
+    return listSessions({
+      runtimeRoot: options.runtimeRoot,
+    });
+  }
+
   if (workspaceCommand === 'status') {
     return readSessionStatus({
+      sessionId,
+      runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'handoff') {
+    return renderSessionHandoff({
       sessionId,
       runtimeRoot: options.runtimeRoot,
     });
