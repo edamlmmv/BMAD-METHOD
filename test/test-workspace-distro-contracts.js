@@ -5,7 +5,12 @@
  * Usage: node test/test-workspace-distro-contracts.js
  */
 
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
 const { validateCapabilityContract, validateMissionPacket } = require('../tools/workspace-distro/contracts');
+const { validateSelfImprovementPacketKit } = require('../tools/workspace-distro/templates');
 
 const colors = {
   reset: '\u001B[0m',
@@ -133,6 +138,57 @@ function runTests() {
       'engine-like adapter rejection names upstreamGapProofRequired',
       result.errors.join('; '),
     );
+  }
+
+  section('Self-Improvement Packet Kit');
+
+  {
+    const templateRoot = path.join(__dirname, '..', 'docs', 'workspace-distro', 'templates');
+    const result = validateSelfImprovementPacketKit(templateRoot);
+    assert(result.ok === true, 'self-improvement packet kit validates', result.errors.join('; '));
+  }
+
+  {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-template-missing-'));
+    try {
+      const result = validateSelfImprovementPacketKit(tempRoot);
+      assert(result.ok === false, 'self-improvement packet kit rejects missing templates');
+      assert(
+        result.errors.some((error) => error.includes('bmad-work-packet.template.json')),
+        'missing packet kit rejection names Work Packet template',
+        result.errors.join('; '),
+      );
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  }
+
+  section('Repo-Owned Source Skill');
+
+  {
+    const skillPath = path.join(__dirname, '..', 'src', 'core-skills', 'bmad-workspace-distro', 'SKILL.md');
+    const moduleHelpPath = path.join(__dirname, '..', 'src', 'core-skills', 'module-help.csv');
+    assert(fs.existsSync(skillPath), 'repo owns bmad-workspace-distro source skill');
+
+    const skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : '';
+    assert(skillContent.includes('Workspace Session'), 'source skill uses Workspace Session language');
+    assert(skillContent.includes('BMAD Work Packet'), 'source skill uses BMAD Work Packet language');
+    assert(skillContent.includes('Compatibility'), 'source skill confines legacy mission language to compatibility guidance');
+
+    const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
+    assert(moduleHelp.includes('Core,bmad-workspace-distro,'), 'module-help registers bmad-workspace-distro skill');
+  }
+
+  section('V2 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace-distro', 'v2-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V2 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT2-001', 'S12', 'test/test-workspace-distro-cli.js', 'test/test-workspace-distro-contracts.js']) {
+      assert(traceability.includes(text), `V2 traceability maps ${text}`, traceability);
+    }
   }
 
   console.log(`\n${colors.cyan}Results: ${passed} passed, ${failed} failed${colors.reset}`);

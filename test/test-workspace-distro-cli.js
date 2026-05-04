@@ -92,6 +92,13 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function assertSessionAliases(output, testPrefix) {
+  assert(output.sessionId === output.missionId, `${testPrefix} sessionId mirrors missionId`, JSON.stringify(output, null, 2));
+  if ('missionRoot' in output || 'sessionRoot' in output) {
+    assert(output.sessionRoot === output.missionRoot, `${testPrefix} sessionRoot mirrors missionRoot`, JSON.stringify(output, null, 2));
+  }
+}
+
 function runTests() {
   section('Workspace CLI Help');
 
@@ -100,6 +107,8 @@ function runTests() {
 
   assert(result.status === 0, 'workspace help exits zero', output);
   assert(output.includes('BMAD Workspace Distro'), 'workspace help names BMAD Workspace Distro', output);
+  assert(output.includes('Workspace Session'), 'workspace help uses session language', output);
+  assert(output.includes('--session-id <id>'), 'workspace help lists --session-id alias', output);
   for (const subcommand of ['launch', 'intake', 'packet', 'review', 'destroy', 'authorize']) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
@@ -117,6 +126,8 @@ function runTests() {
   let launchOutput;
   let multiRepoOutput;
   let baseImprovementOutput;
+  let sessionLaunchOutput;
+  let sameAliasOutput;
   try {
     const launch = runCli(['workspace', 'launch', '--repo', targetRepo.path, '--goal', goalPath, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -125,6 +136,7 @@ function runTests() {
 
     assert(launch.status === 0, 'launch exits zero', launchText);
     launchOutput = JSON.parse(launch.stdout);
+    assertSessionAliases(launchOutput, 'launch output');
     assert(fs.existsSync(launchOutput.missionRoot), 'launch creates mission root', launchText);
     assert(fs.existsSync(path.join(launchOutput.missionRoot, 'instance.json')), 'launch writes instance.json', launchText);
     assert(fs.existsSync(path.join(launchOutput.missionRoot, 'repo-pack.json')), 'launch writes repo-pack.json', launchText);
@@ -140,6 +152,82 @@ function runTests() {
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
     assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
+
+    section('Workspace Session Alias');
+
+    const sessionLaunch = runCli(
+      [
+        'workspace',
+        'launch',
+        '--repo',
+        targetRepo.path,
+        '--goal',
+        goalPath,
+        '--runtime-root',
+        runtimeRoot,
+        '--session-id',
+        'session-alias-only',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const sessionLaunchText = `${sessionLaunch.stdout}\n${sessionLaunch.stderr}`;
+    assert(sessionLaunch.status === 0, 'launch accepts --session-id', sessionLaunchText);
+    sessionLaunchOutput = JSON.parse(sessionLaunch.stdout);
+    assert(sessionLaunchOutput.sessionId === 'session-alias-only', '--session-id sets sessionId', sessionLaunchText);
+    assertSessionAliases(sessionLaunchOutput, '--session-id launch output');
+
+    const sameAliasLaunch = runCli(
+      [
+        'workspace',
+        'launch',
+        '--repo',
+        targetRepo.path,
+        '--goal',
+        goalPath,
+        '--runtime-root',
+        runtimeRoot,
+        '--session-id',
+        'session-same-alias',
+        '--mission-id',
+        'session-same-alias',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const sameAliasLaunchText = `${sameAliasLaunch.stdout}\n${sameAliasLaunch.stderr}`;
+    assert(sameAliasLaunch.status === 0, 'matching --session-id and --mission-id succeeds', sameAliasLaunchText);
+    sameAliasOutput = JSON.parse(sameAliasLaunch.stdout);
+    assertSessionAliases(sameAliasOutput, 'matching alias launch output');
+
+    const conflictingAliasLaunch = runCli(
+      [
+        'workspace',
+        'launch',
+        '--repo',
+        targetRepo.path,
+        '--goal',
+        goalPath,
+        '--runtime-root',
+        runtimeRoot,
+        '--session-id',
+        'session-left',
+        '--mission-id',
+        'session-right',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const conflictingAliasText = `${conflictingAliasLaunch.stdout}\n${conflictingAliasLaunch.stderr}`;
+    assert(conflictingAliasLaunch.status !== 0, 'differing --session-id and --mission-id exits nonzero', conflictingAliasText);
+    assert(
+      conflictingAliasText.includes('conflicting-session-id-and-mission-id'),
+      'differing aliases fail with stable conflict error',
+      conflictingAliasText,
+    );
 
     section('Workspace Multi-Repo Launch');
 
@@ -163,6 +251,7 @@ function runTests() {
     const multiLaunchText = `${multiLaunch.stdout}\n${multiLaunch.stderr}`;
     assert(multiLaunch.status === 0, 'multi-repo launch exits zero', multiLaunchText);
     multiRepoOutput = JSON.parse(multiLaunch.stdout);
+    assertSessionAliases(multiRepoOutput, 'multi-repo launch output');
     const multiRepoPack = readJson(multiRepoOutput.repoPackPath);
     assert(multiRepoPack.repos.length === 2, 'multi-repo launch records two repos', JSON.stringify(multiRepoPack, null, 2));
     assert(
@@ -199,6 +288,7 @@ function runTests() {
     const allowedWriteText = `${allowedWrite.stdout}\n${allowedWrite.stderr}`;
     assert(allowedWrite.status === 0, 'Grant Guard allows target worktree write', allowedWriteText);
     const allowedWriteOutput = JSON.parse(allowedWrite.stdout);
+    assertSessionAliases(allowedWriteOutput, 'Grant Guard allowed output');
     assert(allowedWriteOutput.allowed === true, 'Grant Guard reports allowed target write', allowedWriteText);
 
     const baseWritePath = path.join(baseRepo.path, 'BMAD.md');
@@ -255,6 +345,7 @@ function runTests() {
     const grantedBaseText = `${grantedBaseLaunch.stdout}\n${grantedBaseLaunch.stderr}`;
     assert(grantedBaseLaunch.status === 0, 'Base Improvement launch with grant exits zero', grantedBaseText);
     baseImprovementOutput = JSON.parse(grantedBaseLaunch.stdout);
+    assertSessionAliases(baseImprovementOutput, 'Base Improvement launch output');
     const baseInstance = readJson(path.join(baseImprovementOutput.missionRoot, 'instance.json'));
     assert(
       baseInstance.missionType === 'base-improvement',
@@ -293,6 +384,7 @@ function runTests() {
     );
     const grantedBaseWriteText = `${grantedBaseWrite.stdout}\n${grantedBaseWrite.stderr}`;
     assert(grantedBaseWrite.status === 0, 'Grant Guard allows granted base path write', grantedBaseWriteText);
+    assertSessionAliases(JSON.parse(grantedBaseWrite.stdout), 'Grant Guard base output');
 
     const deniedBaseWrite = runCli(
       [
@@ -330,6 +422,7 @@ function runTests() {
 
     assert(intake.status === 0, 'intake exits zero', intakeText);
     const intakeOutput = JSON.parse(intake.stdout);
+    assertSessionAliases(intakeOutput, 'intake output');
     assert(fs.existsSync(intakeOutput.repoIntakePath), 'intake writes repo-intake.json', intakeText);
     assert(fs.existsSync(intakeOutput.provenancePath), 'intake writes provenance.json', intakeText);
 
@@ -360,6 +453,7 @@ function runTests() {
     const reIntakeText = `${reIntake.stdout}\n${reIntake.stderr}`;
     assert(reIntake.status === 0, 're-intake exits zero', reIntakeText);
     const reIntakeOutput = JSON.parse(reIntake.stdout);
+    assertSessionAliases(reIntakeOutput, 're-intake output');
     const updatedRepoIntake = readJson(reIntakeOutput.repoIntakePath);
     assert(
       updatedRepoIntake.repos[0].head === newTargetHead,
@@ -373,6 +467,7 @@ function runTests() {
     const packetText = `${packet.stdout}\n${packet.stderr}`;
     assert(packet.status === 0, 'packet with fresh intake exits zero', packetText);
     const packetOutput = JSON.parse(packet.stdout);
+    assertSessionAliases(packetOutput, 'packet output');
     assert(fs.existsSync(packetOutput.packetPath), 'packet writes bmad-mission-packet.json', packetText);
     assert(fs.existsSync(packetOutput.renderedPromptPath), 'packet writes rendered-prompt.md', packetText);
     assert(fs.existsSync(packetOutput.capabilityContractPath), 'packet writes capabilities.json', packetText);
@@ -415,6 +510,7 @@ function runTests() {
     const cleanReviewText = `${cleanReview.stdout}\n${cleanReview.stderr}`;
     assert(cleanReview.status === 0, 'clean review exits zero', cleanReviewText);
     const cleanReviewOutput = JSON.parse(cleanReview.stdout);
+    assertSessionAliases(cleanReviewOutput, 'clean review output');
     assert(fs.existsSync(cleanReviewOutput.summaryPath), 'clean review writes summary.json', cleanReviewText);
     const cleanSummary = readJson(cleanReviewOutput.summaryPath);
     assert(cleanSummary.clean === true, 'clean review reports clean worktree', JSON.stringify(cleanSummary, null, 2));
@@ -430,6 +526,7 @@ function runTests() {
     const changedReviewText = `${changedReview.stdout}\n${changedReview.stderr}`;
     assert(changedReview.status === 0, 'changed review exits zero', changedReviewText);
     const changedReviewOutput = JSON.parse(changedReview.stdout);
+    assertSessionAliases(changedReviewOutput, 'changed review output');
     const changedSummary = readJson(changedReviewOutput.summaryPath);
     assert(changedSummary.clean === false, 'changed review reports dirty worktree', JSON.stringify(changedSummary, null, 2));
     assert(
@@ -457,12 +554,14 @@ function runTests() {
     const cleanDestroyLaunchText = `${cleanDestroyLaunch.stdout}\n${cleanDestroyLaunch.stderr}`;
     assert(cleanDestroyLaunch.status === 0, 'destroy fixture launch exits zero', cleanDestroyLaunchText);
     const cleanDestroyMission = JSON.parse(cleanDestroyLaunch.stdout);
+    assertSessionAliases(cleanDestroyMission, 'destroy fixture launch output');
     const destroy = runCli(['workspace', 'destroy', cleanDestroyMission.missionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
     const destroyText = `${destroy.stdout}\n${destroy.stderr}`;
     assert(destroy.status === 0, 'destroy exits zero', destroyText);
     const destroyOutput = JSON.parse(destroy.stdout);
+    assertSessionAliases(destroyOutput, 'destroy output');
     assert(destroyOutput.removed === true, 'destroy reports removal', destroyText);
     assert(!fs.existsSync(cleanDestroyMission.missionRoot), 'destroy removes mission root', destroyText);
     assert(git(['rev-parse', 'HEAD'], targetRepo.path) === newTargetHead, 'destroy preserves source repo HEAD');
@@ -473,6 +572,7 @@ function runTests() {
     const keepReviewDestroyText = `${keepReviewDestroy.stdout}\n${keepReviewDestroy.stderr}`;
     assert(keepReviewDestroy.status === 0, 'destroy --keep-review exits zero', keepReviewDestroyText);
     const keepReviewOutput = JSON.parse(keepReviewDestroy.stdout);
+    assertSessionAliases(keepReviewOutput, 'destroy --keep-review output');
     assert(!fs.existsSync(launchOutput.missionRoot), 'destroy --keep-review removes mission root', keepReviewDestroyText);
     assert(fs.existsSync(keepReviewOutput.retainedReviewPath), 'destroy --keep-review retains review artifacts', keepReviewDestroyText);
     assert(
@@ -486,6 +586,8 @@ function runTests() {
     removeMissionWorktrees(launchOutput);
     removeMissionWorktrees(multiRepoOutput);
     removeMissionWorktrees(baseImprovementOutput);
+    removeMissionWorktrees(sessionLaunchOutput);
+    removeMissionWorktrees(sameAliasOutput);
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 

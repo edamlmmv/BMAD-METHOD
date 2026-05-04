@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "0.1",
+  "packetType": "BMAD Work Packet",
+  "goalRef": "self-improvement-goal.md",
+  "grantRef": "base-mutation-grant.json",
+  "promptRef": "self-improvement-prompt.md",
+  "reviewRef": "worktree-review-checklist.md",
+  "acceptanceCriteria": [
+    "Workspace Session language is used at public boundaries.",
+    "Grant Guard remains the only Base Mutation path.",
+    "Worktree Review evidence exists before explicit Promotion."
+  ],
+  "traceability": {
+    "acceptanceRef": "docs/workspace-distro/v2-acceptance-tests.md",
+    "storyRef": "docs/workspace-distro/v2-backlog.md",
+    "testTarget": "npm run test:workspace"
+  },
+  "forbiddenActions": ["workspace run", "auto-promotion", "hidden execution", "live adapter activation"]
+}
