@@ -137,8 +137,47 @@ function runTests() {
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
     assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
+
+    section('Workspace Intake');
+
+    const intake = runCli(['workspace', 'intake', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const intakeText = `${intake.stdout}\n${intake.stderr}`;
+
+    assert(intake.status === 0, 'intake exits zero', intakeText);
+    const intakeOutput = JSON.parse(intake.stdout);
+    assert(fs.existsSync(intakeOutput.repoIntakePath), 'intake writes repo-intake.json', intakeText);
+    assert(fs.existsSync(intakeOutput.provenancePath), 'intake writes provenance.json', intakeText);
+
+    const repoIntake = readJson(intakeOutput.repoIntakePath);
+    assert(repoIntake.missionId === launchOutput.missionId, 'repo intake records mission id', JSON.stringify(repoIntake, null, 2));
+    assert(repoIntake.repos[0].head === targetRepo.head, 'repo intake records target repo HEAD', JSON.stringify(repoIntake, null, 2));
+    assert(repoIntake.scanner.mode === 'code-only', 'repo intake records code-only scanner mode', JSON.stringify(repoIntake, null, 2));
+
+    const provenance = readJson(intakeOutput.provenancePath);
+    assert(provenance.missionId === launchOutput.missionId, 'provenance records mission id', JSON.stringify(provenance, null, 2));
+    assert(provenance.scanner.id === 'workspace-distro.git-intake', 'provenance records scanner id', JSON.stringify(provenance, null, 2));
+
+    fs.appendFileSync(path.join(targetRepo.path, 'README.md'), 'More detail.\n');
+    git(['add', 'README.md'], targetRepo.path);
+    git(['commit', '-m', 'update target repo'], targetRepo.path);
+    const newTargetHead = git(['rev-parse', 'HEAD'], targetRepo.path);
+
+    const reIntake = runCli(['workspace', 'intake', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const reIntakeText = `${reIntake.stdout}\n${reIntake.stderr}`;
+    assert(reIntake.status === 0, 're-intake exits zero', reIntakeText);
+    const reIntakeOutput = JSON.parse(reIntake.stdout);
+    const updatedRepoIntake = readJson(reIntakeOutput.repoIntakePath);
+    assert(
+      updatedRepoIntake.repos[0].head === newTargetHead,
+      're-intake records new target HEAD',
+      JSON.stringify(updatedRepoIntake, null, 2),
+    );
   } catch (error) {
-    assert(false, 'launch emits parseable mission JSON', error.message);
+    assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {
     if (launchOutput?.repoPackPath && fs.existsSync(launchOutput.repoPackPath)) {
       const repoPack = readJson(launchOutput.repoPackPath);

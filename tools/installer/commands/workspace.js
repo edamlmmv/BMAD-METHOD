@@ -1,4 +1,5 @@
 const { launchMission } = require('../../workspace-distro/launch');
+const { runRepoIntake } = require('../../workspace-distro/intake');
 
 const WORKSPACE_HELP = `BMAD Workspace Distro mission lifecycle.
 
@@ -18,7 +19,7 @@ function printHelp() {
 }
 
 module.exports = {
-  command: 'workspace [workspaceCommand]',
+  command: 'workspace [workspaceCommand] [missionId]',
   description: WORKSPACE_HELP,
   options: [
     ['--repo <path>', 'Target Git repo path. Repeat for multiple repos.', collect, []],
@@ -26,28 +27,34 @@ module.exports = {
     ['--runtime-root <path>', 'Mission runtime root. Defaults to OS temp storage.'],
     ['--mission-id <id>', 'Deterministic mission id for tests and scripted runs.'],
   ],
-  action: (workspaceCommand, options) => {
+  action: (workspaceCommand, missionId, options) => {
     if (!workspaceCommand) {
       printHelp();
       process.exit(0);
     }
 
-    if (workspaceCommand !== 'launch') {
+    if (!['launch', 'intake'].includes(workspaceCommand)) {
       process.stderr.write(`Workspace command not implemented in V1 yet: ${workspaceCommand}\n`);
       process.exit(1);
     }
 
     try {
-      const result = launchMission({
-        repoPaths: options.repo,
-        goalPath: options.goal,
-        runtimeRoot: options.runtimeRoot,
-        missionId: options.missionId,
-        workspaceDistroPath: process.cwd(),
-      });
+      const result =
+        workspaceCommand === 'launch'
+          ? launchMission({
+              repoPaths: options.repo,
+              goalPath: options.goal,
+              runtimeRoot: options.runtimeRoot,
+              missionId: options.missionId,
+              workspaceDistroPath: process.cwd(),
+            })
+          : runRepoIntake({
+              missionId,
+              runtimeRoot: options.runtimeRoot,
+            });
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     } catch (error) {
-      process.stderr.write(`Workspace launch failed: ${error.message}\n`);
+      process.stderr.write(`Workspace ${workspaceCommand} failed: ${error.message}\n`);
       process.exit(1);
     }
 
