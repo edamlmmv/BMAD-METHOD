@@ -38,7 +38,7 @@ Source planning commit:
 | S7 BMAD Mission Packet builder | Complete | `20bc4d1888857f4ec9110175be4c2310ee59f88b` | Fresh packet writes BMAD Mission Packet, Capability Contract, and derived rendered prompt. |
 | S8 Worktree Review | Complete | `5301a6a59ec892c533fcf3cbb162c73b4a7e7332` | Review writes clean summaries and dirty per-repo status plus patch artifacts. |
 | S9 Destroy safety | Complete | `d66731944a36c580b5af0ada9254056c8fd40cd4` | Destroy removes mission runtime and worktrees, preserves source repo HEAD, and retains review artifacts with `--keep-review`. |
-| S10 Grant Guard denial | Planned | TBD | Requires path boundary contract. |
+| S10 Grant Guard denial | Complete | `58a900bffc36f634f7ba352bec7e7c7affdc7270` | Grant Guard authorizes target worktree writes, denies ungranted base writes with violation artifacts, and blocks Base Improvement launch without grant. |
 | S11 Base Improvement grant | Planned | TBD | After S10. |
 
 Update `Evidence Commit` with the commit that moves the story state. Each
