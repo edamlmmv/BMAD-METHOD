@@ -1,65 +1,82 @@
 # Ubiquitous Language
 
-## BMAD workflow
+## BMAD kernel
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Fresh context** | A new agent session that runs the selected BMAD chain without inheriting unrelated thread baggage. | New chat, clean slate |
-| **BMAD router** | The skill or step that decides which BMAD workflow should run next. | Help step, catalog lookup |
-| **Quick Dev** | The BMAD implementation path for a small, single-goal existing-project change. | Dev flow, small fix workflow |
-| **Code Review** | The BMAD review path that inspects the final diff for bugs, bloat, regressions, and missing tests. | CR, review pass |
-| **Correct Course** | The BMAD correction path used only when PRD, epic, or sprint scope must change. | Course correction, scope repair |
-| **Implementation Readiness** | The BMAD gate that checks whether PRD, architecture, and epics are ready for implementation. | IR, readiness check |
-| **Prompt chain** | The ordered set of skills the next agent should run for the task. | Workflow list, skill stack |
-| **Acceptance criteria** | The observable conditions that prove the prompt succeeded. | Done list, success checklist |
+| **BMAD Kernel** | The durable source of truth for workflow routing, artifacts, gates, acceptance criteria, and review discipline. | Orchestrator, planner, brain |
+| **BMAD Artifact** | A durable BMAD-owned document or record that justifies work and can be reviewed later. | Note, prompt, file |
+| **BMAD Mission Packet** | A BMAD Artifact that packages one mission goal, evidence, constraints, acceptance criteria, and rendered executor prompt. | Prompt, task prompt, mission prompt |
+| **BMAD Router** | The BMAD step that selects the smallest valid workflow path for the mission. | Help step, dispatcher |
+| **Acceptance Criteria** | Observable conditions that prove a mission or artifact is complete. | Done list, checklist |
+| **Implementation Readiness** | The BMAD gate that decides whether requirements, architecture, and stories are ready for execution. | Readiness check, IR |
+| **Code Review** | The BMAD review path that inspects a diff for defects, bloat, regressions, and missing tests. | CR, review pass |
 
-## Scope control
-
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **Bloat** | Any change outside the smallest correct Office.js initialization hardening. | Cleanup extras, overwork |
-| **Bloated reference** | The commit used only as evidence of prior over-scoped cleanup. | Target commit, source commit |
-| **Minimal diff** | A final change limited to the smallest necessary files and behavior. | Small patch, narrow changes |
-| **Scope guard** | A prompt constraint that rejects unrelated files, refactors, docs, config churn, and style churn. | Guardrail, constraint |
-| **Version bump** | A package version update included only when already required by the release branch. | Release change, package bump |
-| **Final diff** | The exact working-tree or commit changes reviewed after implementation. | Patch, changeset |
-
-## Office readiness
+## Mission lifecycle
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Office.js initialization hardening** | The smallest behavior change that makes Office readiness safe under concurrency and hung readiness. | Office cleanup, init refactor |
-| **Office readiness** | The point at which Office.js reports the host environment is ready to use. | Office init, Office loaded |
-| **Initialization boundary** | The public `OfficeService.initialize()` behavior that callers rely on. | Service core, init internals |
-| **Concurrency guard** | The behavior that makes simultaneous initialization calls share one readiness attempt. | Lock, singleton promise |
-| **Callback readiness path** | The `Office.onReady(callback)` path that signals readiness by invoking a callback. | Callback API |
-| **Promise readiness path** | The `Office.onReady()` path that returns a promise resolving when Office is ready. | Promise API |
-| **Hung readiness** | A readiness attempt that never resolves or invokes its callback. | Stalled init, frozen onReady |
-| **Retry after timeout** | A new readiness attempt allowed after the previous one times out. | Recovery retry, init retry |
-| **Focused initialization test** | A behavior test that exercises one Office readiness behavior through the public initialization boundary. | Unit test, init spec |
+| **Workspace Distro** | The durable BMAD-centered base that carries methodology, agents, skills, policies, adapters, settings, and secret references. | Base, toolchain repo, distro |
+| **Mission Workspace** | A disposable runtime launched from a Workspace Distro for one bounded mission against selected repo inputs. | Instance, run, session |
+| **Mission** | A bounded job with a goal, Repo Pack, grants, BMAD Mission Packet, and exit criteria. | Task, ticket, job |
+| **Repo Pack** | The selected target repositories attached to a Mission Workspace. | Mounted repos, repo set |
+| **Target Repo** | A repository in the Repo Pack that is allowed to receive mission changes. | External repo, project repo |
+| **Repo Intake** | A code-only pre-prompt scan that produces evidence for a BMAD Mission Packet. | Context scan, indexing, graph |
+| **Rendered Prompt** | The executor-ready prompt derived from a BMAD Mission Packet. | Source prompt, hand-written prompt |
+| **Codex Executor** | The preferred operator that executes rendered prompts inside BMAD constraints. | Agent, worker, model |
+| **Worktree Review** | A Git worktree and patch review surface for inspecting mission changes before Promotion. | GitHub Desktop diff, final diff |
+
+## Authority and persistence
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Capability Contract** | A BMAD-governed registry of adapter capabilities available to a Mission Workspace. | Tool list, memory, provider map |
+| **Grant** | An explicit permission record that names allowed capabilities, paths, repos, and persistence rights. | Permission, access, approval |
+| **Base Mutation Grant** | A Grant that explicitly permits changes to the Workspace Distro. | Self-improvement permission, base write |
+| **Base Improvement Mission** | A mission whose target is the Workspace Distro and whose writes require a Base Mutation Grant. | Self-improvement loop, system update |
+| **Promotion** | The explicit integration of reviewed changes into the Workspace Distro. | Merge back, persist, learn |
+| **Mission State** | Runtime data created inside a Mission Workspace that dies unless explicitly retained for review. | Memory, context, cache |
+| **Standing Order** | A durable BMAD-owned rule stored in the Workspace Distro. | Persistent memory, instruction |
+| **Drift** | Any durable change that lacks a BMAD Artifact, Grant, or Git diff proving why it exists. | Accidental mutation, residue |
+
+## Adapter capabilities
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Adapter** | A concrete provider that satisfies a BMAD-owned capability interface. | Plugin, engine, integration |
+| **Graph Evidence Adapter** | An Adapter that produces Repo Intake evidence, with Graphify as the first known provider. | Memory graph, context brain |
+| **Runtime Adapter** | An Adapter that exposes sessions, tasks, Cron, Heartbeat, or goals without replacing BMAD governance. | Scheduler, daemon, runtime brain |
+| **Documentation Evidence Adapter** | An Adapter that retrieves trusted current documentation only when freshness affects the mission. | Freshness crawler, doc memory |
+| **Git Adapter** | An Adapter that provides worktrees, diffs, status, commits, provenance, and rollback evidence. | File sync, patch tool |
 
 ## Relationships
 
-- A **Prompt chain** starts in a **Fresh context** and may begin with the **BMAD router** when routing needs confirmation.
-- **Quick Dev** owns implementation; **Code Review** inspects the **Final diff** after implementation.
-- **Correct Course** and **Implementation Readiness** are optional gates, not part of the default **Prompt chain**.
-- **Office.js initialization hardening** changes only the **Initialization boundary** and its **Focused initialization test**.
-- A **Concurrency guard** covers simultaneous calls to the **Initialization boundary**.
-- A **Hung readiness** must lead to **Retry after timeout**, not permanent blocked initialization.
-- A **Scope guard** prevents **Bloat** and protects the **Minimal diff**.
+- A **Workspace Distro** creates zero or more **Mission Workspaces**.
+- A **Mission Workspace** attaches one **Repo Pack** and produces one or more **BMAD Mission Packets**.
+- A **BMAD Mission Packet** must include **Repo Intake** evidence before execution.
+- A **Rendered Prompt** is derived from a **BMAD Mission Packet** and executed by the **Codex Executor**.
+- A **Capability Contract** exposes one or more **Adapters** to a **Mission Workspace**.
+- A normal **Mission** may change **Target Repos** but may not change the **Workspace Distro**.
+- A **Base Improvement Mission** may change the **Workspace Distro** only through a **Base Mutation Grant**.
+- **Promotion** requires a **Worktree Review** and must be explicit.
+- **Mission State** dies with the **Mission Workspace** unless retained for **Worktree Review**.
 
 ## Example dialogue
 
-> **Dev:** "Should the **Prompt chain** run `to-prd` before **Quick Dev**?"
-> **Domain expert:** "No. This is a **Minimal diff** task, so **Quick Dev** owns implementation in a **Fresh context**."
-> **Dev:** "What if the prior **Bloated reference** includes docs and refactors?"
-> **Domain expert:** "Treat those as **Bloat**. The **Scope guard** keeps only **Office.js initialization hardening**."
-> **Dev:** "Which behavior proves the fix?"
-> **Domain expert:** "A **Focused initialization test** must cover the **Concurrency guard**, both readiness paths, and **Retry after timeout** after **Hung readiness**."
+> **Dev:** "Can this **Mission Workspace** remember a fix and improve future runs?"
+> **Domain expert:** "Only if you start a **Base Improvement Mission**. A normal **Mission** writes the **Target Repo**, not the **Workspace Distro**."
+> **Dev:** "So the **Rendered Prompt** is not the source of truth?"
+> **Domain expert:** "Correct. The **BMAD Mission Packet** is the source of truth; the **Rendered Prompt** is derived for the **Codex Executor**."
+> **Dev:** "Where do OpenClaw, Hermes, and Graphify fit?"
+> **Domain expert:** "They are **Adapters** behind the **Capability Contract**. BMAD still owns routing, artifacts, gates, and review."
+> **Dev:** "What proves a base change is valid?"
+> **Domain expert:** "A **BMAD Artifact**, a **Base Mutation Grant**, and a **Worktree Review**."
 
 ## Flagged ambiguities
 
-- "cleanup" could mean broad repository cleanup or the narrow **Office.js initialization hardening**. Use **Office.js initialization hardening** for this task.
-- "reference" could mean a target state or evidence of prior bloat. Use **Bloated reference** and make clear it is not to be replayed wholesale.
-- "CR" could mean generic review or the BMAD **Code Review** workflow. Use **Code Review** when naming the BMAD step.
-- "init" could mean internal implementation details or public caller behavior. Use **Initialization boundary** for public behavior and avoid naming internals unless code requires it.
+- "instance" can mean a chat, process, container, or workspace. Use **Mission Workspace** for the disposable launched runtime.
+- "context" can mean graph evidence, chat history, prompt text, or persistent memory. Use **Repo Intake** for code evidence and **Mission State** for runtime residue.
+- "prompt" can mean the planning artifact or executor text. Use **BMAD Mission Packet** for the source artifact and **Rendered Prompt** for executor text.
+- "memory" can mean adapter storage, graph evidence, mission cache, or durable rules. Use **Mission State** for disposable data and **Standing Order** for durable rules.
+- "self-improvement" can imply automatic base mutation. Use **Base Improvement Mission** and require a **Base Mutation Grant**.
+- "promotion" can mean merging target repo changes or improving the base. Use **Promotion** only for explicit integration into the **Workspace Distro**.
