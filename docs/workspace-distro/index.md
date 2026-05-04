@@ -17,6 +17,8 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [Capability Contract](./capability-contract.md) | Sketches the BMAD-governed adapter registry. |
 | [ADR Candidates](./adr-candidates.md) | Captures architecture decisions to promote into ADRs later. |
 | [V1 Acceptance Tests](./v1-acceptance-tests.md) | Lists behavior tests for the first executable slice. |
+| [V1 Implementation Backlog](./v1-implementation-backlog.md) | Defines TDD-first epics, stories, risks, and cut list. |
+| [V1 Traceability](./v1-traceability.md) | Tracks story progress, acceptance mapping, and completion gates. |
 
 ## Doctrine
 
