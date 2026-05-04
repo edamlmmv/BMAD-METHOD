@@ -31,7 +31,7 @@ Source planning commit:
 | --- | --- | --- | --- |
 | S1 Contract validation | Complete | `6ad93e44a29b2c765d1677c9d8b92034624a58c7` | Contract validator and focused test added. |
 | S2 Workspace CLI help | Complete | `154778903c5eab6207bf1d10948f3cbf84746ce5` | CLI help lists V1 workspace subcommands; launch behavior remains S3. |
-| S3 One-repo launch | Planned | TBD | First vertical mission proof. |
+| S3 One-repo launch | Complete | `ada39dd0df8e4bfcf5f7c3dc531d40b80fd6ebdc` | Launch writes mission artifacts, creates Git worktree, and keeps base repo clean. |
 | S4 Multi-repo launch | Planned | TBD | After S3. |
 | S5 Repo Intake | Planned | TBD | Requires launch artifacts. |
 | S6 Packet freshness guard | Planned | TBD | Requires intake. |
