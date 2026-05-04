@@ -1,7 +1,7 @@
 /**
  * BMAD Workspace CLI Tests
  *
- * Public behavior checks for the BMAD Workspace V1 CLI surface.
+ * Public behavior checks for the BMAD Workspace V13 CLI surface.
  * Usage: node test/test-workspace-cli.js
  */
 
@@ -214,6 +214,27 @@ function runTests() {
   ]) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
+
+  const commandContract = fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'command-contract.md'), 'utf8');
+  for (const subcommand of [
+    'launch',
+    'intake',
+    'packet',
+    'list',
+    'status',
+    'handoff',
+    'result',
+    'closeout',
+    'archive',
+    'verify-archive',
+    'review',
+    'destroy',
+    'authorize',
+  ]) {
+    assert(commandContract.includes(`\`${subcommand}\``), `command contract lists ${subcommand}`, commandContract);
+  }
+  assert(commandContract.includes('handoff` writes Markdown'), 'command contract states handoff output type', commandContract);
+  assert(commandContract.includes('every other command writes JSON'), 'command contract states JSON output type', commandContract);
 
   section('Workspace Launch');
 

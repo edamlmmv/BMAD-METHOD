@@ -16,6 +16,7 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [Architecture](./architecture.md) | Defines modules, boundaries, interfaces, storage, and adapter policy. |
 | [Capability Contract](./capability-contract.md) | Sketches the BMAD-governed adapter registry. |
 | [ADR Candidates](./adr-candidates.md) | Captures architecture decisions to promote into ADRs later. |
+| [Command Contract](./command-contract.md) | Freezes the V13 public Workspace CLI command contract. |
 | [V1 Acceptance Tests](./v1-acceptance-tests.md) | Lists behavior tests for the first executable slice. |
 | [V1 Implementation Backlog](./v1-implementation-backlog.md) | Defines TDD-first epics, stories, risks, and cut list. |
 | [V1 Traceability](./v1-traceability.md) | Tracks story progress, acceptance mapping, and completion gates. |
@@ -63,6 +64,11 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V12 Acceptance Tests](./v12-acceptance-tests.md) | Lists behavior tests for V12 lifecycle closure. |
 | [V12 Backlog](./v12-backlog.md) | Defines TDD-first stories for V12. |
 | [V12 Traceability](./v12-traceability.md) | Maps V12 acceptance tests to stories, tests, and files. |
+| [V13 PRD](./v13-prd.md) | Defines release readiness and contract freeze requirements. |
+| [V13 Acceptance Tests](./v13-acceptance-tests.md) | Lists behavior tests for V13 release readiness. |
+| [V13 Backlog](./v13-backlog.md) | Defines TDD-first stories for V13. |
+| [V13 Traceability](./v13-traceability.md) | Maps V13 acceptance tests to stories, tests, and files. |
+| [V13 Release Readiness](./v13-release-readiness.md) | Provides the maintainer checklist for V13 validation. |
 
 ## Doctrine
 

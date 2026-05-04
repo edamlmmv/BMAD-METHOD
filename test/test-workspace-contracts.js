@@ -1,7 +1,7 @@
 /**
  * BMAD Workspace Contract Tests
  *
- * Public behavior checks for the BMAD Workspace V1 artifact contract.
+ * Public behavior checks for the BMAD Workspace V13 artifact contract.
  * Usage: node test/test-workspace-contracts.js
  */
 
@@ -16,6 +16,23 @@ const { buildSessionSetup } = require('../tools/workspace/packet');
 const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
 const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
+
+const repoRoot = path.join(__dirname, '..');
+const WORKSPACE_COMMANDS = [
+  'launch',
+  'intake',
+  'packet',
+  'list',
+  'status',
+  'handoff',
+  'result',
+  'closeout',
+  'archive',
+  'verify-archive',
+  'review',
+  'destroy',
+  'authorize',
+];
 
 const colors = {
   reset: '\u001B[0m',
@@ -783,6 +800,128 @@ function runTests() {
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
   }
 
+  section('V13 Release Readiness Contract');
+
+  {
+    const workspaceDocsRoot = path.join(repoRoot, 'docs', 'workspace');
+    const indexPath = path.join(workspaceDocsRoot, 'index.md');
+    const architecturePath = path.join(workspaceDocsRoot, 'architecture.md');
+    const commandContractPath = path.join(workspaceDocsRoot, 'command-contract.md');
+    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v13-release-readiness.md');
+    const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
+    const packageJsonPath = path.join(repoRoot, 'package.json');
+    const packageLockPath = path.join(repoRoot, 'package-lock.json');
+    const yarnLockPath = path.join(repoRoot, 'yarn.lock');
+    const workspaceCommandPath = path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js');
+
+    for (const docName of [
+      'v13-prd.md',
+      'v13-backlog.md',
+      'v13-acceptance-tests.md',
+      'v13-traceability.md',
+      'command-contract.md',
+      'v13-release-readiness.md',
+    ]) {
+      assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `V13 artifact exists: ${docName}`);
+    }
+
+    const index = fs.readFileSync(indexPath, 'utf8');
+    for (const link of [
+      './command-contract.md',
+      './v13-prd.md',
+      './v13-acceptance-tests.md',
+      './v13-backlog.md',
+      './v13-traceability.md',
+      './v13-release-readiness.md',
+    ]) {
+      assert(index.includes(link), `workspace index links ${link}`, index);
+    }
+
+    const architecture = fs.readFileSync(architecturePath, 'utf8');
+    assert(architecture.includes('The V13 system is'), 'architecture states V13 current system', architecture);
+    assert(architecture.includes('## Derived Lifecycle'), 'architecture documents derived lifecycle', architecture);
+    assert(!architecture.includes('The V4 system is'), 'architecture omits stale V4 current-system framing', architecture);
+    assert(
+      !architecture.includes('workspace launch --repo <path> --goal <file> --grant <grant.json>'),
+      'architecture omits stale V1/V4 interface sketch',
+      architecture,
+    );
+    for (const lifecycle of [
+      'launched',
+      'intake-recorded',
+      'packet-ready',
+      'executor-ready',
+      'result-recorded',
+      'review-recorded',
+      'closeout-recorded',
+      'blocked',
+    ]) {
+      assert(architecture.includes(`\`${lifecycle}\``), `architecture documents lifecycle ${lifecycle}`, architecture);
+    }
+    for (const command of WORKSPACE_COMMANDS) {
+      assert(architecture.includes(`bmad workspace ${command}`), `architecture documents command ${command}`, architecture);
+    }
+
+    const commandContract = fs.readFileSync(commandContractPath, 'utf8');
+    for (const command of WORKSPACE_COMMANDS) {
+      assert(commandContract.includes(`\`${command}\``), `command contract documents ${command}`, commandContract);
+    }
+    for (const text of [
+      'handoff` writes Markdown',
+      'every other command writes JSON',
+      'Filesystem Effect',
+      'Stable Error Families',
+      'V13 does not add `workspace run`',
+      'ARCHIVE_CHECKSUM_MISMATCH',
+      'CLOSEOUT_SECRET_DETECTED',
+      'EXECUTOR_CONTRACT_INVALID',
+      'ROUTE_WORKFLOW_UNKNOWN',
+      'RESULT_SECRET_DETECTED',
+    ]) {
+      assert(commandContract.includes(text), `command contract includes ${text}`, commandContract);
+    }
+
+    const releaseReadiness = fs.readFileSync(releaseReadinessPath, 'utf8');
+    for (const text of [
+      'npm ci',
+      'npm run test:workspace',
+      'npm run validate:refs',
+      'npm run validate:skills',
+      'npm run quality',
+      'bmad workspace',
+      'verify-archive',
+      'package-lock.json',
+      'yarn.lock',
+      'hidden execution',
+      'live adapter activation',
+    ]) {
+      assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
+    }
+
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    assert(fs.existsSync(packageLockPath), 'npm lockfile exists');
+    assert(!fs.existsSync(yarnLockPath), 'yarn lockfile is absent');
+    assert(packageJson.scripts.quality.includes('npm run test:workspace'), 'quality script includes Workspace tests');
+    assert(packageJson.scripts.quality.includes('npm run test:urls'), 'quality script includes URL tests');
+
+    const qualityWorkflow = fs.readFileSync(qualityWorkflowPath, 'utf8');
+    for (const command of [
+      'npm run test:install',
+      'npm run test:urls',
+      'npm run test:workspace',
+      'npm run validate:refs',
+      'npm run validate:skills',
+    ]) {
+      assert(qualityWorkflow.includes(command), `quality workflow includes ${command}`, qualityWorkflow);
+    }
+
+    const workspaceCommand = fs.readFileSync(workspaceCommandPath, 'utf8');
+    for (const command of WORKSPACE_COMMANDS) {
+      assert(workspaceCommand.includes(`'${command}'`), `workspace command inventory includes ${command}`, workspaceCommand);
+    }
+    assert(!workspaceCommand.includes("'run'"), 'workspace command inventory omits run command', workspaceCommand);
+  }
+
   section('V2 Traceability');
 
   {
@@ -901,6 +1040,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT12-001', 'S115', 'tools/workspace/closeout.js', 'CLOSEOUT_SECRET_DETECTED']) {
       assert(traceability.includes(text), `V12 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V13 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v13-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V13 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT13-001', 'S126', 'docs/workspace/command-contract.md', '.github/workflows/quality.yaml']) {
+      assert(traceability.includes(text), `V13 traceability maps ${text}`, traceability);
     }
   }
 

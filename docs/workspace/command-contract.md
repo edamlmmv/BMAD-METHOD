@@ -1,0 +1,64 @@
+---
+title: "BMAD Workspace Command Contract"
+description: Stable V13 public contract for Workspace CLI commands
+---
+
+# BMAD Workspace Command Contract
+
+V13 freezes the current Workspace CLI contract so docs, tests, and operators
+share one source of truth before any future runtime expansion.
+
+## Contract Rules
+
+- `handoff` writes Markdown to stdout; every other command writes JSON to stdout.
+- Failures write a stable error message to stderr and exit nonzero.
+- Read-only commands never create, repair, resume, fetch, schedule, watch,
+  execute, merge, promote, restore, replay, or call live adapters.
+- Evidence commands record JSON data only. They never execute command strings or
+  turn stored evidence into authority.
+- Session refs are POSIX relative paths unless explicitly documented as absolute
+  granted roots.
+
+## Commands
+
+| Command | Output | Filesystem Effect | Stable Contract |
+| --- | --- | --- | --- |
+| `launch` | JSON | Creates session runtime, repo worktrees, grants, and `instance.json`. | Requires `--repo`, `--goal`, and optional `--session-id`. |
+| `intake` | JSON | Writes `intake/repo-intake.json` and provenance. | Fails when session is missing or invalid. |
+| `packet` | JSON | Writes active packet bundle under `packets/`. | Requires fresh intake and complete or explicitly skipped Setup Gate. |
+| `status` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
+| `list` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
+| `handoff` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
+| `result` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
+| `review` | JSON | Writes review summary, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
+| `closeout` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
+| `archive` | JSON | Creates the exact output directory. | Copies evidence artifacts only, never worktrees or setup source files. |
+| `verify-archive` | JSON | Read-only. | Validates archive manifest, checksums, refs, results, closeouts, and executor contract. |
+| `destroy` | JSON | Removes session runtime; optional review retention. | Preserves target repo source and commits. |
+| `authorize` | JSON | Writes violation evidence only on denial. | Validates requested durable write path against grants. |
+
+## Stable Error Families
+
+- Session and artifact state: `SESSION_NOT_FOUND`, `SESSION_INVALID`,
+  `WORK_PACKET_INVALID_JSON`, `STALE_INTAKE`.
+- Setup and routing: `SETUP_REF_MISSING`,
+  `SETUP_REF_CHECKSUM_MISMATCH`, `ROUTE_WORKFLOW_UNKNOWN`,
+  `ROUTE_DECISION_REQUIRED`.
+- Executor readiness: `EXECUTOR_CONTRACT_MISSING`,
+  `EXECUTOR_CONTRACT_INVALID`.
+- Result ledger: `RESULT_PACKET_MISSING`, `RESULT_ID_UNSAFE`,
+  `RESULT_EXISTS`, `RESULT_INVALID`, `RESULT_SECRET_DETECTED`.
+- Closeout: `CLOSEOUT_PACKET_MISSING`, `CLOSEOUT_REVIEW_MISSING`,
+  `CLOSEOUT_ID_UNSAFE`, `CLOSEOUT_EXISTS`, `CLOSEOUT_INVALID`,
+  `CLOSEOUT_SECRET_DETECTED`.
+- Archive: `ARCHIVE_NOT_FOUND`, `ARCHIVE_MANIFEST_MISSING`,
+  `ARCHIVE_MANIFEST_INVALID`, `ARCHIVE_OUTPUT_EXISTS`,
+  `ARCHIVE_CHECKSUM_MISMATCH`, `ARCHIVE_UNSAFE_PATH`,
+  `ARCHIVE_RESULT_INVALID`, `ARCHIVE_CLOSEOUT_INVALID`,
+  `ARCHIVE_EXECUTOR_CONTRACT_INVALID`.
+
+## Non-Goals
+
+V13 does not add `workspace run`, automatic closeout, automatic archive,
+automatic destroy, scheduler, watcher, daemon, background worker, restore,
+replay, import, merge, promotion, live adapter activation, or hidden execution.

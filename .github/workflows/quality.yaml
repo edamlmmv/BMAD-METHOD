@@ -106,6 +106,12 @@ jobs:
       - name: Test agent compilation components
         run: npm run test:install
 
+      - name: Test source URLs
+        run: npm run test:urls
+
+      - name: Test Workspace CLI contracts
+        run: npm run test:workspace
+
       - name: Validate file references
         run: npm run validate:refs
 
