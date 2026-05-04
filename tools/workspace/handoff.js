@@ -26,6 +26,7 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
     renderBlockers(status),
     renderPacket(status, packet),
     renderSetupGate(status),
+    renderResultLedger(status),
     renderReview(status, review),
     renderBaseImprovement(status),
     renderNextRoute(status, packet),
@@ -116,6 +117,23 @@ function renderSetupGate(status) {
 
 - state: \`${status.setup?.state || 'Not found'}\`
 ${lines.join('\n')}`;
+}
+
+function renderResultLedger(status) {
+  const results = status.results || { state: 'none', count: 0, latest: null, entries: [] };
+  const lines = (results.entries || []).map((entry) => {
+    if (!entry.valid) {
+      return `- ${entry.resultId}: invalid; ref=${entry.ref}`;
+    }
+    return `- ${entry.resultId}: outcome=${entry.outcome}; routeWorkflow=${entry.routeWorkflow}; ref=${entry.ref}`;
+  });
+
+  return `## Result Ledger
+
+- state: \`${results.state}\`
+- count: \`${results.count || 0}\`
+- latest: ${results.latest ? `\`${results.latest.resultId}\` (${results.latest.outcome})` : 'None recorded'}
+${lines.length > 0 ? lines.join('\n') : '- results: None recorded'}`;
 }
 
 function renderReview(status, review) {

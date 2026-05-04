@@ -142,6 +142,22 @@ function copyTree(sourceRoot, destinationRoot) {
   }
 }
 
+function rewriteArchiveChecksums(archiveRoot) {
+  const manifestPath = path.join(archiveRoot, 'manifest.json');
+  const manifest = readJson(manifestPath);
+  for (const file of manifest.files) {
+    const filePath = path.join(archiveRoot, file.path);
+    file.sha256 = sha256File(filePath);
+    file.bytes = fs.statSync(filePath).size;
+  }
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  fs.writeFileSync(path.join(archiveRoot, 'checksums.sha256'), renderArchiveChecksums(manifest.files));
+}
+
+function renderArchiveChecksums(files) {
+  return `${files.map((file) => `${file.sha256}  ${file.path}`).join('\n')}\n`;
+}
+
 function assertSessionOutput(output, testPrefix) {
   assert(
     typeof output.sessionId === 'string' && output.sessionId.length > 0,
@@ -178,6 +194,8 @@ function runTests() {
     assert(output.includes(option), `workspace help lists ${option}`, output);
   }
   assert(output.includes('--output <path>'), 'workspace help lists --output', output);
+  assert(output.includes('--input <path>'), 'workspace help lists --input', output);
+  assert(output.includes('--result-id <id>'), 'workspace help lists --result-id', output);
   for (const subcommand of [
     'launch',
     'intake',
@@ -185,6 +203,7 @@ function runTests() {
     'list',
     'status',
     'handoff',
+    'result',
     'archive',
     'verify-archive',
     'review',
@@ -1143,6 +1162,284 @@ function runTests() {
       externalStatusText,
     );
 
+    section('Workspace Result Ledger');
+
+    const resultInputPath = path.join(tempRoot, 'result-input.json');
+    const resultSideEffectPath = path.join(tempRoot, 'result-command-was-run');
+    const resultInput = {
+      outcome: 'succeeded',
+      summary: 'Manual execution completed with focused checks.',
+      commands: [
+        {
+          command: `${process.execPath} -e "require('fs').writeFileSync('${resultSideEffectPath}', 'bad')"`,
+          exitCode: 0,
+          summary: 'Command text recorded only; Workspace did not execute it.',
+        },
+      ],
+      evidenceRefs: ['review/summary.json'],
+    };
+    fs.writeFileSync(resultInputPath, `${JSON.stringify(resultInput, null, 2)}\n`);
+
+    const missingSessionResult = runCli(
+      [
+        'workspace',
+        'result',
+        'missing-session',
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        resultInputPath,
+        '--result-id',
+        'missing-result',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingSessionResultText = `${missingSessionResult.stdout}\n${missingSessionResult.stderr}`;
+    assert(missingSessionResult.status !== 0, 'result missing session exits nonzero', missingSessionResultText);
+    assert(
+      missingSessionResultText.includes('SESSION_NOT_FOUND'),
+      'result missing session names SESSION_NOT_FOUND',
+      missingSessionResultText,
+    );
+
+    const missingPacketResult = runCli(
+      [
+        'workspace',
+        'result',
+        multiRepoOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        resultInputPath,
+        '--result-id',
+        'no-packet',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingPacketResultText = `${missingPacketResult.stdout}\n${missingPacketResult.stderr}`;
+    assert(missingPacketResult.status !== 0, 'result without packet exits nonzero', missingPacketResultText);
+    assert(
+      missingPacketResultText.includes('RESULT_PACKET_MISSING'),
+      'result without packet names RESULT_PACKET_MISSING',
+      missingPacketResultText,
+    );
+
+    const invalidJsonInputPath = path.join(tempRoot, 'result-invalid-json.json');
+    fs.writeFileSync(invalidJsonInputPath, '{nope\n');
+    const invalidJsonResult = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        invalidJsonInputPath,
+        '--result-id',
+        'bad-json',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidJsonResultText = `${invalidJsonResult.stdout}\n${invalidJsonResult.stderr}`;
+    assert(invalidJsonResult.status !== 0, 'result invalid JSON exits nonzero', invalidJsonResultText);
+    assert(invalidJsonResultText.includes('RESULT_INPUT_INVALID_JSON'), 'result invalid JSON names stable error', invalidJsonResultText);
+
+    const invalidOutcomeInputPath = path.join(tempRoot, 'result-invalid-outcome.json');
+    fs.writeFileSync(invalidOutcomeInputPath, `${JSON.stringify({ outcome: 'unknown', summary: 'Bad outcome.' }, null, 2)}\n`);
+    const invalidOutcomeResult = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        invalidOutcomeInputPath,
+        '--result-id',
+        'bad-outcome',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidOutcomeResultText = `${invalidOutcomeResult.stdout}\n${invalidOutcomeResult.stderr}`;
+    assert(invalidOutcomeResult.status !== 0, 'result invalid outcome exits nonzero', invalidOutcomeResultText);
+    assert(invalidOutcomeResultText.includes('RESULT_INVALID'), 'result invalid outcome names RESULT_INVALID', invalidOutcomeResultText);
+
+    const unsafeResultId = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        resultInputPath,
+        '--result-id',
+        '../escape',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const unsafeResultIdText = `${unsafeResultId.stdout}\n${unsafeResultId.stderr}`;
+    assert(unsafeResultId.status !== 0, 'result unsafe id exits nonzero', unsafeResultIdText);
+    assert(unsafeResultIdText.includes('RESULT_ID_UNSAFE'), 'result unsafe id names RESULT_ID_UNSAFE', unsafeResultIdText);
+
+    const secretToken = 'ghp_1234567890abcdefghijklmnopqrstuvwxyzABCDE';
+    const secretInputPath = path.join(tempRoot, 'result-secret.json');
+    fs.writeFileSync(secretInputPath, `${JSON.stringify({ outcome: 'failed', summary: secretToken }, null, 2)}\n`);
+    const secretResult = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        secretInputPath,
+        '--result-id',
+        'secret-result',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const secretResultText = `${secretResult.stdout}\n${secretResult.stderr}`;
+    assert(secretResult.status !== 0, 'result secret-positive input exits nonzero', secretResultText);
+    assert(
+      secretResultText.includes('RESULT_SECRET_DETECTED'),
+      'result secret-positive input names RESULT_SECRET_DETECTED',
+      secretResultText,
+    );
+    assert(!secretResultText.includes(secretToken), 'result secret-positive stderr is redacted', secretResultText);
+    assert(!fs.existsSync(path.join(launchOutput.sessionRoot, 'results')), 'result failures write no partial artifacts');
+
+    const recordResult = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        resultInputPath,
+        '--result-id',
+        'result-001',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const recordResultText = `${recordResult.stdout}\n${recordResult.stderr}`;
+    assert(recordResult.status === 0, 'valid result exits zero', recordResultText);
+    const recordResultOutput = JSON.parse(recordResult.stdout);
+    assertSessionOutput(recordResultOutput, 'result output');
+    assert(recordResultOutput.resultId === 'result-001', 'result output records result id', recordResultText);
+    assert(fs.existsSync(recordResultOutput.resultPath), 'result writes artifact', recordResultText);
+    assert(!fs.existsSync(resultSideEffectPath), 'result command text is not executed', recordResultText);
+    const resultArtifact = readJson(recordResultOutput.resultPath);
+    assert(resultArtifact.kind === 'bmad-workspace-result', 'result records kind', JSON.stringify(resultArtifact, null, 2));
+    assert(resultArtifact.schemaVersion === 1, 'result records schemaVersion 1', JSON.stringify(resultArtifact, null, 2));
+    assert(resultArtifact.sessionId === launchOutput.sessionId, 'result records sessionId', JSON.stringify(resultArtifact, null, 2));
+    assert(resultArtifact.resultId === 'result-001', 'result records resultId', JSON.stringify(resultArtifact, null, 2));
+    assert(resultArtifact.outcome === 'succeeded', 'result records outcome', JSON.stringify(resultArtifact, null, 2));
+    assert(
+      resultArtifact.packetRef === 'packets/bmad-work-packet.json',
+      'result records packet ref',
+      JSON.stringify(resultArtifact, null, 2),
+    );
+    assert(
+      resultArtifact.routing.selectedWorkflow === 'bmad-quick-dev',
+      'result records packet route',
+      JSON.stringify(resultArtifact, null, 2),
+    );
+
+    const duplicateResult = runCli(
+      [
+        'workspace',
+        'result',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--input',
+        resultInputPath,
+        '--result-id',
+        'result-001',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const duplicateResultText = `${duplicateResult.stdout}\n${duplicateResult.stderr}`;
+    assert(duplicateResult.status !== 0, 'duplicate result exits nonzero', duplicateResultText);
+    assert(duplicateResultText.includes('RESULT_EXISTS'), 'duplicate result names RESULT_EXISTS', duplicateResultText);
+
+    const invalidStoredResultPath = path.join(launchOutput.sessionRoot, 'results', 'invalid-result.json');
+    fs.writeFileSync(invalidStoredResultPath, `${JSON.stringify({ kind: 'not-a-result' }, null, 2)}\n`);
+    const invalidResultStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidResultStatusText = `${invalidResultStatus.stdout}\n${invalidResultStatus.stderr}`;
+    assert(invalidResultStatus.status === 0, 'status with invalid result exits zero', invalidResultStatusText);
+    const invalidResultStatusOutput = JSON.parse(invalidResultStatus.stdout);
+    assert(
+      invalidResultStatusOutput.checks.some((item) => item.code === 'RESULT_INVALID'),
+      'status with invalid result names RESULT_INVALID',
+      invalidResultStatusText,
+    );
+    fs.rmSync(invalidStoredResultPath);
+
+    const secretStoredResultPath = path.join(launchOutput.sessionRoot, 'results', 'secret-result.json');
+    fs.writeFileSync(
+      secretStoredResultPath,
+      `${JSON.stringify({ ...resultArtifact, resultId: 'secret-result', summary: secretToken }, null, 2)}\n`,
+    );
+    const secretResultStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const secretResultStatusText = `${secretResultStatus.stdout}\n${secretResultStatus.stderr}`;
+    assert(secretResultStatus.status === 0, 'status with secret-positive result exits zero', secretResultStatusText);
+    assert(
+      JSON.parse(secretResultStatus.stdout).checks.some((item) => item.code === 'RESULT_SECRET_DETECTED'),
+      'status with secret-positive result names RESULT_SECRET_DETECTED',
+      secretResultStatusText,
+    );
+    assert(!secretResultStatusText.includes(secretToken), 'status with secret-positive result is redacted', secretResultStatusText);
+    fs.rmSync(secretStoredResultPath);
+
+    const resultStatusBefore = fingerprintTree(runtimeRoot);
+    const resultStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const resultStatusAfter = fingerprintTree(runtimeRoot);
+    const resultStatusText = `${resultStatus.stdout}\n${resultStatus.stderr}`;
+    assert(resultStatus.status === 0, 'status after result exits zero', resultStatusText);
+    assert(resultStatusBefore === resultStatusAfter, 'status after result is read-only', resultStatusText);
+    const resultStatusOutput = JSON.parse(resultStatus.stdout);
+    assert(resultStatusOutput.results.count === 1, 'status reports result count', resultStatusText);
+    assert(resultStatusOutput.results.latest.resultId === 'result-001', 'status reports latest result', resultStatusText);
+    assert(resultStatusOutput.results.latest.outcome === 'succeeded', 'status reports latest result outcome', resultStatusText);
+
+    const resultListBefore = fingerprintTree(runtimeRoot);
+    const resultList = runCli(['workspace', 'list', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const resultListAfter = fingerprintTree(runtimeRoot);
+    const resultListText = `${resultList.stdout}\n${resultList.stderr}`;
+    assert(resultList.status === 0, 'list after result exits zero', resultListText);
+    assert(resultListBefore === resultListAfter, 'list after result is read-only', resultListText);
+    const resultListOutput = JSON.parse(resultList.stdout);
+    const listedResultSession = resultListOutput.sessions.find((session) => session.sessionId === launchOutput.sessionId);
+    assert(listedResultSession?.results.count === 1, 'list reports result count', resultListText);
+    assert(listedResultSession?.results.latest.resultId === 'result-001', 'list reports latest result', resultListText);
+
     const packetHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
@@ -1156,6 +1453,7 @@ function runTests() {
       '## Blockers',
       '## BMAD Work Packet',
       '## Setup Gate',
+      '## Result Ledger',
       '## Worktree Review',
       '## Base Improvement Readiness',
       '## Next BMAD Route',
@@ -1168,6 +1466,8 @@ function runTests() {
     assert(packetHandoff.stdout.includes('packets/rendered-prompt.md'), 'handoff includes rendered prompt ref', packetHandoffText);
     assert(packetHandoff.stdout.includes('routeWorkflow: `bmad-quick-dev`'), 'handoff includes routed workflow', packetHandoffText);
     assert(packetHandoff.stdout.includes('routeSource: `deterministic`'), 'handoff includes route source', packetHandoffText);
+    assert(packetHandoff.stdout.includes('result-001'), 'handoff includes result id', packetHandoffText);
+    assert(packetHandoff.stdout.includes('outcome=succeeded'), 'handoff includes result outcome', packetHandoffText);
     assert(packetHandoff.stdout.includes('external:zoom-out-thread-note'), 'handoff includes external setup ref', packetHandoffText);
     assert(packetHandoff.stdout.includes('external-unverified'), 'handoff includes external setup warning', packetHandoffText);
     assert(packetHandoff.stdout.includes('SETUP_REF_EXTERNAL_UNVERIFIED'), 'handoff includes status checks', packetHandoffText);
@@ -1177,7 +1477,7 @@ function runTests() {
       packetHandoffText,
     );
     assert(packetHandoff.stdout.includes('`bmad workspace review'), 'handoff recommends deterministic review route', packetHandoffText);
-    assert(!packetHandoff.stdout.includes('latest'), 'handoff does not infer latest session', packetHandoffText);
+    assert(!packetHandoff.stdout.includes('latest session'), 'handoff does not infer latest session', packetHandoffText);
     assert(!packetHandoff.stdout.includes('merge'), 'handoff avoids merge wording', packetHandoffText);
 
     const invalidSkipPacket = runCli(
@@ -1277,6 +1577,11 @@ function runTests() {
       'archive copies review patch',
       archiveText,
     );
+    assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'results', 'result-001.json')),
+      'archive copies result artifact',
+      archiveText,
+    );
     assert(!fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'worktrees')), 'archive does not copy worktrees', archiveText);
     assert(
       !fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'docs', 'workspace', 'v4-zoom-out.md')),
@@ -1325,6 +1630,9 @@ function runTests() {
       'archive status preserves routed workflow',
       JSON.stringify(archivedStatus, null, 2),
     );
+    assert(archivedStatus.results.count === 1, 'archive status preserves result count', JSON.stringify(archivedStatus, null, 2));
+    const archivedResult = readJson(path.join(archiveRoot, 'session-artifacts', 'results', 'result-001.json'));
+    assert(archivedResult.outcome === 'succeeded', 'archive preserves result outcome', JSON.stringify(archivedResult, null, 2));
 
     const archiveCollision = runCli(
       ['workspace', 'archive', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', archiveRoot],
@@ -1350,6 +1658,22 @@ function runTests() {
     assert(beforeVerifyArchive === afterVerifyArchive, 'verify-archive is read-only', verifyArchiveText);
     const verifyOutput = JSON.parse(verifyArchive.stdout);
     assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
+
+    const invalidResultArchiveRoot = path.join(tempRoot, 'invalid-result-archive');
+    copyTree(archiveRoot, invalidResultArchiveRoot);
+    const invalidArchivedResultPath = path.join(invalidResultArchiveRoot, 'session-artifacts', 'results', 'result-001.json');
+    fs.writeFileSync(invalidArchivedResultPath, `${JSON.stringify({ kind: 'not-a-result' }, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidResultArchiveRoot);
+    const invalidResultArchive = runCli(['workspace', 'verify-archive', invalidResultArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidResultArchiveText = `${invalidResultArchive.stdout}\n${invalidResultArchive.stderr}`;
+    assert(invalidResultArchive.status !== 0, 'verify-archive invalid result shape exits nonzero', invalidResultArchiveText);
+    assert(
+      invalidResultArchiveText.includes('ARCHIVE_RESULT_INVALID'),
+      'verify-archive invalid result shape names ARCHIVE_RESULT_INVALID',
+      invalidResultArchiveText,
+    );
 
     const archivedStatusPath = path.join(archiveRoot, 'status.json');
     const originalArchivedStatus = fs.readFileSync(archivedStatusPath, 'utf8');

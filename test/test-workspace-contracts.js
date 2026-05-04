@@ -11,6 +11,7 @@ const path = require('node:path');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
 const { buildSessionSetup } = require('../tools/workspace/packet');
+const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
 const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
 
@@ -101,6 +102,28 @@ function validRouting(workflow = 'bmad-quick-dev') {
     },
     blockers: [],
     nextManualStep: `Use ${workflow} for this Workspace Session.`,
+  };
+}
+
+function validResultArtifact() {
+  return {
+    kind: 'bmad-workspace-result',
+    schemaVersion: 1,
+    sessionId: 'session-2026-05-04-example',
+    resultId: 'result-001',
+    createdAt: '2026-05-04T00:00:00.000Z',
+    packetRef: 'packets/bmad-work-packet.json',
+    renderedPromptRef: 'packets/rendered-prompt.md',
+    routing: validRouting(),
+    outcome: 'failed',
+    summary: 'Manual execution stopped after focused test failure.',
+    commands: [{ command: 'npm run test:workspace', exitCode: 1, summary: 'Focused workspace test failed.' }],
+    evidenceRefs: ['review/summary.json'],
+    failure: {
+      rootCause: 'Regression in result ledger validation.',
+      retryable: true,
+      nextAction: 'Fix validation and rerun focused tests.',
+    },
   };
 }
 
@@ -293,6 +316,44 @@ function runTests() {
       'legacy packet rejection names v3-workspace-artifact-unsupported',
       result.errors.join('; '),
     );
+  }
+
+  section('Workspace Result Ledger');
+
+  {
+    const result = validateResultArtifact(validResultArtifact(), { expectedSessionId: 'session-2026-05-04-example' });
+    assert(result.ok === true, 'valid result artifact is accepted', result.errors.join('; '));
+  }
+
+  {
+    const resultArtifact = validResultArtifact();
+    resultArtifact.outcome = 'unknown';
+    const result = validateResultArtifact(resultArtifact);
+    assert(result.ok === false, 'result rejects invalid outcome');
+    assert(
+      result.errors.some((error) => error.includes('outcome')),
+      'invalid outcome rejection names outcome',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const resultArtifact = validResultArtifact();
+    resultArtifact.resultId = '../escape';
+    const result = validateResultArtifact(resultArtifact);
+    assert(result.ok === false, 'result rejects unsafe result id');
+    assert(
+      result.errors.some((error) => error.includes('resultId')),
+      'unsafe result id rejection names resultId',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const token = 'ghp_1234567890abcdefghijklmnopqrstuvwxyzABCDE';
+    const findings = scanForSecrets(`{"token":"${token}"}`);
+    assert(findings.length === 1, 'result secret scanner detects GitHub token');
+    assert(!JSON.stringify(findings).includes(token), 'result secret scanner does not expose token');
   }
 
   section('Workspace Routing');
@@ -491,6 +552,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace list'), 'source skill documents workspace list');
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
+    assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
     assert(skillContent.includes('bmad workspace verify-archive'), 'source skill documents workspace verify-archive');
     assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
@@ -585,6 +647,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT8-001', 'S72', 'tools/workspace/routing.js', 'ROUTE_WORKFLOW_UNKNOWN']) {
       assert(traceability.includes(text), `V8 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V9 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v9-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V9 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT9-001', 'S84', 'tools/workspace/result.js', 'RESULT_SECRET_DETECTED']) {
+      assert(traceability.includes(text), `V9 traceability maps ${text}`, traceability);
     }
   }
 

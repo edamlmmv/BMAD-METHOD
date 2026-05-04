@@ -1,6 +1,6 @@
 ---
 name: bmad-workspace
-description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
+description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, recording manual results, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
 ---
 
 # BMAD Workspace
@@ -21,7 +21,7 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `archive`, `verify-archive`, `review`,
+`list`, `status`, `handoff`, `result`, `archive`, `verify-archive`, `review`,
 `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
@@ -48,6 +48,7 @@ bmad workspace packet <session-id> --runtime-root <runtime-root> \
 bmad workspace list --runtime-root <runtime-root>
 bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace handoff <session-id> --runtime-root <runtime-root>
+bmad workspace result <session-id> --runtime-root <runtime-root> --input <result-json>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace archive <session-id> --runtime-root <runtime-root> --output <archive-dir>
 bmad workspace verify-archive <archive-dir>
@@ -72,6 +73,28 @@ V8 packets include deterministic BMAD workflow routing:
 
 Routing prepares the next manual BMAD workflow only. It does not run, schedule,
 watch, restore, replay, merge, promote, or call live adapters.
+
+## Result Ledger
+
+Use result to record manual execution evidence after a BMAD Work Packet exists:
+
+```bash
+bmad workspace result <session-id> --runtime-root <runtime-root> --input <result-json> --result-id <id>
+```
+
+The input is JSON data only. Workspace records outcome, summary, command text,
+evidence refs, and optional failure details under `results/<resultId>.json`.
+It never executes commands from the input.
+
+Result recording fails before writing when:
+
+- the session or BMAD Work Packet is missing or invalid
+- `--result-id` is unsafe or already exists
+- input JSON is malformed or has invalid outcome
+- high-confidence secrets are detected
+
+Results are manual evidence only. They do not restore, replay, schedule,
+execute, merge, promote, or call live adapters.
 
 ## Setup Gate
 
@@ -101,8 +124,9 @@ bmad workspace status <session-id> --runtime-root <runtime-root>
 ```
 
 Status reads session artifacts and reports blockers such as missing intake,
-stale intake, missing packet, setup checksum drift, missing review, and Base
-Improvement readiness.
+stale intake, missing packet, setup checksum drift, invalid or secret-positive
+results, missing review, and Base Improvement readiness. Missing results are
+not blockers.
 
 Status does not create, repair, resume, run, fetch, schedule, watch, promote, or
 merge anything.
@@ -128,8 +152,8 @@ bmad workspace handoff <session-id> --runtime-root <runtime-root>
 ```
 
 Handoff emits raw Markdown with fixed sections for identity, status, blockers,
-BMAD Work Packet, Setup Gate, Worktree Review, Base Improvement readiness, next
-BMAD route, and read-only boundary.
+BMAD Work Packet, Setup Gate, Result Ledger, Worktree Review, Base Improvement
+readiness, next BMAD route, and read-only boundary.
 
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
@@ -144,9 +168,9 @@ bmad workspace archive <session-id> --runtime-root <runtime-root> --output <arch
 
 Archive creates the exact requested output directory and fails if it already
 exists. It writes only that output directory. It copies known Session artifacts,
-status, handoff, closeout notes, and checksums. It does not copy target repo
-contents, Workspace Base contents, local setup evidence files, secrets, or whole
-runtime directories.
+valid result artifacts, status, handoff, closeout notes, and checksums. It does
+not copy target repo contents, Workspace Base contents, local setup evidence
+files, secrets, or whole runtime directories.
 
 The archive is an evidence bundle. It is not a restore package, import package,
 replay input, execution plan, scheduler input, or durable state action.
@@ -159,9 +183,9 @@ Use verify-archive to inspect archive integrity without changing it:
 bmad workspace verify-archive <archive-dir>
 ```
 
-Verify checks `manifest.json`, required files, safe relative paths, and SHA-256
-checksums. It does not fetch, repair, probe repos, restore, import, execute,
-schedule, merge, or change durable state.
+Verify checks `manifest.json`, required files, safe relative paths, SHA-256
+checksums, and archived result shape. It does not fetch, repair, probe repos,
+restore, import, execute, schedule, merge, or change durable state.
 
 ## Base Improvement Session
 
@@ -196,5 +220,6 @@ run, expand grants, or promote changes.
 - Check Git status before and after session operations.
 - Do not create schedulers, daemons, memory graphs, live adapters,
   auto-promotion, or hidden execution.
+- Do not treat Result Ledger artifacts as execution, restore, or replay input.
 - Treat archives as evidence bundles only; never as restore or execution inputs.
 - Keep unrelated dirty files untouched.

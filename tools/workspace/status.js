@@ -5,6 +5,7 @@ const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
 const { createLegacyRouting } = require('./routing');
+const { readResultLedger } = require('./result');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -64,17 +65,24 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     intake: { state: 'missing', repos: [] },
     setup: { state: 'missing', entries: {} },
     routing: null,
+    results: { state: 'none', count: 0, latest: null, entries: [] },
     review: { state: 'missing', clean: null, changedRepos: [] },
     checks,
   };
 
   readIntakeStatus({ instance, sessionRoot, status, checks });
   readPacketStatus({ sessionRoot, status, checks });
+  readResultStatus({ sessionRoot, status, checks });
   readReviewStatus({ sessionRoot, status, checks });
   readBaseImprovementReadiness({ instance, grants, sessionRoot, status, checks });
 
   status.status = summarizeStatus(status);
   return status;
+}
+
+function readResultStatus({ sessionRoot, status, checks }) {
+  status.artifacts.results = artifactStatus(sessionRoot, 'results');
+  status.results = readResultLedger({ sessionRoot, sessionId: status.sessionId, checks });
 }
 
 function readRequiredJson(filePath, code) {

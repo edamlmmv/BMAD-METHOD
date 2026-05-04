@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { readResultLedger } = require('./result');
 
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
@@ -61,6 +62,7 @@ function readSessionInventory(sessionsRoot, entry) {
     status: 'invalid',
     valid: false,
     artifacts: createArtifactMap(sessionRoot),
+    results: { state: 'none', count: 0, latest: null, entries: [] },
     checks,
   };
 
@@ -96,8 +98,9 @@ function readSessionInventory(sessionsRoot, entry) {
   session.sessionType = instance.sessionType || 'unknown';
   session.createdAt = instance.createdAt || null;
   session.artifacts = createArtifactMap(sessionRoot, instance);
+  session.results = readResultLedger({ sessionRoot, sessionId, checks });
   session.valid = true;
-  session.status = 'valid';
+  session.status = checks.some((item) => item.severity === 'error') ? 'blocked' : 'valid';
   return session;
 }
 
@@ -108,6 +111,7 @@ function createArtifactMap(sessionRoot, instance = {}) {
     grants: artifactStatus(sessionRoot, instance.grantsRef || 'grants.json'),
     intake: artifactStatus(sessionRoot, instance.repoIntakeRef || 'intake/repo-intake.json'),
     packet: artifactStatus(sessionRoot, instance.packetRef || 'packets/bmad-work-packet.json'),
+    results: artifactStatus(sessionRoot, 'results'),
     review: artifactStatus(sessionRoot, instance.reviewRef || 'review/summary.json'),
   };
 }

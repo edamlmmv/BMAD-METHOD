@@ -47,6 +47,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V8 Acceptance Tests](./v8-acceptance-tests.md) | Lists behavior tests for V8 routing. |
 | [V8 Backlog](./v8-backlog.md) | Defines TDD-first stories for V8. |
 | [V8 Traceability](./v8-traceability.md) | Maps V8 acceptance tests to stories, tests, and files. |
+| [V9 PRD](./v9-prd.md) | Defines manual Workspace result evidence. |
+| [V9 Acceptance Tests](./v9-acceptance-tests.md) | Lists behavior tests for V9 Result Ledger. |
+| [V9 Backlog](./v9-backlog.md) | Defines TDD-first stories for V9. |
+| [V9 Traceability](./v9-traceability.md) | Maps V9 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

@@ -4,6 +4,7 @@ const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { readSessionStatus } = require('./status');
 const { renderSessionHandoff } = require('./handoff');
+const { scanForSecrets, validateResultArtifact } = require('./result');
 
 const ARCHIVE_VERSION = 1;
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -20,6 +21,9 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
   const status = readSessionStatus({ sessionId, runtimeRoot });
   if (status.status === 'invalid') {
     throw new Error(`SESSION_INVALID: session artifacts are invalid for ${sessionId}`);
+  }
+  if (status.checks.some((item) => item.code === 'RESULT_SECRET_DETECTED')) {
+    throw new Error(`RESULT_SECRET_DETECTED: result ledger contains secret-like content for ${sessionId}`);
   }
 
   const handoff = renderSessionHandoff({ sessionId, runtimeRoot });
@@ -113,6 +117,7 @@ function verifyArchive({ archivePath }) {
     if (actualSha !== file.sha256) {
       throw new Error(`ARCHIVE_CHECKSUM_MISMATCH: ${file.path}`);
     }
+    validateArchivedResultFile(filePath, file.path);
     verifiedFiles.push(file.path);
   }
 
@@ -159,6 +164,7 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
     intake: copyIfPresent(sessionRoot, archiveRoot, status.artifacts.intake.ref),
     packet: copyIfPresent(sessionRoot, archiveRoot, 'packets/bmad-work-packet.json'),
     renderedPrompt: copyIfPresent(sessionRoot, archiveRoot, 'packets/rendered-prompt.md'),
+    results: copyResultArtifacts({ sessionRoot, archiveRoot, status }),
     review: copyIfPresent(sessionRoot, archiveRoot, 'review/summary.json'),
   };
 
@@ -175,6 +181,17 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
   }
   artifacts.reviewRepos = reviewRepos;
   return artifacts;
+}
+
+function copyResultArtifacts({ sessionRoot, archiveRoot, status }) {
+  const copied = [];
+  for (const result of status.results?.entries || []) {
+    copied.push({
+      resultId: result.resultId,
+      result: result.valid ? copyIfPresent(sessionRoot, archiveRoot, result.ref) : { present: false, ref: result.ref },
+    });
+  }
+  return copied;
 }
 
 function copyIfPresent(sessionRoot, archiveRoot, sessionRef) {
@@ -259,6 +276,8 @@ function renderCloseout(status) {
 - setup: \`${status.setup?.state || 'missing'}\`
 - routeWorkflow: \`${status.routing?.selectedWorkflow || 'Not found'}\`
 - routeSource: \`${status.routing?.source || 'legacy-missing'}\`
+- results: \`${status.results?.count || 0}\`
+- latestResult: \`${status.results?.latest?.resultId || 'Not found'}\`
 - review: \`${status.review?.state || 'missing'}\`
 - Base Improvement readiness: \`${readiness}\`
 
@@ -361,6 +380,27 @@ function validateChecksumFile(archiveRoot, files) {
   const actual = fs.readFileSync(checksumPath, 'utf8');
   if (actual !== expected) {
     throw new Error('ARCHIVE_CHECKSUM_MISMATCH: checksums.sha256');
+  }
+}
+
+function validateArchivedResultFile(filePath, archiveRef) {
+  if (!archiveRef.startsWith('session-artifacts/results/') || !archiveRef.endsWith('.json')) {
+    return;
+  }
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const secretFindings = scanForSecrets(raw);
+  if (secretFindings.length > 0) {
+    throw new Error(`ARCHIVE_RESULT_SECRET_DETECTED: ${archiveRef}`);
+  }
+  let result;
+  try {
+    result = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`ARCHIVE_RESULT_INVALID: ${archiveRef}: ${error.message}`);
+  }
+  const validation = validateResultArtifact(result);
+  if (!validation.ok) {
+    throw new Error(`ARCHIVE_RESULT_INVALID: ${archiveRef}: ${validation.errors.join('; ')}`);
   }
 }
 

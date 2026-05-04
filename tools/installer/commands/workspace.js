@@ -8,6 +8,7 @@ const { readSessionStatus } = require('../../workspace/status');
 const { listSessions } = require('../../workspace/list');
 const { renderSessionHandoff } = require('../../workspace/handoff');
 const { archiveSession, verifyArchive } = require('../../workspace/archive');
+const { recordSessionResult } = require('../../workspace/result');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
@@ -18,6 +19,7 @@ Workspace subcommands:
   list     inventory Workspace Sessions without writing or fetching
   status   inspect Workspace Session state without writing or fetching
   handoff  emit copy-ready Codex continuation context
+  result   record a manual execution result artifact without executing commands
   archive  create a portable Session evidence bundle
   verify-archive verify a portable Session archive without writing or fetching
   review   emit Git worktree status and patch artifacts for review
@@ -45,6 +47,8 @@ module.exports = {
     ['--write-path <path>', 'Durable write path to validate through Grant Guard.'],
     ['--base-improvement', 'Launch a Base Improvement Session; requires explicit Base Mutation Grant.'],
     ['--output <path>', 'Output directory for Workspace archive.'],
+    ['--input <path>', 'Manual Workspace result JSON input.'],
+    ['--result-id <id>', 'Deterministic Workspace result id.'],
     ['--workflow <skill[:action]>', 'Explicit BMAD workflow route for Work Packet creation.'],
     ['--zoom-out-ref <ref>', 'Setup Gate artifact ref for zoom-out.'],
     ['--ubiquitous-language-ref <ref>', 'Setup Gate artifact ref for ubiquitous language.'],
@@ -59,9 +63,20 @@ module.exports = {
     }
 
     if (
-      !['launch', 'intake', 'packet', 'list', 'status', 'handoff', 'archive', 'verify-archive', 'review', 'destroy', 'authorize'].includes(
-        workspaceCommand,
-      )
+      ![
+        'launch',
+        'intake',
+        'packet',
+        'list',
+        'status',
+        'handoff',
+        'result',
+        'archive',
+        'verify-archive',
+        'review',
+        'destroy',
+        'authorize',
+      ].includes(workspaceCommand)
     ) {
       process.stderr.write(`Workspace command not implemented: ${workspaceCommand}\n`);
       process.exit(1);
@@ -127,6 +142,15 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
     return renderSessionHandoff({
       sessionId,
       runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'result') {
+    return recordSessionResult({
+      sessionId,
+      runtimeRoot: options.runtimeRoot,
+      inputPath: options.input,
+      resultId: options.resultId,
     });
   }
 
