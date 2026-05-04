@@ -41,7 +41,7 @@ function validateWorkPacket(packet) {
 
   for (const legacyField of ['missionId', 'missionRoot', 'missionType']) {
     if (legacyField in packet) {
-      errors.push(`v3-workspace-artifact-unsupported: packet.${legacyField} is not supported in V4`);
+      errors.push(`legacy-workspace-artifact-unsupported: packet.${legacyField} is not supported by packetVersion 4`);
     }
   }
 
@@ -55,7 +55,7 @@ function validateWorkPacket(packet) {
     errors.push('packet.kind must be bmad-work-packet');
   }
   if (packet.packetVersion !== 4) {
-    errors.push('v3-workspace-artifact-unsupported: packet.packetVersion must be 4');
+    errors.push('legacy-workspace-artifact-unsupported: packet.packetVersion must be 4');
   }
   requireNonEmptyString(packet, 'sessionId', errors);
   requireNonEmptyString(packet, 'bmadWorkflow', errors);

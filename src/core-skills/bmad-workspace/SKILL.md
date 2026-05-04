@@ -61,7 +61,7 @@ bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 Treat `packets/bmad-work-packet.json` as the BMAD Work Packet. The rendered
 prompt is derived from that packet and is not the source of truth.
 
-V10 uses one active packet bundle per Workspace Session. Re-running
+Workspace uses one active packet bundle per Workspace Session. Re-running
 `bmad workspace packet` explicitly rebuilds that active bundle, including
 `packets/bmad-work-packet.json`, `packets/rendered-prompt.md`, and
 `packets/executor-contract.json`. Read-only commands never regenerate packet
@@ -110,7 +110,7 @@ boundary before it belongs in the Workspace flow.
 
 ## Routing Contract
 
-V8 packets include deterministic BMAD workflow routing:
+Packets include deterministic BMAD workflow routing:
 
 - New packets record `routing.routingSchemaVersion: 1`.
 - `bmadWorkflow` is a compatibility alias for `routing.selectedWorkflow`.
@@ -301,9 +301,10 @@ bmad workspace verify-archive <archive-dir>
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
 checksums, archived result shape, archived closeout shape, Review Manifest
-shape, and V14 Evidence Index shape for archive V2 bundles. It accepts archive
-V1 bundles for backward compatibility. It does not fetch, repair, probe repos,
-restore, import, execute, schedule, merge, or change durable state.
+shape, and Evidence Index shape for `archiveVersion: 2` bundles. It accepts
+`archiveVersion: 1` bundles for backward compatibility. It does not fetch,
+repair, probe repos, restore, import, execute, schedule, merge, or change
+durable state.
 
 ## Diff
 
@@ -316,8 +317,9 @@ bmad workspace diff --left <archive-dir> --right <archive-dir>
 
 Diff emits JSON with `schemaVersion: 1`, `diffVersion: 1`, source descriptors,
 summary counts, file deltas, status deltas, Evidence Index deltas, packet
-deltas, and closeout deltas. Archive V1 inputs remain usable; Evidence Index
-deltas are marked `incomparable` when an archive lacks V2 evidence.
+deltas, and closeout deltas. `archiveVersion: 1` inputs remain usable; Evidence
+Index deltas are marked `incomparable` when an archive lacks
+`archiveVersion: 2` evidence.
 
 Diff is read-only. It does not fetch, repair, restore, replay, import, sync,
 apply, merge, promote, schedule, watch, execute, or activate adapters.

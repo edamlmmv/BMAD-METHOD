@@ -139,7 +139,7 @@ checksums, validation state, and next manual actions. It does not write session
 artifacts.
 
 `diff` verifies two archive evidence bundles and emits JSON deltas. It is
-archive-only in V15 and does not read live Session paths.
+archive-only and does not read live Session paths.
 
 `result` records manual execution evidence. It never executes command strings.
 
@@ -179,10 +179,10 @@ artifacts retained by policy.
     "source": "deterministic"
   },
   "sessionSetup": {
-    "zoomOut": { "status": "complete", "ref": "docs/workspace/history/v4-zoom-out.md" },
+    "zoomOut": { "status": "complete", "ref": "external:zoom-out-map" },
     "ubiquitousLanguage": { "status": "complete", "ref": "UBIQUITOUS_LANGUAGE.md" },
     "grillDecisions": { "status": "skipped", "skipReason": "Decision already captured." },
-    "tddPlan": { "status": "complete", "ref": "docs/workspace/history/v4-backlog.md#tdd-order" }
+    "tddPlan": { "status": "complete", "ref": "external:tdd-plan" }
   },
   "reviewPlan": "Run BMAD Code Review after execution"
 }
@@ -289,7 +289,7 @@ bundles. It records:
 - file deltas by safe relative path, SHA-256, and bytes
 - status, packet, closeout, and Evidence Index deltas after volatile field
   normalization
-- incomparable markers when an archive V1 bundle has no Evidence Index
+- incomparable markers when an `archiveVersion: 1` bundle has no Evidence Index
 
 The diff is not a restore plan, replay input, import input, merge instruction,
 promotion approval, scheduler input, watcher input, or adapter instruction.
@@ -319,10 +319,10 @@ flowchart TD
   Evidence --> Status
 ```
 
-## V16 Boundary
+## Current Boundary
 
-V16 adds typed Review Manifest evidence and diff refusal hardening. It does not
-add `workspace run`, `workspace compare`, schedulers, watchers, daemons,
-restore/replay, import, sync, apply, merge/promotion, live adapters, hidden
-state machines, semantic scoring, live Session comparison, or automatic action
-from evidence.
+The current contract includes typed Review Manifest evidence and diff refusal
+hardening. It does not add `workspace run`, `workspace compare`, schedulers,
+watchers, daemons, restore/replay, import, sync, apply, merge/promotion, live
+adapters, hidden state machines, semantic scoring, live Session comparison, or
+automatic action from evidence.

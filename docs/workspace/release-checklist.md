@@ -25,7 +25,7 @@ Use this checklist before pushing Workspace changes.
 - `bmad workspace review` writes `review/review-manifest.json`.
 - Review Manifest includes `kind: bmad-workspace-review-manifest`.
 - Status, Handoff, Evidence Index, Closeout, Archive, Verify Archive, and Diff
-  preserve existing V16 behavior.
+  preserve the current manual-evidence contract.
 - New archives include `archiveVersion: 2` and `evidence-index.json`.
 - Malformed Review Manifest fails with `ARCHIVE_REVIEW_MANIFEST_INVALID`.
 - Invalid archives fail diff with `DIFF_ARCHIVE_INVALID`.
@@ -52,13 +52,8 @@ Do not add or document any of these as current behavior:
 - automatic action from diff, result, review, Review Manifest, closeout,
   handoff, archive, or evidence data
 
-## Version Notes
+## History Boundary
 
-| Release | Validation Focus |
-| --- | --- |
-| V13 | Contract freeze, quality parity, release readiness. |
-| V14 | Evidence Index trust layer and archive V2 evidence. |
-| V15 | Read-only archive diff over verified archive bundles. |
-| V16 | Review Manifest evidence and diff refusal hardening. |
-| V17 | Documentation IA cleanup and delivery hygiene without runtime changes. |
-| V18 | Codex operator affordance plan, `/goal` bridge, and config capability discovery guardrails. |
+Historical delivery notes live under `docs/workspace/history/`. Current docs,
+source skills, and behavior tests should use stable contract names instead of
+Workspace release labels.

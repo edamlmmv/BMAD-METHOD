@@ -31,7 +31,7 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 - No custom scheduler, planner, durable ledger, memory graph, freshness engine,
   review engine, grant engine, or base improvement brain without upstream-gap
   proof.
-- No daemon requirement for V1.
+- No daemon requirement for the initial Workspace contract.
 - No hidden cross-instance learning.
 - No automatic Promotion into the BMAD Workspace.
 - No secret storage in the BMAD Workspace or Workspace Session artifacts.
@@ -95,8 +95,8 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 
 | ID | Requirement |
 | --- | --- |
-| NFR-001 | V1 shall use CLI, filesystem artifacts, and Git worktrees. |
-| NFR-002 | V1 shall not require a daemon, Cron job, Heartbeat, queue, database, webhook, or background worker. |
+| NFR-001 | The initial contract shall use CLI, filesystem artifacts, and Git worktrees. |
+| NFR-002 | The initial contract shall not require a daemon, Cron job, Heartbeat, queue, database, webhook, or background worker. |
 | NFR-003 | Runtime artifacts shall be inspectable as plain files. |
 | NFR-004 | Secrets shall be stored as references only. |
 | NFR-005 | All durable changes shall be traceable to a BMAD Artifact, Grant, and Git diff. |

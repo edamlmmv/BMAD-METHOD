@@ -33,8 +33,7 @@ Tests the CSV-based file reference validation logic.
 
 **File**: `test/test-workspace-contracts.js`
 
-Validates the BMAD Workspace V1 BMAD Mission Packet and Capability Contract
-behavior.
+Validates the BMAD Workspace Work Packet and Capability Contract behavior.
 
 ## Test Fixtures
 

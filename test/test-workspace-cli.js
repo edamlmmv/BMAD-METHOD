@@ -1,7 +1,7 @@
 /**
  * BMAD Workspace CLI Tests
  *
- * Public behavior checks for the BMAD Workspace V13 CLI surface.
+ * Public behavior checks for the BMAD Workspace current CLI surface.
  * Usage: node test/test-workspace-cli.js
  */
 
@@ -270,9 +270,9 @@ function runTests() {
   fs.writeFileSync(goalPath, 'Fix target repo bug.\n');
   const setupDocsDir = path.join(baseRepo.path, 'docs', 'workspace');
   fs.mkdirSync(setupDocsDir, { recursive: true });
-  fs.writeFileSync(path.join(setupDocsDir, 'v4-zoom-out.md'), 'Zoom out map.\n');
-  fs.writeFileSync(path.join(setupDocsDir, 'v4-grill-decisions.md'), 'Decision log.\n');
-  fs.writeFileSync(path.join(setupDocsDir, 'v4-backlog.md'), '# TDD Order\n');
+  fs.writeFileSync(path.join(setupDocsDir, 'setup-zoom-out.md'), 'Zoom out map.\n');
+  fs.writeFileSync(path.join(setupDocsDir, 'setup-grill-decisions.md'), 'Decision log.\n');
+  fs.writeFileSync(path.join(setupDocsDir, 'setup-tdd-plan.md'), '# TDD Order\n');
   fs.writeFileSync(path.join(baseRepo.path, 'UBIQUITOUS_LANGUAGE.md'), '# Ubiquitous Language\n');
 
   let launchOutput;
@@ -670,7 +670,7 @@ function runTests() {
           schemaVersion: '0.1',
           baseMutationGrant: true,
           allowedBasePaths: ['docs/workspace'],
-          bmadArtifactRef: 'docs/workspace/v1-implementation-backlog.md',
+          bmadArtifactRef: 'docs/workspace/base-improvement-backlog.md',
         },
         null,
         2,
@@ -755,13 +755,13 @@ function runTests() {
         '--runtime-root',
         runtimeRoot,
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -933,9 +933,9 @@ function runTests() {
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -960,13 +960,13 @@ function runTests() {
         '--workflow',
         'bmad-agent-dev',
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -993,13 +993,13 @@ function runTests() {
         '--runtime-root',
         runtimeRoot,
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -1015,11 +1015,11 @@ function runTests() {
     assert(fs.existsSync(packetOutput.executorContractPath), 'packet writes executor-contract.json', packetText);
 
     const sessionPacket = readJson(packetOutput.packetPath);
-    assert(sessionPacket.kind === 'bmad-work-packet', 'packet records V4 kind', JSON.stringify(sessionPacket, null, 2));
+    assert(sessionPacket.kind === 'bmad-work-packet', 'packet records Work Packet kind', JSON.stringify(sessionPacket, null, 2));
     assert(sessionPacket.packetVersion === 4, 'packet records packetVersion 4', JSON.stringify(sessionPacket, null, 2));
     assert(sessionPacket.sessionId === launchOutput.sessionId, 'packet records sessionId', JSON.stringify(sessionPacket, null, 2));
     assertSessionOutput(sessionPacket, 'BMAD Work Packet');
-    assert(sessionPacket.routing.routingSchemaVersion === 1, 'packet records V8 routing schema', JSON.stringify(sessionPacket, null, 2));
+    assert(sessionPacket.routing.routingSchemaVersion === 1, 'packet records routing schema', JSON.stringify(sessionPacket, null, 2));
     assert(
       sessionPacket.routing.selectedWorkflow === 'bmad-quick-dev',
       'packet routes quick dev deterministically',
@@ -1037,12 +1037,12 @@ function runTests() {
     );
     assert(sessionPacket.goal === 'Fix target repo bug.', 'packet records goal from goal file', JSON.stringify(sessionPacket, null, 2));
     assert(
-      sessionPacket.sessionSetup.zoomOut.ref === 'docs/workspace/v4-zoom-out.md',
+      sessionPacket.sessionSetup.zoomOut.ref === 'docs/workspace/setup-zoom-out.md',
       'packet records zoom-out setup ref',
       JSON.stringify(sessionPacket, null, 2),
     );
     assert(
-      sessionPacket.sessionSetup.zoomOut.sha256 === sha256File(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md')),
+      sessionPacket.sessionSetup.zoomOut.sha256 === sha256File(path.join(baseRepo.path, 'docs', 'workspace', 'setup-zoom-out.md')),
       'packet records zoom-out setup checksum',
       JSON.stringify(sessionPacket, null, 2),
     );
@@ -1337,13 +1337,13 @@ function runTests() {
         '--workflow',
         'bmad-missing-workflow',
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -1372,13 +1372,13 @@ function runTests() {
         '--workflow',
         'bmad-create-prd',
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -1398,7 +1398,7 @@ function runTests() {
       JSON.stringify(overrideSessionPacket, null, 2),
     );
 
-    fs.appendFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Checksum drift.\n');
+    fs.appendFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'setup-zoom-out.md'), 'Checksum drift.\n');
     const checksumStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
@@ -1421,7 +1421,7 @@ function runTests() {
       'evidence names setup checksum mismatch',
       checksumEvidenceText,
     );
-    fs.writeFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Zoom out map.\n');
+    fs.writeFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'setup-zoom-out.md'), 'Zoom out map.\n');
 
     const skippedPacket = runCli(
       [
@@ -1431,13 +1431,13 @@ function runTests() {
         '--runtime-root',
         runtimeRoot,
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
         '--skip-setup',
-        'grillDecisions=Already decided by V4 party mode.',
+        'grillDecisions=Already decided by party mode.',
       ],
       {
         cwd: baseRepo.path,
@@ -1465,9 +1465,9 @@ function runTests() {
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -2255,13 +2255,13 @@ function runTests() {
         '--runtime-root',
         runtimeRoot,
         '--zoom-out-ref',
-        'docs/workspace/v4-zoom-out.md',
+        'docs/workspace/setup-zoom-out.md',
         '--ubiquitous-language-ref',
         'UBIQUITOUS_LANGUAGE.md',
         '--grill-decisions-ref',
-        'docs/workspace/v4-grill-decisions.md',
+        'docs/workspace/setup-grill-decisions.md',
         '--tdd-plan-ref',
-        'docs/workspace/v4-backlog.md#tdd-order',
+        'docs/workspace/setup-tdd-plan.md#tdd-order',
       ],
       {
         cwd: baseRepo.path,
@@ -2393,7 +2393,7 @@ function runTests() {
     );
     assert(!fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'worktrees')), 'archive does not copy worktrees', archiveText);
     assert(
-      !fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'docs', 'workspace', 'v4-zoom-out.md')),
+      !fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'docs', 'workspace', 'setup-zoom-out.md')),
       'archive does not copy setup evidence files',
       archiveText,
     );
@@ -2536,22 +2536,22 @@ function runTests() {
     assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
     assert(verifyOutput.archiveVersion === 2, 'verify-archive reports archiveVersion 2', verifyArchiveText);
 
-    const archiveV1Root = path.join(tempRoot, 'archive-v1-compatible');
-    copyTree(archiveRoot, archiveV1Root);
-    const archiveV1ManifestPath = path.join(archiveV1Root, 'manifest.json');
-    const archiveV1Manifest = readJson(archiveV1ManifestPath);
-    archiveV1Manifest.archiveVersion = 1;
-    delete archiveV1Manifest.evidenceIndexRef;
-    archiveV1Manifest.files = archiveV1Manifest.files.filter((file) => file.path !== 'evidence-index.json');
-    fs.rmSync(path.join(archiveV1Root, 'evidence-index.json'));
-    fs.writeFileSync(archiveV1ManifestPath, `${JSON.stringify(archiveV1Manifest, null, 2)}\n`);
-    rewriteArchiveChecksums(archiveV1Root);
-    const verifyArchiveV1 = runCli(['workspace', 'verify-archive', archiveV1Root], {
+    const legacyArchiveRoot = path.join(tempRoot, 'archive-legacy-compatible');
+    copyTree(archiveRoot, legacyArchiveRoot);
+    const legacyArchiveManifestPath = path.join(legacyArchiveRoot, 'manifest.json');
+    const legacyArchiveManifest = readJson(legacyArchiveManifestPath);
+    legacyArchiveManifest.archiveVersion = 1;
+    delete legacyArchiveManifest.evidenceIndexRef;
+    legacyArchiveManifest.files = legacyArchiveManifest.files.filter((file) => file.path !== 'evidence-index.json');
+    fs.rmSync(path.join(legacyArchiveRoot, 'evidence-index.json'));
+    fs.writeFileSync(legacyArchiveManifestPath, `${JSON.stringify(legacyArchiveManifest, null, 2)}\n`);
+    rewriteArchiveChecksums(legacyArchiveRoot);
+    const verifyLegacyArchive = runCli(['workspace', 'verify-archive', legacyArchiveRoot], {
       cwd: baseRepo.path,
     });
-    const verifyArchiveV1Text = `${verifyArchiveV1.stdout}\n${verifyArchiveV1.stderr}`;
-    assert(verifyArchiveV1.status === 0, 'verify-archive accepts archiveVersion 1', verifyArchiveV1Text);
-    assert(JSON.parse(verifyArchiveV1.stdout).archiveVersion === 1, 'verify-archive reports archiveVersion 1', verifyArchiveV1Text);
+    const verifyLegacyArchiveText = `${verifyLegacyArchive.stdout}\n${verifyLegacyArchive.stderr}`;
+    assert(verifyLegacyArchive.status === 0, 'verify-archive accepts archiveVersion 1', verifyLegacyArchiveText);
+    assert(JSON.parse(verifyLegacyArchive.stdout).archiveVersion === 1, 'verify-archive reports archiveVersion 1', verifyLegacyArchiveText);
 
     section('Workspace Diff');
 
@@ -2604,7 +2604,7 @@ function runTests() {
     assert(identicalDiffOutput.diffVersion === 1, 'diff output records diffVersion 1', identicalDiffText);
     assert(identicalDiffOutput.summary.changed === false, 'diff identical archives reports no changes', identicalDiffText);
     assert(identicalDiffOutput.fileDeltas.changed.length === 0, 'diff identical archives has no changed files', identicalDiffText);
-    assert(identicalDiffOutput.evidenceDeltas.state === 'compared', 'diff V2 evidence is compared', identicalDiffText);
+    assert(identicalDiffOutput.evidenceDeltas.state === 'compared', 'diff current evidence is compared', identicalDiffText);
 
     const changedArchiveRoot = path.join(tempRoot, 'changed-diff-archive');
     copyTree(archiveRoot, changedArchiveRoot);
@@ -2654,14 +2654,18 @@ function runTests() {
       addedRemovedDiffText,
     );
 
-    const v1V2Diff = runCli(['workspace', 'diff', '--left', archiveV1Root, '--right', archiveRoot], {
+    const legacyCurrentDiff = runCli(['workspace', 'diff', '--left', legacyArchiveRoot, '--right', archiveRoot], {
       cwd: baseRepo.path,
     });
-    const v1V2DiffText = `${v1V2Diff.stdout}\n${v1V2Diff.stderr}`;
-    assert(v1V2Diff.status === 0, 'diff archive V1 to V2 exits zero', v1V2DiffText);
-    const v1V2DiffOutput = JSON.parse(v1V2Diff.stdout);
-    assert(v1V2DiffOutput.evidenceDeltas.state === 'incomparable', 'diff V1 evidence is incomparable', v1V2DiffText);
-    assert(v1V2DiffOutput.summary.incomparable.includes('evidenceDeltas'), 'diff summary records incomparable evidence', v1V2DiffText);
+    const legacyCurrentDiffText = `${legacyCurrentDiff.stdout}\n${legacyCurrentDiff.stderr}`;
+    assert(legacyCurrentDiff.status === 0, 'diff legacy archive to current archive exits zero', legacyCurrentDiffText);
+    const legacyCurrentDiffOutput = JSON.parse(legacyCurrentDiff.stdout);
+    assert(legacyCurrentDiffOutput.evidenceDeltas.state === 'incomparable', 'diff legacy evidence is incomparable', legacyCurrentDiffText);
+    assert(
+      legacyCurrentDiffOutput.summary.incomparable.includes('evidenceDeltas'),
+      'diff summary records incomparable evidence',
+      legacyCurrentDiffText,
+    );
 
     const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');
     copyTree(archiveRoot, invalidExecutorArchiveRoot);

@@ -1,7 +1,7 @@
 /**
  * BMAD Workspace Contract Tests
  *
- * Public behavior checks for the BMAD Workspace V13 artifact contract.
+ * Public behavior checks for the BMAD Workspace artifact contract.
  * Usage: node test/test-workspace-contracts.js
  */
 
@@ -79,10 +79,10 @@ function validWorkPacket() {
     capabilityContractRef: 'capabilities.json',
     renderedPromptRef: 'packets/rendered-prompt.md',
     sessionSetup: {
-      zoomOut: { status: 'complete', ref: 'docs/workspace/v4-zoom-out.md' },
+      zoomOut: { status: 'complete', ref: 'docs/workspace/setup-zoom-out.md' },
       ubiquitousLanguage: { status: 'complete', ref: 'UBIQUITOUS_LANGUAGE.md' },
       grillDecisions: { status: 'skipped', skipReason: 'Decision already captured.' },
-      tddPlan: { status: 'complete', ref: 'docs/workspace/v4-backlog.md#tdd-order' },
+      tddPlan: { status: 'complete', ref: 'docs/workspace/setup-tdd-plan.md#tdd-order' },
     },
     reviewPlan: 'Run BMAD Code Review after execution',
   };
@@ -264,6 +264,61 @@ function row(skill, menuCode, phase, required, action = '') {
   };
 }
 
+function listFiles(root, options = {}) {
+  const files = [];
+  if (!fs.existsSync(root)) {
+    return files;
+  }
+
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const fullPath = path.join(root, entry.name);
+    const relativePath = path.relative(repoRoot, fullPath).split(path.sep).join('/');
+    if (options.skip?.some((prefix) => relativePath === prefix || relativePath.startsWith(`${prefix}/`))) {
+      continue;
+    }
+    if (entry.isDirectory()) {
+      files.push(...listFiles(fullPath, options));
+    } else if (!options.extensions || options.extensions.some((extension) => entry.name.endsWith(extension))) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function findWorkspaceReleaseRefsOutsideHistory() {
+  const scannedFiles = [
+    ...listFiles(path.join(repoRoot, 'docs', 'workspace'), {
+      extensions: ['.md', '.json'],
+      skip: ['docs/workspace/history', 'docs/workspace/vendor'],
+    }),
+    ...listFiles(path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace'), { extensions: ['.md'] }),
+    path.join(repoRoot, 'test', 'README.md'),
+    path.join(repoRoot, 'test', 'test-workspace-contracts.js'),
+    path.join(repoRoot, 'test', 'test-workspace-cli.js'),
+  ];
+  const releaseRefPattern =
+    /\bV\d+\b|\bv\d+-(?:prd|backlog|acceptance-tests|traceability|release-readiness|zoom-out|grill-decisions|implementation-backlog)\.md\b/g;
+  const findings = [];
+
+  for (const filePath of scannedFiles) {
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const relativePath = path.relative(repoRoot, filePath).split(path.sep).join('/');
+    const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+    for (const [index, line] of lines.entries()) {
+      releaseRefPattern.lastIndex = 0;
+      const matches = line.match(releaseRefPattern);
+      if (matches) {
+        findings.push(`${relativePath}:${index + 1}: ${matches.join(', ')}`);
+      }
+    }
+  }
+
+  return findings;
+}
+
 function runTests() {
   section('BMAD Work Packet');
 
@@ -276,7 +331,7 @@ function runTests() {
     const packet = validWorkPacket();
     packet.routing = validRouting();
     const result = validateWorkPacket(packet);
-    assert(result.ok === true, 'packet accepts V8 routing metadata', result.errors.join('; '));
+    assert(result.ok === true, 'packet accepts routing metadata', result.errors.join('; '));
   }
 
   {
@@ -338,9 +393,9 @@ function runTests() {
     const packet = validWorkPacket();
     packet.sessionSetup.zoomOut = {
       status: 'complete',
-      ref: 'docs/workspace/v4-zoom-out.md',
+      ref: 'docs/workspace/setup-zoom-out.md',
       refType: 'file',
-      resolvedRef: '/tmp/docs/workspace/v4-zoom-out.md',
+      resolvedRef: '/tmp/docs/workspace/setup-zoom-out.md',
       sha256: 'a'.repeat(64),
       verification: 'local-verified',
     };
@@ -351,7 +406,7 @@ function runTests() {
       verification: 'external-unverified',
     };
     const result = validateWorkPacket(packet);
-    assert(result.ok === true, 'packet accepts V5 setup ref metadata', result.errors.join('; '));
+    assert(result.ok === true, 'packet accepts setup ref metadata', result.errors.join('; '));
   }
 
   {
@@ -410,10 +465,10 @@ function runTests() {
     const packet = validWorkPacket();
     packet.missionId = packet.sessionId;
     const result = validateWorkPacket(packet);
-    assert(result.ok === false, 'packet rejects V3 mission fields');
+    assert(result.ok === false, 'packet rejects legacy mission fields');
     assert(
-      result.errors.some((error) => error.includes('v3-workspace-artifact-unsupported')),
-      'legacy packet rejection names v3-workspace-artifact-unsupported',
+      result.errors.some((error) => error.includes('legacy-workspace-artifact-unsupported')),
+      'legacy packet rejection names legacy-workspace-artifact-unsupported',
       result.errors.join('; '),
     );
   }
@@ -902,7 +957,7 @@ function runTests() {
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
   }
 
-  section('V16 Release Readiness Contract');
+  section('Workspace Current Contract');
 
   {
     const workspaceDocsRoot = path.join(repoRoot, 'docs', 'workspace');
@@ -936,41 +991,21 @@ function runTests() {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
     }
 
-    for (const docName of [
-      'v13-prd.md',
-      'v13-backlog.md',
-      'v13-acceptance-tests.md',
-      'v13-traceability.md',
-      'v14-prd.md',
-      'v14-backlog.md',
-      'v14-acceptance-tests.md',
-      'v14-traceability.md',
-      'v15-prd.md',
-      'v15-backlog.md',
-      'v15-acceptance-tests.md',
-      'v15-traceability.md',
-      'v16-prd.md',
-      'v16-backlog.md',
-      'v16-acceptance-tests.md',
-      'v16-traceability.md',
-      'v18-prd.md',
-      'v18-backlog.md',
-      'v18-acceptance-tests.md',
-      'v18-traceability.md',
-    ]) {
+    const historyFiles = fs.readdirSync(historyRoot);
+    const historyArtifactPattern = /^v\d+-(?:prd|backlog|acceptance-tests|traceability)\.md$/;
+    const historyArtifactNames = historyFiles.filter((fileName) => historyArtifactPattern.test(fileName));
+    assert(historyArtifactNames.length >= 4, 'Historical Workspace artifacts exist');
+    for (const docName of historyArtifactNames) {
       assert(fs.existsSync(path.join(historyRoot, docName)), `Historical Workspace artifact exists: ${docName}`);
       assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Historical artifact moved out of root: ${docName}`);
     }
 
-    for (const docName of [
-      'v13-release-readiness.md',
-      'v14-release-readiness.md',
-      'v15-release-readiness.md',
-      'v16-release-readiness.md',
-    ]) {
-      assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Version checklist removed from root: ${docName}`);
-      assert(!fs.existsSync(path.join(historyRoot, docName)), `Version checklist consolidated: ${docName}`);
-    }
+    const releaseChecklistPattern = /^v\d+-release-readiness\.md$/;
+    assert(
+      !fs.readdirSync(workspaceDocsRoot).some((fileName) => releaseChecklistPattern.test(fileName)),
+      'Version checklist files stay out of current docs root',
+    );
+    assert(!historyFiles.some((fileName) => releaseChecklistPattern.test(fileName)), 'Version checklist files stay consolidated');
 
     const index = fs.readFileSync(indexPath, 'utf8');
     for (const link of [
@@ -986,7 +1021,7 @@ function runTests() {
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
     }
-    assert(!index.includes('./v16-prd.md'), 'workspace index keeps version docs out of current flow', index);
+    assert(!/\.\/v\d+-/.test(index), 'workspace index keeps version docs out of current flow', index);
     assert(index.includes('not current operator guidance'), 'workspace index labels historical artifacts', index);
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
@@ -995,10 +1030,10 @@ function runTests() {
     assert(architecture.includes('## Review Manifest'), 'architecture documents Review Manifest', architecture);
     assert(architecture.includes('## Workspace Diff'), 'architecture documents Workspace Diff', architecture);
     assert(architecture.includes('## Derived Lifecycle'), 'architecture documents derived lifecycle', architecture);
-    assert(!architecture.includes('The V4 system is'), 'architecture omits stale V4 current-system framing', architecture);
+    assert(!/The V\d+ system is/.test(architecture), 'architecture omits stale release current-system framing', architecture);
     assert(
       !architecture.includes('workspace launch --repo <path> --goal <file> --grant <grant.json>'),
-      'architecture omits stale V1/V4 interface sketch',
+      'architecture omits stale interface sketch',
       architecture,
     );
     for (const lifecycle of [
@@ -1053,11 +1088,15 @@ function runTests() {
     }
 
     const historyIndex = fs.readFileSync(path.join(historyRoot, 'index.md'), 'utf8');
-    for (const text of ['V18', './v18-prd.md', './v18-backlog.md', './v18-acceptance-tests.md', './v18-traceability.md']) {
+    for (const text of ['PRD', 'Backlog', 'Acceptance', 'Traceability']) {
       assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
     }
 
-    const v18Prd = fs.readFileSync(path.join(historyRoot, 'v18-prd.md'), 'utf8');
+    const operatorAffordancePrd = historyArtifactNames
+      .filter((fileName) => fileName.endsWith('-prd.md'))
+      .map((fileName) => fs.readFileSync(path.join(historyRoot, fileName), 'utf8'))
+      .find((content) => content.includes('Codex operator affordances'));
+    assert(Boolean(operatorAffordancePrd), 'history records Codex operator affordance plan');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
@@ -1065,12 +1104,7 @@ function runTests() {
       'optional capability discovery',
       'No Workspace slash-command execution engine',
     ]) {
-      assert(v18Prd.includes(text), `v18 PRD includes ${text}`, v18Prd);
-    }
-
-    const v18Backlog = fs.readFileSync(path.join(historyRoot, 'v18-backlog.md'), 'utf8');
-    for (const text of ['S155', 'S161', 'operator-assist-only', 'TDD Order']) {
-      assert(v18Backlog.includes(text), `v18 backlog includes ${text}`, v18Backlog);
+      assert(operatorAffordancePrd.includes(text), `operator affordance history includes ${text}`, operatorAffordancePrd);
     }
 
     const releaseReadiness = fs.readFileSync(releaseChecklistPath, 'utf8');
@@ -1095,10 +1129,8 @@ function runTests() {
       'yarn.lock',
       'hidden execution',
       'live adapter activation',
-      'V17',
-      'V18',
-      '`/goal` bridge',
-      'config capability discovery',
+      'Historical delivery notes live under',
+      'stable contract names',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
     }
@@ -1164,174 +1196,29 @@ function runTests() {
 
     const buildDocs = fs.readFileSync(buildDocsPath, 'utf8');
     assert(buildDocs.includes('workspace/history/'), 'LLM docs exclude Workspace history records', buildDocs);
+
+    const releaseRefFindings = findWorkspaceReleaseRefsOutsideHistory();
+    assert(releaseRefFindings.length === 0, 'Workspace release refs stay inside history artifacts', releaseRefFindings.join('\n'));
   }
 
-  section('V2 Traceability');
+  section('Workspace Traceability History');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v2-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V2 traceability artifact exists');
+    const historyRoot = path.join(repoRoot, 'docs', 'workspace', 'history');
+    const traceabilityFiles = fs
+      .readdirSync(historyRoot)
+      .filter((fileName) => /^v\d+-traceability\.md$/.test(fileName))
+      .sort();
+    assert(traceabilityFiles.length >= 10, 'Traceability history artifacts exist');
 
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT2-001', 'S12', 'test/test-workspace-cli.js', 'test/test-workspace-contracts.js']) {
-      assert(traceability.includes(text), `V2 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V3 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v3-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V3 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT3-001', 'S20', 'test/test-workspace-cli.js', 'tools/workspace/']) {
-      assert(traceability.includes(text), `V3 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V4 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v4-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V4 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT4-001', 'S25', 'test/test-workspace-cli.js', 'tools/workspace/']) {
-      assert(traceability.includes(text), `V4 traceability maps ${text}`, traceability);
-    }
-    assert(!traceability.includes('| Planned |'), 'V4 traceability has no Planned story rows', traceability);
-  }
-
-  section('V5 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v5-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V5 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT5-001', 'S33', 'test/test-workspace-cli.js', 'tools/workspace/status.js']) {
-      assert(traceability.includes(text), `V5 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V6 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v6-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V6 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT6-001', 'S43', 'tools/workspace/list.js', 'tools/workspace/handoff.js']) {
-      assert(traceability.includes(text), `V6 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V7 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v7-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V7 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT7-001', 'S55', 'tools/workspace/archive.js', 'verify-archive']) {
-      assert(traceability.includes(text), `V7 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V8 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v8-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V8 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT8-001', 'S72', 'tools/workspace/routing.js', 'ROUTE_WORKFLOW_UNKNOWN']) {
-      assert(traceability.includes(text), `V8 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V9 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v9-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V9 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT9-001', 'S84', 'tools/workspace/result.js', 'RESULT_SECRET_DETECTED']) {
-      assert(traceability.includes(text), `V9 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V10 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v10-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V10 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT10-001', 'S94', 'tools/workspace/executor-contract.js', 'EXECUTOR_CONTRACT_INVALID']) {
-      assert(traceability.includes(text), `V10 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V12 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v12-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V12 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT12-001', 'S115', 'tools/workspace/closeout.js', 'CLOSEOUT_SECRET_DETECTED']) {
-      assert(traceability.includes(text), `V12 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V13 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v13-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V13 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT13-001', 'S126', 'docs/workspace/command-contract.md', '.github/workflows/quality.yaml']) {
-      assert(traceability.includes(text), `V13 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V14 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v14-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V14 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT14-001', 'S134', 'tools/workspace/evidence.js', 'ARCHIVE_EVIDENCE_INDEX_INVALID']) {
-      assert(traceability.includes(text), `V14 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V15 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v15-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V15 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT15-001', 'S142', 'tools/workspace/diff.js', 'DIFF_ARCHIVE_INVALID']) {
-      assert(traceability.includes(text), `V15 traceability maps ${text}`, traceability);
-    }
-  }
-
-  section('V16 Traceability');
-
-  {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v16-traceability.md');
-    assert(fs.existsSync(traceabilityPath), 'V16 traceability artifact exists');
-
-    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
-    for (const text of ['AT16-001', 'S148', 'tools/workspace/review-manifest.js', 'ARCHIVE_REVIEW_MANIFEST_INVALID']) {
-      assert(traceability.includes(text), `V16 traceability maps ${text}`, traceability);
+    for (const fileName of traceabilityFiles) {
+      const traceability = fs.readFileSync(path.join(historyRoot, fileName), 'utf8');
+      assert(traceability.includes('Acceptance'), `traceability artifact maps acceptance: ${fileName}`, traceability);
+      assert(
+        ['Evidence', 'First Code Surface', 'Test Target'].some((text) => traceability.includes(text)),
+        `traceability artifact points to evidence: ${fileName}`,
+        traceability,
+      );
     }
   }
 

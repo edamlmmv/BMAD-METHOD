@@ -21,12 +21,12 @@ BMAD artifacts, not through hidden prompt memory or provider-specific behavior.
 - Adapters serve BMAD-owned interfaces.
 - Durable changes require BMAD artifact evidence.
 
-## ADR-002 Git Worktrees Are V1 Review Surface
+## ADR-002 Git Worktrees Are Initial Review Surface
 
 **Status:** Candidate
 
-**Decision:** Use Git worktrees, patches, and status output as the V1 review
-surface.
+**Decision:** Use Git worktrees, patches, and status output as the initial
+review surface.
 
 **Rationale:** Worktrees are portable, inspectable in GitHub Desktop, and require
 no custom UI.
@@ -53,19 +53,19 @@ behavior non-reproducible.
 - Promotion must include BMAD artifact, grant, and Worktree Review.
 - Reusable findings may be recorded as notes, but not applied.
 
-## ADR-004 V1 Uses CLI And Filesystem Contract
+## ADR-004 Initial Contract Uses CLI And Filesystem
 
 **Status:** Candidate
 
-**Decision:** Implement V1 around CLI commands, plain files, and Git worktrees;
-do not require a daemon.
+**Decision:** Implement the initial contract around CLI commands, plain files,
+and Git worktrees; do not require a daemon.
 
 **Rationale:** The core risk is boundary correctness, not scheduling. Files are
 easy to test, inspect, and discard.
 
 **Consequences:**
 
-- Scheduler activation is out of scope for V1.
+- Scheduler activation is out of scope for the initial contract.
 - Tests can assert filesystem artifacts and Git state.
 - Later OpenClaw or Hermes runtime use remains adapter-driven.
 

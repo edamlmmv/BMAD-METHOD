@@ -117,11 +117,12 @@ Review Manifest is an evidence map only. It never executes, restores, replays,
 imports, merges, promotes, fetches, schedules, watches, activates adapters, or
 turns review findings into approval.
 
-## Archive Versions
+## Archive Formats
 
 `archiveVersion: 1` bundles remain valid for `verify-archive`.
-New V14 archives use `archiveVersion: 2` and include `evidence-index.json`.
-`verify-archive` validates the Evidence Index shape and checksum for V2 bundles.
+Current archives use `archiveVersion: 2` and include `evidence-index.json`.
+`verify-archive` validates the Evidence Index shape and checksum for
+`archiveVersion: 2` bundles.
 
 ## Diff Shape
 
@@ -134,8 +135,9 @@ New V14 archives use `archiveVersion: 2` and include `evidence-index.json`.
 - `fileDeltas` grouped as added, removed, changed, and unchanged
 - `statusDeltas`, `evidenceDeltas`, `packetDeltas`, and `closeoutDeltas`
 
-Archive V1 inputs remain comparable, but Evidence Index deltas are marked
-`incomparable` because V1 bundles do not require `evidence-index.json`.
+`archiveVersion: 1` inputs remain comparable, but Evidence Index deltas are
+marked `incomparable` because those bundles do not require
+`evidence-index.json`.
 
 ## Non-Goals
 
