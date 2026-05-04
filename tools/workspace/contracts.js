@@ -2,7 +2,9 @@ const ENGINE_LIKE_GROUPS = new Set(['runtime.session']);
 const ENGINE_LIKE_INTERFACES = new Set(['scheduler', 'planner', 'ledger', 'memory-graph', 'review-engine', 'grant-engine']);
 
 const REQUIRED_PACKET_FIELDS = [
-  'id',
+  'kind',
+  'packetVersion',
+  'sessionId',
   'bmadWorkflow',
   'goal',
   'repoIntakeRefs',
@@ -11,6 +13,7 @@ const REQUIRED_PACKET_FIELDS = [
   'acceptanceCriteria',
   'capabilityContractRef',
   'renderedPromptRef',
+  'sessionSetup',
 ];
 
 const REQUIRED_CAPABILITY_FIELDS = [
@@ -18,7 +21,7 @@ const REQUIRED_CAPABILITY_FIELDS = [
   'group',
   'provider',
   'interface',
-  'allowedInNormalMission',
+  'allowedInNormalSession',
   'allowedInBaseImprovement',
   'requiresGrant',
   'writes',
@@ -27,11 +30,17 @@ const REQUIRED_CAPABILITY_FIELDS = [
   'upstreamGapProofRequired',
 ];
 
-function validateMissionPacket(packet) {
+function validateWorkPacket(packet) {
   const errors = [];
 
   if (!isObject(packet)) {
     return invalid('packet must be an object');
+  }
+
+  for (const legacyField of ['missionId', 'missionRoot', 'missionType']) {
+    if (legacyField in packet) {
+      errors.push(`v3-workspace-artifact-unsupported: packet.${legacyField} is not supported in V4`);
+    }
   }
 
   for (const field of REQUIRED_PACKET_FIELDS) {
@@ -40,7 +49,13 @@ function validateMissionPacket(packet) {
     }
   }
 
-  requireNonEmptyString(packet, 'id', errors);
+  if (packet.kind !== 'bmad-work-packet') {
+    errors.push('packet.kind must be bmad-work-packet');
+  }
+  if (packet.packetVersion !== 4) {
+    errors.push('v3-workspace-artifact-unsupported: packet.packetVersion must be 4');
+  }
+  requireNonEmptyString(packet, 'sessionId', errors);
   requireNonEmptyString(packet, 'bmadWorkflow', errors);
   requireNonEmptyString(packet, 'goal', errors);
   requireNonEmptyArray(packet, 'repoIntakeRefs', errors);
@@ -49,8 +64,46 @@ function validateMissionPacket(packet) {
   requireNonEmptyArray(packet, 'acceptanceCriteria', errors);
   requireNonEmptyString(packet, 'capabilityContractRef', errors);
   requireNonEmptyString(packet, 'renderedPromptRef', errors);
+  validateSessionSetup(packet.sessionSetup, errors);
 
   return result(errors);
+}
+
+function validateSessionSetup(sessionSetup, errors) {
+  if (!isObject(sessionSetup)) {
+    errors.push('missing-session-setup: packet.sessionSetup must be an object');
+    return;
+  }
+
+  for (const step of ['zoomOut', 'ubiquitousLanguage', 'grillDecisions', 'tddPlan']) {
+    const entry = sessionSetup[step];
+    if (!isObject(entry)) {
+      errors.push(`missing-session-setup: packet.sessionSetup.${step} is required`);
+      continue;
+    }
+
+    if (entry.status === 'complete') {
+      if (typeof entry.ref !== 'string' || entry.ref.trim() === '') {
+        errors.push(`packet.sessionSetup.${step}.ref must be a non-empty string when status is complete`);
+      }
+      if ('skipReason' in entry) {
+        errors.push(`packet.sessionSetup.${step}.skipReason is only valid when status is skipped`);
+      }
+      continue;
+    }
+
+    if (entry.status === 'skipped') {
+      if (typeof entry.skipReason !== 'string' || entry.skipReason.trim() === '') {
+        errors.push(`packet.sessionSetup.${step}.skipReason must be a non-empty string when status is skipped`);
+      }
+      if ('ref' in entry) {
+        errors.push(`packet.sessionSetup.${step}.ref is only valid when status is complete`);
+      }
+      continue;
+    }
+
+    errors.push(`packet.sessionSetup.${step}.status must be complete or skipped`);
+  }
 }
 
 function validateCapabilityContract(contract) {
@@ -93,7 +146,7 @@ function validateCapability(capability, index, errors) {
     requireNonEmptyString(capability, field, errors, label);
   }
 
-  for (const field of ['allowedInNormalMission', 'allowedInBaseImprovement', 'requiresGrant', 'upstreamGapProofRequired']) {
+  for (const field of ['allowedInNormalSession', 'allowedInBaseImprovement', 'requiresGrant', 'upstreamGapProofRequired']) {
     if (typeof capability[field] !== 'boolean') {
       errors.push(`${label}.${field} must be boolean`);
     }
@@ -161,5 +214,5 @@ function result(errors) {
 
 module.exports = {
   validateCapabilityContract,
-  validateMissionPacket,
+  validateWorkPacket,
 };

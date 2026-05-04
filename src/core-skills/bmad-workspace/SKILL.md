@@ -38,14 +38,29 @@ Base.
 ```bash
 bmad workspace launch --repo <target-repo> --goal <goal-file> --runtime-root <runtime-root>
 bmad workspace intake <session-id> --runtime-root <runtime-root>
-bmad workspace packet <session-id> --runtime-root <runtime-root>
+bmad workspace packet <session-id> --runtime-root <runtime-root> \
+  --zoom-out-ref <ref> \
+  --ubiquitous-language-ref <ref> \
+  --grill-decisions-ref <ref> \
+  --tdd-plan-ref <ref>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 ```
 
-Treat `packets/bmad-mission-packet.json` as the legacy file name for the BMAD
-Work Packet. The rendered prompt is derived from that packet and is not the
-source of truth.
+Treat `packets/bmad-work-packet.json` as the BMAD Work Packet. The rendered
+prompt is derived from that packet and is not the source of truth.
+
+## Setup Gate
+
+Every BMAD Work Packet requires setup entries for:
+
+- zoom-out
+- ubiquitous language
+- grill decisions
+- TDD plan
+
+Each setup entry must be complete with a ref or skipped with an explicit reason.
+Use `--skip-setup <step=reason>` only when the user accepts the skip.
 
 ## Base Improvement Session
 
@@ -60,31 +75,18 @@ bmad workspace authorize <session-id> --write-path <path> --runtime-root <runtim
 
 Promotion into the base is explicit only. No auto-promotion.
 
-## Self-Improvement Packet Kit
+## Base Improvement Session Kit
 
 For Codex-guided base improvement, start from:
 
-- `{project-root}/docs/workspace/templates/self-improvement-goal.md`
+- `{project-root}/docs/workspace/templates/base-improvement-goal.md`
 - `{project-root}/docs/workspace/templates/base-mutation-grant.template.json`
 - `{project-root}/docs/workspace/templates/bmad-work-packet.template.json`
-- `{project-root}/docs/workspace/templates/self-improvement-prompt.md`
+- `{project-root}/docs/workspace/templates/base-improvement-prompt.md`
 - `{project-root}/docs/workspace/templates/worktree-review-checklist.md`
 
 The kit prepares a reviewable BMAD Work Packet. It does not execute a hidden
 run, expand grants, or promote changes.
-
-## Compatibility
-
-V2 uses Workspace Session and BMAD Work Packet at public boundaries. V1 legacy
-fields and file names remain valid:
-
-- `missionId` is the legacy alias for `sessionId`.
-- `missionRoot` is the legacy alias for `sessionRoot`.
-- `--mission-id` remains a legacy alias for `--session-id`.
-- `packets/bmad-mission-packet.json` remains the legacy packet file path.
-
-If `--session-id` and `--mission-id` are both supplied with different values,
-the CLI must fail rather than choose one.
 
 ## Guardrails
 

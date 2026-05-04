@@ -28,9 +28,9 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function assertMissionId(missionId) {
-  if (!missionId || !/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('intake requires a valid mission id');
+function assertSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('intake requires a valid session id');
   }
 }
 
@@ -44,16 +44,16 @@ function createScanner(generatedAt) {
   };
 }
 
-function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
-  assertMissionId(missionId);
+function runRepoIntake({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
+  assertSessionId(sessionId);
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const instancePath = path.join(missionRoot, 'instance.json');
-  const repoPackPath = path.join(missionRoot, 'repo-pack.json');
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const instancePath = path.join(sessionRoot, 'instance.json');
+  const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
 
   if (!fs.existsSync(instancePath) || !fs.existsSync(repoPackPath)) {
-    throw new Error(`mission artifacts not found for ${missionId}`);
+    throw new Error(`session artifacts not found for ${sessionId}`);
   }
 
   const instance = readJson(instancePath);
@@ -61,7 +61,7 @@ function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   const generatedAt = new Date().toISOString();
   const scanner = createScanner(generatedAt);
 
-  const intakeRoot = path.join(missionRoot, 'intake');
+  const intakeRoot = path.join(sessionRoot, 'intake');
   fs.mkdirSync(intakeRoot, { recursive: true });
 
   const repos = repoPack.repos.map((repo) => {
@@ -84,7 +84,7 @@ function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
 
   const repoIntake = {
     schemaVersion: '0.1',
-    missionId,
+    sessionId,
     generatedAt,
     scanner,
     repos,
@@ -92,7 +92,7 @@ function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
 
   const provenance = {
     schemaVersion: '0.1',
-    missionId,
+    sessionId,
     generatedAt,
     command: 'workspace intake',
     scanner,
@@ -109,8 +109,8 @@ function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   const updatedInstance = {
     ...instance,
     lifecycle: [...new Set([...(instance.lifecycle || []), 'intake'])],
-    repoIntakeRef: path.relative(missionRoot, repoIntakePath),
-    intakeProvenanceRef: path.relative(missionRoot, provenancePath),
+    repoIntakeRef: path.relative(sessionRoot, repoIntakePath),
+    intakeProvenanceRef: path.relative(sessionRoot, provenancePath),
   };
 
   writeJson(repoIntakePath, repoIntake);
@@ -118,8 +118,8 @@ function runRepoIntake({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   writeJson(instancePath, updatedInstance);
 
   return {
-    missionId,
-    missionRoot,
+    sessionId,
+    sessionRoot,
     repoIntakePath,
     provenancePath,
   };

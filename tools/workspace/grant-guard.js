@@ -11,9 +11,9 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function assertMissionId(missionId) {
-  if (!missionId || !/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('mission id may only contain letters, numbers, dots, underscores, and dashes');
+function assertSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('session id may only contain letters, numbers, dots, underscores, and dashes');
   }
 }
 
@@ -45,18 +45,18 @@ function resolveGrantPath(basePath, grantPath) {
   return path.isAbsolute(grantPath) ? path.resolve(grantPath) : path.resolve(basePath, grantPath);
 }
 
-function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
-  assertMissionId(missionId);
+function authorizeDurableWrite({ sessionId, writePath, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
+  assertSessionId(sessionId);
   if (!writePath) {
     throw new Error('authorize requires --write-path');
   }
 
-  const missionRoot = path.join(path.resolve(runtimeRoot), 'missions', missionId);
-  const instancePath = path.join(missionRoot, 'instance.json');
-  const repoPackPath = path.join(missionRoot, 'repo-pack.json');
-  const grantsPath = path.join(missionRoot, 'grants.json');
+  const sessionRoot = path.join(path.resolve(runtimeRoot), 'sessions', sessionId);
+  const instancePath = path.join(sessionRoot, 'instance.json');
+  const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
+  const grantsPath = path.join(sessionRoot, 'grants.json');
   if (!fs.existsSync(instancePath) || !fs.existsSync(repoPackPath) || !fs.existsSync(grantsPath)) {
-    throw new Error(`mission artifacts not found for ${missionId}`);
+    throw new Error(`session artifacts not found for ${sessionId}`);
   }
 
   const instance = readJson(instancePath);
@@ -72,8 +72,8 @@ function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUN
 
   if (isPathInside(resolvedWritePath, workspaceBasePath) && !baseMutationGrant) {
     denyWrite({
-      missionId,
-      missionRoot,
+      sessionId,
+      sessionRoot,
       reason: 'base-write-denied',
       writePath: resolvedWritePath,
       grants,
@@ -83,12 +83,12 @@ function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUN
 
   if (isPathInside(resolvedWritePath, workspaceBasePath)) {
     if (allowedBasePaths.some((allowedPath) => isPathInside(resolvedWritePath, allowedPath))) {
-      return allowWrite({ missionId, writePath: resolvedWritePath, scope: 'workspace-base' });
+      return allowWrite({ sessionId, writePath: resolvedWritePath, scope: 'workspace-base' });
     }
 
     denyWrite({
-      missionId,
-      missionRoot,
+      sessionId,
+      sessionRoot,
       reason: 'base-path-not-granted',
       writePath: resolvedWritePath,
       grants,
@@ -97,40 +97,40 @@ function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUN
   }
 
   if (allowedTargetWrites.some((allowedPath) => isPathInside(resolvedWritePath, allowedPath))) {
-    return allowWrite({ missionId, writePath: resolvedWritePath, scope: 'target-repo' });
+    return allowWrite({ sessionId, writePath: resolvedWritePath, scope: 'target-repo' });
   }
 
-  if (isPathInside(resolvedWritePath, missionRoot)) {
-    return allowWrite({ missionId, writePath: resolvedWritePath, scope: 'mission-runtime' });
+  if (isPathInside(resolvedWritePath, sessionRoot)) {
+    return allowWrite({ sessionId, writePath: resolvedWritePath, scope: 'session-runtime' });
   }
 
   denyWrite({
-    missionId,
-    missionRoot,
-    reason: 'write-outside-mission-boundary',
+    sessionId,
+    sessionRoot,
+    reason: 'write-outside-session-boundary',
     writePath: resolvedWritePath,
     grants,
     instance,
   });
 }
 
-function allowWrite({ missionId, writePath, scope }) {
+function allowWrite({ sessionId, writePath, scope }) {
   return {
-    missionId,
+    sessionId,
     allowed: true,
     scope,
     writePath,
   };
 }
 
-function denyWrite({ missionId, missionRoot, reason, writePath, grants, instance }) {
-  const violationsRoot = path.join(missionRoot, 'violations');
+function denyWrite({ sessionId, sessionRoot, reason, writePath, grants, instance }) {
+  const violationsRoot = path.join(sessionRoot, 'violations');
   fs.mkdirSync(violationsRoot, { recursive: true });
   const createdAt = new Date().toISOString();
   const violationPath = path.join(violationsRoot, `${Date.now()}-${reason}.json`);
   const violation = {
     schemaVersion: '0.1',
-    missionId,
+    sessionId,
     createdAt,
     reason,
     attemptedPath: writePath,

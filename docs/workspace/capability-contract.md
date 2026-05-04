@@ -7,8 +7,8 @@ description: BMAD-governed capability registry for BMAD Workspace adapters
 
 ## Purpose
 
-Capability Contract lets BMAD expose available tools to a Mission Workspace
-without turning provider names into prompt lore. A mission prompt should say what
+Capability Contract lets BMAD expose available tools to a Workspace Session
+without turning provider names into prompt lore. A session prompt should say what
 capability is needed; the BMAD Workspace decides which adapter provides it.
 
 ## Principles
@@ -44,10 +44,10 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
       "group": "evidence.graph",
       "provider": "graphify",
       "interface": "repo-intake",
-      "allowedInNormalMission": true,
+      "allowedInNormalSession": true,
       "allowedInBaseImprovement": true,
       "requiresGrant": false,
-      "writes": ["mission-workspace/intake"],
+      "writes": ["workspace-session/intake"],
       "forbiddenWrites": ["workspace-base"],
       "outputs": ["repo-intake.json", "graph.json", "provenance.json"],
       "upstreamGapProofRequired": false
@@ -64,8 +64,8 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `group` | Capability family used by BMAD Router. |
 | `provider` | Concrete adapter implementation. |
 | `interface` | Contract the adapter satisfies. |
-| `allowedInNormalMission` | Whether normal missions may use it. |
-| `allowedInBaseImprovement` | Whether base improvement missions may use it. |
+| `allowedInNormalSession` | Whether normal sessions may use it. |
+| `allowedInBaseImprovement` | Whether base improvement sessions may use it. |
 | `requiresGrant` | Whether explicit grant is required. |
 | `writes` | Paths or artifact classes the adapter may write. |
 | `forbiddenWrites` | Paths or artifact classes the adapter must never write. |
@@ -75,7 +75,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 ## Grant Interaction
 
 Capability Contract says what could be available. Grant Guard decides what is
-allowed for one mission. A capability can exist but still be blocked by mission
+allowed for one session. A capability can exist but still be blocked by session
 grant, target repo, path, expiration, or base mutation policy.
 
 ## Executor Prompt Rule
@@ -91,7 +91,7 @@ Rendered prompts should reference capability intent, not provider internals.
 ## Upstream-Gap Proof
 
 Before adding an adapter that behaves like a scheduler, planner, ledger, memory
-graph, review engine, grant engine, or self-improvement brain, the architecture
+graph, review engine, grant engine, or base improvement brain, the architecture
 must record:
 
 - existing upstream surfaces inspected

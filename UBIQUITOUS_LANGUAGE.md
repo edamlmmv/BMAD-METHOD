@@ -6,7 +6,8 @@
 | --- | --- | --- |
 | **BMAD Kernel** | The durable source of truth for workflow routing, artifacts, gates, acceptance criteria, and review discipline. | Orchestrator, planner, brain |
 | **BMAD Artifact** | A durable BMAD-owned document or record that justifies work and can be reviewed later. | Note, prompt, file |
-| **BMAD Work Packet** | A BMAD Artifact that packages one session goal, evidence, constraints, acceptance criteria, and rendered executor prompt. | Prompt, task prompt, mission prompt |
+| **BMAD Work Packet** | A BMAD Artifact that packages one session goal, evidence, constraints, acceptance criteria, and rendered executor prompt. | Prompt, task prompt, session prompt |
+| **Setup Gate** | A deterministic BMAD Work Packet section that records zoom-out, Ubiquitous Language, grill decisions, and TDD plan as complete refs or explicit skips. | Readiness engine, hidden planner |
 | **BMAD Router** | The BMAD step that selects the smallest valid workflow path for the session. | Help step, dispatcher |
 | **Acceptance Criteria** | Observable conditions that prove a session or artifact is complete. | Done list, checklist |
 | **Implementation Readiness** | The BMAD gate that decides whether requirements, architecture, and stories are ready for execution. | Readiness check, IR |
@@ -17,7 +18,7 @@
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
 | **BMAD Workspace** | The durable BMAD-centered base that carries methodology, agents, skills, policies, adapters, settings, and secret references. | Base, toolchain repo, workspace |
-| **Workspace Session** | A disposable runtime launched from a BMAD Workspace for one bounded goal against selected repo inputs. | Instance, run, Mission Workspace |
+| **Workspace Session** | A disposable runtime launched from a BMAD Workspace for one bounded goal against selected repo inputs. | Instance, run |
 | **Session** | A bounded job with a goal, Repo Pack, grants, BMAD Work Packet, and exit criteria. | Mission, task, ticket, job |
 | **Repo Pack** | The selected target repositories attached to a Workspace Session. | Mounted repos, repo set |
 | **Target Repo** | A repository in the Repo Pack that is allowed to receive session changes. | External repo, project repo |
@@ -54,6 +55,7 @@
 - A **BMAD Workspace** creates zero or more **Workspace Sessions**.
 - A **Workspace Session** attaches one **Repo Pack** and produces one or more **BMAD Work Packets**.
 - A **BMAD Work Packet** must include **Repo Intake** evidence before execution.
+- A **BMAD Work Packet** must include one **Setup Gate**.
 - A **Rendered Prompt** is derived from a **BMAD Work Packet** and executed by the **Codex Executor**.
 - A **Capability Contract** exposes one or more **Adapters** to a **Workspace Session**.
 - A normal **Session** may change **Target Repos** but may not change the **BMAD Workspace**.
@@ -75,7 +77,7 @@
 ## Flagged ambiguities
 
 - "instance" can mean a chat, process, container, or workspace. Use **Workspace Session** for the disposable launched runtime.
-- "mission" is the V1 legacy public word. Use **Session** and **Workspace Session** in new public docs; keep mission only for compatibility notes, legacy JSON fields, and V1 internals.
+- "mission" is the V1/V2 legacy public word. Use **Session** and **Workspace Session** in new public docs; V4 runtime rejects legacy mission fields.
 - "context" can mean graph evidence, chat history, prompt text, or persistent memory. Use **Repo Intake** for code evidence and **Session State** for runtime residue.
 - "prompt" can mean the planning artifact or executor text. Use **BMAD Work Packet** for the source artifact and **Rendered Prompt** for executor text.
 - "memory" can mean adapter storage, graph evidence, session cache, or durable rules. Use **Session State** for disposable data and **Standing Order** for durable rules.

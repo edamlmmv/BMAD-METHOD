@@ -35,18 +35,18 @@ function safeSegment(value) {
   return value.replaceAll(/[^a-zA-Z0-9._-]/g, '-').replaceAll(/-+/g, '-');
 }
 
-function createMissionId() {
+function createSessionId() {
   const stamp = new Date()
     .toISOString()
     .replaceAll(/[-:.TZ]/g, '')
     .slice(0, 14);
   const suffix = crypto.randomBytes(3).toString('hex');
-  return `mission-${stamp}-${suffix}`;
+  return `session-${stamp}-${suffix}`;
 }
 
-function assertMissionId(missionId) {
-  if (!/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('mission id may only contain letters, numbers, dots, underscores, and dashes');
+function assertSessionId(sessionId) {
+  if (typeof sessionId !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('session id may only contain letters, numbers, dots, underscores, and dashes');
   }
 }
 
@@ -67,11 +67,11 @@ function resolveGitRepo(repoPath) {
   };
 }
 
-function launchMission({
+function launchSession({
   repoPaths,
   goalPath,
   runtimeRoot = DEFAULT_RUNTIME_ROOT,
-  missionId = createMissionId(),
+  sessionId = createSessionId(),
   workspaceBasePath = process.cwd(),
   baseImprovement = false,
   grantPath,
@@ -81,13 +81,13 @@ function launchMission({
     throw new Error('launch requires --goal pointing to an existing file');
   }
 
-  assertMissionId(missionId);
+  assertSessionId(sessionId);
 
   if (baseImprovement) {
-    return launchBaseImprovementMission({
+    return launchBaseImprovementSession({
       goalPath: resolvedGoalPath,
       runtimeRoot,
-      missionId,
+      sessionId,
       workspaceBasePath,
       grantPath,
     });
@@ -98,10 +98,10 @@ function launchMission({
   }
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const worktreesRoot = path.join(missionRoot, 'worktrees');
-  if (fs.existsSync(missionRoot)) {
-    throw new Error(`mission already exists: ${missionRoot}`);
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const worktreesRoot = path.join(sessionRoot, 'worktrees');
+  if (fs.existsSync(sessionRoot)) {
+    throw new Error(`session already exists: ${sessionRoot}`);
   }
 
   fs.mkdirSync(worktreesRoot, { recursive: true });
@@ -124,19 +124,19 @@ function launchMission({
       };
     });
 
-    const instancePath = path.join(missionRoot, 'instance.json');
-    const repoPackPath = path.join(missionRoot, 'repo-pack.json');
-    const grantsPath = path.join(missionRoot, 'grants.json');
+    const instancePath = path.join(sessionRoot, 'instance.json');
+    const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
+    const grantsPath = path.join(sessionRoot, 'grants.json');
     const createdAt = new Date().toISOString();
 
     const instance = {
       schemaVersion: '0.1',
-      id: missionId,
-      missionType: 'normal',
+      id: sessionId,
+      sessionType: 'normal',
       createdAt,
       workspaceBasePath: path.resolve(workspaceBasePath),
       runtimeRoot: resolvedRuntimeRoot,
-      missionRoot,
+      sessionRoot,
       goalPath: resolvedGoalPath,
       repoPackRef: 'repo-pack.json',
       grantsRef: 'grants.json',
@@ -161,8 +161,8 @@ function launchMission({
     writeJson(grantsPath, grants);
 
     return {
-      missionId,
-      missionRoot,
+      sessionId,
+      sessionRoot,
       instancePath,
       repoPackPath,
       grantsPath,
@@ -175,24 +175,24 @@ function launchMission({
         // Best-effort cleanup; preserve original launch failure.
       }
     }
-    fs.rmSync(missionRoot, { recursive: true, force: true });
+    fs.rmSync(sessionRoot, { recursive: true, force: true });
     throw error;
   }
 }
 
-function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, workspaceBasePath, grantPath }) {
+function launchBaseImprovementSession({ goalPath, runtimeRoot, sessionId, workspaceBasePath, grantPath }) {
   const grant = readBaseMutationGrant(grantPath);
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const worktreesRoot = path.join(missionRoot, 'worktrees');
-  if (fs.existsSync(missionRoot)) {
-    throw new Error(`mission already exists: ${missionRoot}`);
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const worktreesRoot = path.join(sessionRoot, 'worktrees');
+  if (fs.existsSync(sessionRoot)) {
+    throw new Error(`session already exists: ${sessionRoot}`);
   }
 
   fs.mkdirSync(worktreesRoot, { recursive: true });
 
   const workspaceRepo = resolveGitRepo(workspaceBasePath);
-  const branchName = `codex/workspace/${missionId}`;
+  const branchName = `codex/workspace/${sessionId}`;
   const worktreePath = path.join(worktreesRoot, 'base-workspace');
   let worktreeCreated = false;
 
@@ -200,21 +200,21 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
     git(['worktree', 'add', '-b', branchName, worktreePath, workspaceRepo.head], workspaceRepo.sourcePath);
     worktreeCreated = true;
 
-    const instancePath = path.join(missionRoot, 'instance.json');
-    const repoPackPath = path.join(missionRoot, 'repo-pack.json');
-    const grantsPath = path.join(missionRoot, 'grants.json');
-    const promotionPolicyPath = path.join(missionRoot, 'promotion-policy.json');
+    const instancePath = path.join(sessionRoot, 'instance.json');
+    const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
+    const grantsPath = path.join(sessionRoot, 'grants.json');
+    const promotionPolicyPath = path.join(sessionRoot, 'promotion-policy.json');
     const createdAt = new Date().toISOString();
 
     const instance = {
       schemaVersion: '0.1',
-      id: missionId,
-      missionType: 'base-improvement',
+      id: sessionId,
+      sessionType: 'base-improvement',
       createdAt,
       workspaceBasePath: worktreePath,
       sourceWorkspaceBasePath: workspaceRepo.sourcePath,
       runtimeRoot: resolvedRuntimeRoot,
-      missionRoot,
+      sessionRoot,
       goalPath,
       repoPackRef: 'repo-pack.json',
       grantsRef: 'grants.json',
@@ -260,8 +260,8 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
     writeJson(promotionPolicyPath, promotionPolicy);
 
     return {
-      missionId,
-      missionRoot,
+      sessionId,
+      sessionRoot,
       instancePath,
       repoPackPath,
       grantsPath,
@@ -275,7 +275,7 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
         // Preserve original launch failure.
       }
     }
-    fs.rmSync(missionRoot, { recursive: true, force: true });
+    fs.rmSync(sessionRoot, { recursive: true, force: true });
     throw error;
   }
 }
@@ -326,5 +326,5 @@ function normalizeAllowedBasePaths(allowedBasePaths) {
 
 module.exports = {
   DEFAULT_RUNTIME_ROOT,
-  launchMission,
+  launchSession,
 };

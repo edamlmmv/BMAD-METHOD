@@ -1,0 +1,65 @@
+{
+  "vendor": "Matt Pocock skills",
+  "upstreamRepo": "https://github.com/mattpocock/skills",
+  "sourceCommit": "b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8",
+  "importedAt": "2026-05-04",
+  "license": {
+    "path": "LICENSE",
+    "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5"
+  },
+  "modified": true,
+  "updateProcedure": "Fetch the upstream repo at the intended commit, replace listed snapshot files, recalculate sha256 values, and run npm run test:workspace && npm run validate:skills.",
+  "skills": [
+    {
+      "name": "zoom-out",
+      "path": "zoom-out/SKILL.md",
+      "sourcePath": "skills/engineering/zoom-out/SKILL.md",
+      "sha256": "f87f863c75edbd3f42388812af2a1c8c441c9dd8952b92664e9e4a5a6cbabb49"
+    },
+    {
+      "name": "ubiquitous-language",
+      "path": "ubiquitous-language/SKILL.md",
+      "sourcePath": "skills/deprecated/ubiquitous-language/SKILL.md",
+      "sha256": "8387c72a421900666aa3be19a7ed9a6225f30092d99679b7f536558b34e35af8"
+    },
+    {
+      "name": "grill-me",
+      "path": "grill-me/SKILL.md",
+      "sourcePath": "skills/productivity/grill-me/SKILL.md",
+      "sha256": "7baa666810ca29aa592d58b445ed2fa85cd95f71f74fa4bdb1e8037b422042aa"
+    },
+    {
+      "name": "tdd",
+      "path": "tdd/SKILL.md",
+      "sourcePath": "skills/engineering/tdd/SKILL.md",
+      "sha256": "c961888bc5719776b9aa9f87a8ccef30b62861dce2e4493be68e2cfb6da353d3",
+      "supportFiles": [
+        {
+          "path": "tdd/tests.md",
+          "sourcePath": "skills/engineering/tdd/tests.md",
+          "sha256": "2b9a49bbb68d6f2aca9ac05cd83698c37e8f3341f7d34c4d085f14ddeb0b9179"
+        },
+        {
+          "path": "tdd/mocking.md",
+          "sourcePath": "skills/engineering/tdd/mocking.md",
+          "sha256": "621d21d4c88729652417503e6e17ae972c60a874de59597e5d463d8d64f315a6"
+        },
+        {
+          "path": "tdd/deep-modules.md",
+          "sourcePath": "skills/engineering/tdd/deep-modules.md",
+          "sha256": "97327276e4f34ad40e4de13aa654ade4b5b308824953935ecec7672e27bde40a"
+        },
+        {
+          "path": "tdd/interface-design.md",
+          "sourcePath": "skills/engineering/tdd/interface-design.md",
+          "sha256": "ed33021c23ed268dbb5f9fe5567299b238c02c566d90321cc2eeb46df66dfaea"
+        },
+        {
+          "path": "tdd/refactoring.md",
+          "sourcePath": "skills/engineering/tdd/refactoring.md",
+          "sha256": "f1ebafef8dca76c7cd23cd0b54aa066db6f14f8b82f253cd4e9abe11f09642eb"
+        }
+      ]
+    }
+  ]
+}

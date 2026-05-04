@@ -9,8 +9,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { validateCapabilityContract, validateMissionPacket } = require('../tools/workspace/contracts');
-const { validateSelfImprovementPacketKit } = require('../tools/workspace/templates');
+const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
 
 const colors = {
   reset: '\u001B[0m',
@@ -40,9 +40,11 @@ function section(title) {
   console.log(`\n${colors.cyan}── ${title} ──${colors.reset}`);
 }
 
-function validMissionPacket() {
+function validWorkPacket() {
   return {
-    id: 'mission-2026-05-04-example',
+    kind: 'bmad-work-packet',
+    packetVersion: 4,
+    sessionId: 'session-2026-05-04-example',
     bmadWorkflow: 'bmad-quick-dev',
     goal: 'Fix the reported bug',
     repoIntakeRefs: ['intake/repo-intake.json'],
@@ -51,6 +53,12 @@ function validMissionPacket() {
     acceptanceCriteria: ['Tests pass', 'Worktree Review ready'],
     capabilityContractRef: 'capabilities.json',
     renderedPromptRef: 'packets/rendered-prompt.md',
+    sessionSetup: {
+      zoomOut: { status: 'complete', ref: 'docs/workspace/v4-zoom-out.md' },
+      ubiquitousLanguage: { status: 'complete', ref: 'UBIQUITOUS_LANGUAGE.md' },
+      grillDecisions: { status: 'skipped', skipReason: 'Decision already captured.' },
+      tddPlan: { status: 'complete', ref: 'docs/workspace/v4-backlog.md#tdd-order' },
+    },
     reviewPlan: 'Run BMAD Code Review after execution',
   };
 }
@@ -65,10 +73,10 @@ function validCapabilityContract() {
         group: 'evidence.graph',
         provider: 'graphify',
         interface: 'repo-intake',
-        allowedInNormalMission: true,
+        allowedInNormalSession: true,
         allowedInBaseImprovement: true,
         requiresGrant: false,
-        writes: ['mission-workspace/intake'],
+        writes: ['workspace-session/intake'],
         forbiddenWrites: ['workspace-base'],
         outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
         upstreamGapProofRequired: false,
@@ -78,21 +86,64 @@ function validCapabilityContract() {
 }
 
 function runTests() {
-  section('BMAD Mission Packet');
+  section('BMAD Work Packet');
 
   {
-    const result = validateMissionPacket(validMissionPacket());
-    assert(result.ok === true, 'valid mission packet is accepted', result.errors.join('; '));
+    const result = validateWorkPacket(validWorkPacket());
+    assert(result.ok === true, 'valid session packet is accepted', result.errors.join('; '));
   }
 
   {
-    const packet = validMissionPacket();
+    const packet = validWorkPacket();
     delete packet.acceptanceCriteria;
-    const result = validateMissionPacket(packet);
+    const result = validateWorkPacket(packet);
     assert(result.ok === false, 'packet without acceptanceCriteria is rejected');
     assert(
       result.errors.some((error) => error.includes('acceptanceCriteria')),
       'packet rejection names acceptanceCriteria',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    delete packet.sessionSetup;
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet without sessionSetup is rejected');
+    assert(
+      result.errors.some((error) => error.includes('missing-session-setup')),
+      'packet setup rejection names missing-session-setup',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.sessionSetup.tddPlan = { status: 'skipped', skipReason: 'No code change.' };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === true, 'packet accepts explicit setup skip reason', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.sessionSetup.zoomOut = { status: 'skipped', skipReason: '' };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects empty setup skip reason');
+    assert(
+      result.errors.some((error) => error.includes('skipReason')),
+      'setup skip rejection names skipReason',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.missionId = packet.sessionId;
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects V3 mission fields');
+    assert(
+      result.errors.some((error) => error.includes('v3-workspace-artifact-unsupported')),
+      'legacy packet rejection names v3-workspace-artifact-unsupported',
       result.errors.join('; '),
     );
   }
@@ -123,7 +174,7 @@ function runTests() {
       group: 'runtime.session',
       provider: 'custom-scheduler',
       interface: 'scheduler',
-      allowedInNormalMission: false,
+      allowedInNormalSession: false,
       allowedInBaseImprovement: false,
       requiresGrant: true,
       writes: ['workspace-base'],
@@ -140,22 +191,45 @@ function runTests() {
     );
   }
 
-  section('Self-Improvement Packet Kit');
+  section('Base Improvement Session Kit');
 
   {
     const templateRoot = path.join(__dirname, '..', 'docs', 'workspace', 'templates');
-    const result = validateSelfImprovementPacketKit(templateRoot);
-    assert(result.ok === true, 'self-improvement packet kit validates', result.errors.join('; '));
+    const result = validateBaseImprovementSessionKit(templateRoot);
+    assert(result.ok === true, 'Base Improvement Session kit validates', result.errors.join('; '));
   }
 
   {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-template-missing-'));
     try {
-      const result = validateSelfImprovementPacketKit(tempRoot);
-      assert(result.ok === false, 'self-improvement packet kit rejects missing templates');
+      const result = validateBaseImprovementSessionKit(tempRoot);
+      assert(result.ok === false, 'Base Improvement Session kit rejects missing templates');
       assert(
         result.errors.some((error) => error.includes('bmad-work-packet.template.json')),
         'missing packet kit rejection names Work Packet template',
+        result.errors.join('; '),
+      );
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  }
+
+  section('Matt Pocock Vendor Snapshots');
+
+  {
+    const vendorRoot = path.join(__dirname, '..', 'docs', 'workspace', 'vendor', 'mattpocock-skills');
+    const result = validateVendorSnapshots(vendorRoot);
+    assert(result.ok === true, 'Matt Pocock skill vendor snapshots validate', result.errors.join('; '));
+  }
+
+  {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-vendor-missing-'));
+    try {
+      const result = validateVendorSnapshots(tempRoot);
+      assert(result.ok === false, 'vendor snapshots reject missing manifest');
+      assert(
+        result.errors.some((error) => error.includes('MANIFEST.json')),
+        'missing vendor rejection names manifest',
         result.errors.join('; '),
       );
     } finally {
@@ -176,7 +250,7 @@ function runTests() {
     const skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : '';
     assert(skillContent.includes('Workspace Session'), 'source skill uses Workspace Session language');
     assert(skillContent.includes('BMAD Work Packet'), 'source skill uses BMAD Work Packet language');
-    assert(skillContent.includes('Compatibility'), 'source skill confines legacy mission language to compatibility guidance');
+    assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
 
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
     assert(moduleHelp.includes('Core,bmad-workspace,'), 'module-help registers bmad-workspace skill');
@@ -205,6 +279,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT3-001', 'S20', 'test/test-workspace-cli.js', 'tools/workspace/']) {
       assert(traceability.includes(text), `V3 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V4 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v4-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V4 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT4-001', 'S25', 'test/test-workspace-cli.js', 'tools/workspace/']) {
+      assert(traceability.includes(text), `V4 traceability maps ${text}`, traceability);
     }
   }
 

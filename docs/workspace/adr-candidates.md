@@ -17,7 +17,7 @@ BMAD artifacts, not through hidden prompt memory or provider-specific behavior.
 
 **Consequences:**
 
-- Codex executes BMAD Mission Packets.
+- Codex executes BMAD Work Packets.
 - Adapters serve BMAD-owned interfaces.
 - Durable changes require BMAD artifact evidence.
 
@@ -33,7 +33,7 @@ no custom UI.
 
 **Consequences:**
 
-- Mission changes are visible with ordinary Git tools.
+- Session changes are visible with ordinary Git tools.
 - Custom review UI is deferred.
 - Target repo cleanup remains familiar.
 
@@ -41,15 +41,15 @@ no custom UI.
 
 **Status:** Candidate
 
-**Decision:** Never promote mission learnings or changes into the Workspace
-Workspace automatically.
+**Decision:** Never promote session learnings or changes into the Workspace
+BMAD Workspace automatically.
 
-**Rationale:** Normal mission residue would corrupt portability and make future
+**Rationale:** Normal session residue would corrupt portability and make future
 behavior non-reproducible.
 
 **Consequences:**
 
-- Base Improvement Mission requires explicit Base Mutation Grant.
+- Base Improvement Session requires explicit Base Mutation Grant.
 - Promotion must include BMAD artifact, grant, and Worktree Review.
 - Reusable findings may be recorded as notes, but not applied.
 
@@ -85,13 +85,13 @@ Context7, or another provider supplies a capability.
 - Providers can be swapped behind stable capability names.
 - Missing capabilities become explicit BMAD gaps.
 
-## ADR-006 Repo Intake Precedes Mission Packet
+## ADR-006 Repo Intake Precedes Work Packet
 
 **Status:** Candidate
 
-**Decision:** Require current Repo Intake before creating a BMAD Mission Packet.
+**Decision:** Require current Repo Intake before creating a BMAD Work Packet.
 
-**Rationale:** The mission artifact should be grounded in the selected repo
+**Rationale:** The session artifact should be grounded in the selected repo
 state, not stale chat context.
 
 **Consequences:**

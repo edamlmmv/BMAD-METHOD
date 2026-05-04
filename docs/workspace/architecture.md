@@ -1,6 +1,6 @@
 ---
 title: "BMAD Workspace Architecture"
-description: Architecture for a BMAD-centric portable workspace workspace
+description: Architecture for a BMAD-centric portable workspace
 ---
 
 # BMAD Workspace Architecture
@@ -9,21 +9,21 @@ description: Architecture for a BMAD-centric portable workspace workspace
 
 BMAD is the kernel. Everything durable is justified by BMAD artifacts, gates, and
 review. Codex executes. Adapter providers supply capabilities behind BMAD-owned
-interfaces. The V1 system is a CLI and filesystem contract backed by Git
+interfaces. The V4 system is a CLI and filesystem contract backed by Git
 worktrees.
 
 ## Zoom-Out Map
 
 ```text
 BMAD Workspace
-  -> launches Mission Workspace
+  -> launches Workspace Session
   -> provides BMAD Kernel, policies, adapters, templates, secret refs
 
-Mission Workspace
+Workspace Session
   -> attaches Repo Pack as Git worktrees
   -> runs Repo Intake
   -> asks BMAD Router for workflow
-  -> produces BMAD Mission Packet
+  -> produces BMAD Work Packet
   -> renders prompt for Codex Executor
   -> receives work in Target Repos
   -> emits Worktree Review
@@ -35,10 +35,10 @@ Mission Workspace
 | Module | Interface | Responsibility |
 | --- | --- | --- |
 | BMAD Workspace | `launch`, `policy`, `capabilities` | Own durable BMAD base, policies, adapters, templates, and secret references. |
-| Mission Workspace | `instance.json`, `destroy` | Hold disposable runtime, grants, Repo Pack links, logs, and review artifacts. |
-| Repo Intake | `intake` | Produce code evidence and provenance before BMAD Mission Packet creation. |
+| Workspace Session | `instance.json`, `destroy` | Hold disposable runtime, grants, Repo Pack links, logs, and review artifacts. |
+| Repo Intake | `intake` | Produce code evidence and provenance before BMAD Work Packet creation. |
 | BMAD Router | `route` | Select BMAD workflow path and required artifacts. |
-| BMAD Mission Packet | `packet` | Own mission goal, evidence, constraints, acceptance criteria, grants, and rendered prompt. |
+| BMAD Work Packet | `packet` | Own session goal, evidence, constraints, acceptance criteria, grants, and rendered prompt. |
 | Capability Contract | `capabilities.json` | Expose BMAD-governed adapter capabilities to executors. |
 | Codex Executor Adapter | `run` | Execute rendered prompt under grants and BMAD constraints. |
 | Worktree Review | `review` | Produce per-repo status, patches, changed files, and notes. |
@@ -48,8 +48,8 @@ Mission Workspace
 
 | Boundary | Example Artifacts | Persistence Rule |
 | --- | --- | --- |
-| BMAD Workspace | BMAD skills, policies, templates, adapter registry, standing orders | Durable; changed only by Base Improvement Mission with grant. |
-| Mission Workspace | `instance.json`, intake output, packets, logs, review output | Disposable; retained only by explicit review policy. |
+| BMAD Workspace | BMAD skills, policies, templates, adapter registry, standing orders | Durable; changed only by Base Improvement Session with grant. |
+| Workspace Session | `instance.json`, intake output, packets, logs, review output | Disposable; retained only by explicit review policy. |
 | Target Repo Worktree | Source changes, tests, commits, patches | Durable in target repo workflow, not in base. |
 | Secret Store | Token references, credential handles | External; values never copied into artifacts. |
 
@@ -63,11 +63,8 @@ workspace/
     standing-orders/
   adapters/
     capability-contract.json
-  missions/
-    .gitignore
-
-mission-workspaces/
-  <mission-id>/
+  sessions/
+    <session-id>/
     instance.json
     grants.json
     repo-pack.json
@@ -75,11 +72,8 @@ mission-workspaces/
       repo-intake.json
       provenance.json
     packets/
-      bmad-mission-packet.json
+      bmad-work-packet.json
       rendered-prompt.md
-    runs/
-      codex-result.json
-      transcript.jsonl
     review/
       status.json
       diff.patch
@@ -92,35 +86,33 @@ mission-workspaces/
 
 ```bash
 workspace launch --repo <path> --goal <file> --grant <grant.json>
-workspace intake <mission-id>
-workspace packet <mission-id>
-workspace run <mission-id> --executor codex
-workspace review <mission-id>
-workspace destroy <mission-id> [--keep-review]
+workspace intake <session-id>
+workspace packet <session-id> --zoom-out-ref <ref> --ubiquitous-language-ref <ref> --grill-decisions-ref <ref> --tdd-plan-ref <ref>
+workspace review <session-id>
+workspace destroy <session-id> [--keep-review]
 ```
 
-`launch` creates the Mission Workspace, attaches repo worktrees, records grants,
+`launch` creates the Workspace Session, attaches repo worktrees, records grants,
 and writes `instance.json`.
 
 `intake` runs Graph Evidence Adapter or equivalent scoped scan and writes
 provenance tied to repo HEAD.
 
-`packet` asks BMAD Router for the workflow and writes the BMAD Mission Packet.
+`packet` asks BMAD Router for the workflow and writes the BMAD Work Packet.
 It fails if intake is missing or stale.
-
-`run` renders the executor prompt from the packet and invokes Codex Executor
-Adapter inside Grant Guard constraints.
 
 `review` emits per-repo Git status, patch, changed files, and Promotion notes.
 
 `destroy` removes runtime state while preserving target repo state and any review
 artifacts retained by policy.
 
-## BMAD Mission Packet Shape
+## BMAD Work Packet Shape
 
 ```json
 {
-  "id": "mission-2026-05-04-example",
+  "kind": "bmad-work-packet",
+  "packetVersion": 4,
+  "sessionId": "session-2026-05-04-example",
   "bmadWorkflow": "bmad-quick-dev",
   "goal": "Fix the reported bug",
   "repoIntakeRefs": ["intake/repo-intake.json"],
@@ -129,6 +121,12 @@ artifacts retained by policy.
   "acceptanceCriteria": ["Tests pass", "Worktree Review ready"],
   "capabilityContractRef": "capabilities.json",
   "renderedPromptRef": "packets/rendered-prompt.md",
+  "sessionSetup": {
+    "zoomOut": { "status": "complete", "ref": "docs/workspace/v4-zoom-out.md" },
+    "ubiquitousLanguage": { "status": "complete", "ref": "UBIQUITOUS_LANGUAGE.md" },
+    "grillDecisions": { "status": "skipped", "skipReason": "Decision already captured." },
+    "tddPlan": { "status": "complete", "ref": "docs/workspace/v4-backlog.md#tdd-order" }
+  },
   "reviewPlan": "Run BMAD Code Review after execution"
 }
 ```
@@ -162,7 +160,7 @@ artifacts retained by policy.
 - Git is the provenance, rollback, and Worktree Review Adapter.
 - MCP and GitHub are capability surfaces behind the Capability Contract.
 - Any adapter that duplicates scheduler, planner, memory, review, grant, or
-  self-improvement behavior must provide upstream-gap proof.
+  base improvement behavior must provide upstream-gap proof.
 
 ## Grant Guard
 
@@ -174,29 +172,30 @@ Grant Guard evaluates every durable action against:
 - allowed persistence
 - base mutation rights
 - secret access references
-- expiration or mission boundary
+- expiration or session boundary
 
-Normal missions have `baseMutation=false`. Base Improvement Missions require
+Normal sessions have `baseMutation=false`. Base Improvement Sessions require
 `baseMutation=true` and explicit granted paths.
 
 ## Sequence
 
 ```mermaid
 flowchart TD
-  UserGoal["User goal + Repo Pack"] --> Launch["launch Mission Workspace"]
+  UserGoal["User goal + Repo Pack"] --> Launch["launch Workspace Session"]
   Launch --> Intake["Repo Intake"]
-  Intake --> Packet["BMAD Mission Packet"]
+  Intake --> Packet["BMAD Work Packet"]
   Packet --> Prompt["Render Codex prompt"]
-  Prompt --> Run["Codex Executor Adapter"]
-  Run --> Review["Worktree Review"]
+  Prompt --> Execute["Codex executes rendered prompt"]
+  Execute --> Review["Worktree Review"]
   Review --> Decision{"Promote or kill?"}
   Decision --> Target["Target repo merge or commit"]
-  Decision --> Destroy["Destroy Mission Workspace"]
+  Decision --> Destroy["Destroy Workspace Session"]
   Decision --> Base["Base Promotion only with Grant"]
 ```
 
-## V1 Boundary
+## V4 Boundary
 
-V1 proves the contract with CLI, files, Git worktrees, and deterministic checks.
-Live schedulers, background workers, and custom UIs are later decisions only
-after BMAD artifacts justify them.
+V4 proves the contract with CLI, files, Git worktrees, deterministic Setup Gate
+checks, and vendored setup skill snapshots. Live schedulers, background workers,
+custom UIs, and autonomous execution are later decisions only after BMAD
+artifacts justify them.

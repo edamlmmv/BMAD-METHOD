@@ -1,6 +1,6 @@
 ---
 title: "BMAD Workspace"
-description: BMAD-centric product and architecture artifacts for portable mission workspaces
+description: BMAD-centric product and architecture artifacts for portable workspaces
 ---
 
 # BMAD Workspace
@@ -27,6 +27,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V3 Acceptance Tests](./v3-acceptance-tests.md) | Lists behavior tests for removing old Workspace naming. |
 | [V3 Backlog](./v3-backlog.md) | Defines TDD-first stories for V3 rename work. |
 | [V3 Traceability](./v3-traceability.md) | Maps V3 acceptance tests to stories, tests, and files. |
+| [V4 PRD](./v4-prd.md) | Defines Session-first Setup Gate and Base Improvement Session requirements. |
+| [V4 Acceptance Tests](./v4-acceptance-tests.md) | Lists behavior tests for V4 setup and compatibility removal. |
+| [V4 Backlog](./v4-backlog.md) | Defines TDD-first stories for V4. |
+| [V4 Traceability](./v4-traceability.md) | Maps V4 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 
@@ -35,5 +39,5 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 - OpenClaw, Hermes, Graphify, Context7, Git, MCP, GitHub, and similar tools are
   adapters behind BMAD-owned interfaces.
 - No normal Workspace Session mutates the BMAD Workspace.
-- Base self-improvement requires an explicit Base Mutation Grant and Worktree
+- Base Improvement Session work requires an explicit Base Mutation Grant and Worktree
   Review before Promotion.

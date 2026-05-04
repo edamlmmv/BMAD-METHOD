@@ -1,18 +1,39 @@
 {
-  "schemaVersion": "0.1",
-  "packetType": "BMAD Work Packet",
-  "goalRef": "self-improvement-goal.md",
+  "kind": "bmad-work-packet",
+  "packetVersion": 4,
+  "sessionId": "session-example",
+  "goalRef": "base-improvement-goal.md",
   "grantRef": "base-mutation-grant.json",
-  "promptRef": "self-improvement-prompt.md",
+  "promptRef": "base-improvement-prompt.md",
   "reviewRef": "worktree-review-checklist.md",
+  "sessionSetup": {
+    "zoomOut": {
+      "status": "complete",
+      "ref": "docs/workspace/v4-zoom-out.md"
+    },
+    "ubiquitousLanguage": {
+      "status": "complete",
+      "ref": "UBIQUITOUS_LANGUAGE.md"
+    },
+    "grillDecisions": {
+      "status": "skipped",
+      "skipReason": "Decision already locked by user."
+    },
+    "tddPlan": {
+      "status": "complete",
+      "ref": "docs/workspace/v4-backlog.md#tdd-order"
+    }
+  },
   "acceptanceCriteria": [
     "Workspace Session language is used at public boundaries.",
     "Grant Guard remains the only Base Mutation path.",
+    "Setup Gate records complete refs or explicit skip reasons.",
+    "TDD plan drives implementation through public behavior tests.",
     "Worktree Review evidence exists before explicit Promotion."
   ],
   "traceability": {
-    "acceptanceRef": "docs/workspace/v2-acceptance-tests.md",
-    "storyRef": "docs/workspace/v2-backlog.md",
+    "acceptanceRef": "docs/workspace/v4-acceptance-tests.md",
+    "storyRef": "docs/workspace/v4-backlog.md",
     "testTarget": "npm run test:workspace"
   },
   "forbiddenActions": ["workspace run", "auto-promotion", "hidden execution", "live adapter activation"]

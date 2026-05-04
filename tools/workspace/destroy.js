@@ -24,47 +24,47 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-function assertMissionId(missionId) {
-  if (!missionId || !/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('destroy requires a valid mission id');
+function assertSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('destroy requires a valid session id');
   }
 }
 
-function destroyMission({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, keepReview = false }) {
-  assertMissionId(missionId);
+function destroySession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, keepReview = false }) {
+  assertSessionId(sessionId);
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const repoPackPath = path.join(missionRoot, 'repo-pack.json');
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
 
-  if (!fs.existsSync(missionRoot) || !fs.existsSync(repoPackPath)) {
-    throw new Error(`mission artifacts not found for ${missionId}`);
+  if (!fs.existsSync(sessionRoot) || !fs.existsSync(repoPackPath)) {
+    throw new Error(`session artifacts not found for ${sessionId}`);
   }
 
-  const retainedReviewPath = keepReview ? retainReview({ missionId, missionRoot, runtimeRoot: resolvedRuntimeRoot }) : null;
+  const retainedReviewPath = keepReview ? retainReview({ sessionId, sessionRoot, runtimeRoot: resolvedRuntimeRoot }) : null;
   const repoPack = readJson(repoPackPath);
 
   for (const repo of repoPack.repos || []) {
     removeWorktree(repo);
   }
 
-  fs.rmSync(missionRoot, { recursive: true, force: true });
+  fs.rmSync(sessionRoot, { recursive: true, force: true });
 
   return {
-    missionId,
+    sessionId,
     removed: true,
-    missionRoot,
+    sessionRoot,
     retainedReviewPath,
   };
 }
 
-function retainReview({ missionId, missionRoot, runtimeRoot }) {
-  const reviewRoot = path.join(missionRoot, 'review');
+function retainReview({ sessionId, sessionRoot, runtimeRoot }) {
+  const reviewRoot = path.join(sessionRoot, 'review');
   if (!fs.existsSync(reviewRoot)) {
     return null;
   }
 
-  const retainedReviewPath = path.join(runtimeRoot, 'retained-reviews', missionId);
+  const retainedReviewPath = path.join(runtimeRoot, 'retained-reviews', sessionId);
   fs.rmSync(retainedReviewPath, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(retainedReviewPath), { recursive: true });
   copyDirectory(reviewRoot, retainedReviewPath);
@@ -95,5 +95,5 @@ function removeWorktree(repo) {
 }
 
 module.exports = {
-  destroyMission,
+  destroySession,
 };

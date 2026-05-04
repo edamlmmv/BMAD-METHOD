@@ -1,9 +1,9 @@
 ---
-title: "Self-Improvement Goal Template"
-description: Goal template for a grant-governed Workspace Session
+title: "Base Improvement Session Goal Template"
+description: Goal template for a grant-governed Base Improvement Session
 ---
 
-# Self-Improvement Goal Template
+# Base Improvement Session Goal Template
 
 ## Goal
 
@@ -15,6 +15,11 @@ prepare.
 Reference the BMAD Work Packet that will carry the goal, evidence, constraints,
 acceptance criteria, Grant, and review linkage.
 
+## Setup Gate
+
+Reference the zoom-out map, Ubiquitous Language, grill decision log, and TDD
+plan, or record explicit skip reasons in the BMAD Work Packet.
+
 ## Base Mutation Grant
 
 Name the Base Mutation Grant file and the exact base paths it allows.
@@ -22,6 +27,10 @@ Name the Base Mutation Grant file and the exact base paths it allows.
 ## Worktree Review
 
 State the expected Worktree Review evidence before any Promotion decision.
+
+## TDD
+
+Name the first red test and the public interface it exercises.
 
 ## Non-Goals
 

@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
-const { validateCapabilityContract, validateMissionPacket } = require('./contracts');
+const { validateCapabilityContract, validateWorkPacket } = require('./contracts');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -29,28 +29,28 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function assertMissionId(missionId) {
-  if (!missionId || !/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('packet requires a valid mission id');
+function assertSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('packet requires a valid session id');
   }
 }
 
-function missingIntake(missionId) {
-  throw new Error(`missing-intake: run workspace intake ${missionId} before packet`);
+function missingIntake(sessionId) {
+  throw new Error(`missing-intake: run workspace intake ${sessionId} before packet`);
 }
 
-function validatePacketReadiness({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
-  assertMissionId(missionId);
+function validatePacketReadiness({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
+  assertSessionId(sessionId);
 
-  const mission = loadMission(missionId, runtimeRoot);
-  const { instance, missionRoot } = mission;
+  const session = loadSession(sessionId, runtimeRoot);
+  const { instance, sessionRoot } = session;
   if (!instance.repoIntakeRef) {
-    missingIntake(missionId);
+    missingIntake(sessionId);
   }
 
-  const repoIntakePath = path.join(missionRoot, instance.repoIntakeRef);
+  const repoIntakePath = path.join(sessionRoot, instance.repoIntakeRef);
   if (!fs.existsSync(repoIntakePath)) {
-    missingIntake(missionId);
+    missingIntake(sessionId);
   }
 
   const repoIntake = readJson(repoIntakePath);
@@ -58,57 +58,59 @@ function validatePacketReadiness({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT
     const currentHead = git(['rev-parse', 'HEAD'], repo.sourcePath);
     if (currentHead !== repo.head) {
       throw new Error(
-        `stale-intake: ${repo.id} is at ${currentHead} but intake recorded ${repo.head}; rerun workspace intake ${missionId}`,
+        `stale-intake: ${repo.id} is at ${currentHead} but intake recorded ${repo.head}; rerun workspace intake ${sessionId}`,
       );
     }
   }
 
   return {
-    missionId,
-    missionRoot,
+    sessionId,
+    sessionRoot,
     repoIntakePath,
     status: 'fresh-intake',
   };
 }
 
-function buildMissionPacket({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
-  const readiness = validatePacketReadiness({ missionId, runtimeRoot });
-  const mission = loadMission(missionId, runtimeRoot);
-  const { instance, instancePath, missionRoot } = mission;
-  const packetsRoot = path.join(missionRoot, 'packets');
+function buildWorkPacket({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, setupRefs = {}, setupSkips = [] }) {
+  const readiness = validatePacketReadiness({ sessionId, runtimeRoot });
+  const session = loadSession(sessionId, runtimeRoot);
+  const { instance, instancePath, sessionRoot } = session;
+  const sessionSetup = buildSessionSetup({ setupRefs, setupSkips });
 
-  fs.mkdirSync(packetsRoot, { recursive: true });
-
-  const packetRef = 'packets/bmad-mission-packet.json';
+  const packetRef = 'packets/bmad-work-packet.json';
   const renderedPromptRef = 'packets/rendered-prompt.md';
   const capabilityContractRef = 'capabilities.json';
-  const packetPath = path.join(missionRoot, packetRef);
-  const renderedPromptPath = path.join(missionRoot, renderedPromptRef);
-  const capabilityContractPath = path.join(missionRoot, capabilityContractRef);
+  const packetPath = path.join(sessionRoot, packetRef);
+  const renderedPromptPath = path.join(sessionRoot, renderedPromptRef);
+  const capabilityContractPath = path.join(sessionRoot, capabilityContractRef);
 
   const capabilityContract = createCapabilityContract(instance.workspaceBasePath);
   assertValid('Capability Contract', validateCapabilityContract(capabilityContract));
-  writeJson(capabilityContractPath, capabilityContract);
 
   const packet = {
-    schemaVersion: '0.1',
-    id: missionId,
+    kind: 'bmad-work-packet',
+    packetVersion: 4,
+    sessionId,
     bmadWorkflow: 'bmad-quick-dev',
     goal: readGoal(instance.goalPath),
     repoIntakeRefs: [instance.repoIntakeRef],
     constraints: ['BMAD is kernel/truth', 'Do not mutate Workspace Base', 'Use Repo Intake evidence before executor prompt'],
     grants: [instance.grantsRef],
     acceptanceCriteria: [
-      'BMAD Mission Packet remains source of truth',
+      'BMAD Work Packet remains source of truth',
       'Rendered prompt derives from packet content',
       'Worktree Review ready before promotion',
     ],
     capabilityContractRef,
     renderedPromptRef,
+    sessionSetup,
     reviewPlan: 'Run BMAD Code Review after execution',
   };
 
-  assertValid('BMAD Mission Packet', validateMissionPacket(packet));
+  assertValid('BMAD Work Packet', validateWorkPacket(packet));
+
+  fs.mkdirSync(path.join(sessionRoot, 'packets'), { recursive: true });
+  writeJson(capabilityContractPath, capabilityContract);
   writeJson(packetPath, packet);
   fs.writeFileSync(renderedPromptPath, renderPrompt(packet));
 
@@ -122,8 +124,8 @@ function buildMissionPacket({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   writeJson(instancePath, updatedInstance);
 
   return {
-    missionId,
-    missionRoot,
+    sessionId,
+    sessionRoot,
     packetPath,
     renderedPromptPath,
     capabilityContractPath,
@@ -131,19 +133,73 @@ function buildMissionPacket({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   };
 }
 
-function loadMission(missionId, runtimeRoot) {
+function buildSessionSetup({ setupRefs, setupSkips }) {
+  const steps = {
+    zoomOut: setupRefs.zoomOut,
+    ubiquitousLanguage: setupRefs.ubiquitousLanguage,
+    grillDecisions: setupRefs.grillDecisions,
+    tddPlan: setupRefs.tddPlan,
+  };
+  const skipped = parseSetupSkips(setupSkips);
+  const sessionSetup = {};
+
+  for (const [step, ref] of Object.entries(steps)) {
+    if (step in skipped) {
+      if (typeof ref === 'string' && ref.trim() !== '') {
+        throw new Error(`duplicate-session-setup: ${step} cannot be both complete and skipped`);
+      }
+      sessionSetup[step] = { status: 'skipped', skipReason: skipped[step] };
+      continue;
+    }
+
+    if (typeof ref === 'string' && ref.trim() !== '') {
+      sessionSetup[step] = { status: 'complete', ref: ref.trim() };
+    }
+  }
+
+  const missing = Object.keys(steps).filter((step) => !(step in sessionSetup));
+  if (missing.length > 0) {
+    throw new Error(`missing-session-setup: ${missing.join(', ')}`);
+  }
+
+  return sessionSetup;
+}
+
+function parseSetupSkips(setupSkips = []) {
+  const skipped = {};
+  for (const skip of setupSkips) {
+    if (typeof skip !== 'string' || !skip.includes('=')) {
+      throw new Error('invalid-session-setup-skip: expected <step=reason>');
+    }
+    const [step, ...reasonParts] = skip.split('=');
+    const reason = reasonParts.join('=').trim();
+    if (!['zoomOut', 'ubiquitousLanguage', 'grillDecisions', 'tddPlan'].includes(step)) {
+      throw new Error(`invalid-session-setup-skip: ${step}`);
+    }
+    if (reason === '') {
+      throw new Error(`invalid-session-setup-skip: ${step} requires a reason`);
+    }
+    if (step in skipped) {
+      throw new Error(`duplicate-session-setup: ${step}`);
+    }
+    skipped[step] = reason;
+  }
+  return skipped;
+}
+
+function loadSession(sessionId, runtimeRoot) {
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const instancePath = path.join(missionRoot, 'instance.json');
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const instancePath = path.join(sessionRoot, 'instance.json');
 
   if (!fs.existsSync(instancePath)) {
-    throw new Error(`mission artifacts not found for ${missionId}`);
+    throw new Error(`session artifacts not found for ${sessionId}`);
   }
 
   return {
     instance: readJson(instancePath),
     instancePath,
-    missionRoot,
+    sessionRoot,
   };
 }
 
@@ -161,10 +217,10 @@ function createCapabilityContract(workspaceBasePath) {
         group: 'evidence.graph',
         provider: 'workspace.git-intake',
         interface: 'repo-intake',
-        allowedInNormalMission: true,
+        allowedInNormalSession: true,
         allowedInBaseImprovement: true,
         requiresGrant: false,
-        writes: ['mission-workspace/intake'],
+        writes: ['workspace-session/intake'],
         forbiddenWrites: ['workspace-base'],
         outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
         upstreamGapProofRequired: false,
@@ -188,9 +244,9 @@ function assertValid(label, result) {
 }
 
 function renderPrompt(packet) {
-  return `# BMAD Mission Packet Execution Prompt
+  return `# BMAD Work Packet Execution Prompt
 
-Source of truth: \`packets/bmad-mission-packet.json\`
+Source of truth: \`packets/bmad-work-packet.json\`
 
 ## Goal
 ${packet.goal}
@@ -219,6 +275,6 @@ ${packet.reviewPlan}
 }
 
 module.exports = {
-  buildMissionPacket,
+  buildWorkPacket,
   validatePacketReadiness,
 };

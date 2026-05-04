@@ -28,35 +28,35 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function assertMissionId(missionId) {
-  if (!missionId || !/^[a-zA-Z0-9._-]+$/.test(missionId)) {
-    throw new Error('review requires a valid mission id');
+function assertSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
+    throw new Error('review requires a valid session id');
   }
 }
 
-function runWorktreeReview({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
-  assertMissionId(missionId);
+function runWorktreeReview({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
+  assertSessionId(sessionId);
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
-  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
-  const instancePath = path.join(missionRoot, 'instance.json');
-  const repoPackPath = path.join(missionRoot, 'repo-pack.json');
+  const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
+  const instancePath = path.join(sessionRoot, 'instance.json');
+  const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
 
   if (!fs.existsSync(instancePath) || !fs.existsSync(repoPackPath)) {
-    throw new Error(`mission artifacts not found for ${missionId}`);
+    throw new Error(`session artifacts not found for ${sessionId}`);
   }
 
   const instance = readJson(instancePath);
   const repoPack = readJson(repoPackPath);
   const generatedAt = new Date().toISOString();
-  const reviewRoot = path.join(missionRoot, 'review');
+  const reviewRoot = path.join(sessionRoot, 'review');
   fs.mkdirSync(reviewRoot, { recursive: true });
 
   const repos = repoPack.repos.map((repo) => reviewRepo(repo, reviewRoot));
   const summaryPath = path.join(reviewRoot, 'summary.json');
   const summary = {
     schemaVersion: '0.1',
-    missionId,
+    sessionId,
     generatedAt,
     clean: repos.every((repo) => repo.clean),
     repos,
@@ -66,12 +66,12 @@ function runWorktreeReview({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   writeJson(instancePath, {
     ...instance,
     lifecycle: [...new Set([...(instance.lifecycle || []), 'review'])],
-    reviewRef: path.relative(missionRoot, summaryPath),
+    reviewRef: path.relative(sessionRoot, summaryPath),
   });
 
   return {
-    missionId,
-    missionRoot,
+    sessionId,
+    sessionRoot,
     summaryPath,
   };
 }
