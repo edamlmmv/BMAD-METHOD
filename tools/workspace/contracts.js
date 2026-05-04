@@ -66,6 +66,17 @@ function validateWorkPacket(packet) {
   requireNonEmptyArray(packet, 'acceptanceCriteria', errors);
   requireNonEmptyString(packet, 'capabilityContractRef', errors);
   requireNonEmptyString(packet, 'renderedPromptRef', errors);
+  if ('executorContractRef' in packet) {
+    requireNonEmptyString(packet, 'executorContractRef', errors);
+    if (
+      typeof packet.executorContractRef === 'string' &&
+      (packet.executorContractRef.includes('\\') ||
+        packet.executorContractRef.split('/').includes('..') ||
+        packet.executorContractRef.startsWith('/'))
+    ) {
+      errors.push('packet.executorContractRef must be a safe session-relative POSIX path');
+    }
+  }
   if ('routing' in packet) {
     validateRoutingDecision(packet.routing, errors);
     if (packet.routing?.selectedWorkflow && packet.bmadWorkflow !== packet.routing.selectedWorkflow) {
@@ -213,6 +224,27 @@ function validateCapability(capability, index, errors) {
       if (!arrayIncludes(capability.outputs, output)) {
         errors.push(`${label}.outputs must include ${output}`);
       }
+    }
+  }
+
+  if (capability.id === 'executor.codex.manual') {
+    if (capability.group !== 'executor.codex') {
+      errors.push(`${label}.group must be executor.codex for manual executor readiness`);
+    }
+    if (capability.provider !== 'codex') {
+      errors.push(`${label}.provider must be codex for manual executor readiness`);
+    }
+    if (capability.interface !== 'manual-executor-contract') {
+      errors.push(`${label}.interface must be manual-executor-contract`);
+    }
+    if (!arrayIncludes(capability.writes, 'workspace-session/packets')) {
+      errors.push(`${label}.writes must include workspace-session/packets`);
+    }
+    if (!arrayIncludes(capability.forbiddenWrites, 'workspace-base')) {
+      errors.push(`${label}.forbiddenWrites must include workspace-base`);
+    }
+    if (!arrayIncludes(capability.outputs, 'executor-contract.json')) {
+      errors.push(`${label}.outputs must include executor-contract.json`);
     }
   }
 

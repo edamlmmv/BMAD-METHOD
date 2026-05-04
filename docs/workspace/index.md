@@ -51,6 +51,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V9 Acceptance Tests](./v9-acceptance-tests.md) | Lists behavior tests for V9 Result Ledger. |
 | [V9 Backlog](./v9-backlog.md) | Defines TDD-first stories for V9. |
 | [V9 Traceability](./v9-traceability.md) | Maps V9 acceptance tests to stories, tests, and files. |
+| [V10 PRD](./v10-prd.md) | Defines the Manual Executor Contract readiness artifact. |
+| [V10 Acceptance Tests](./v10-acceptance-tests.md) | Lists behavior tests for V10 Executor Contract. |
+| [V10 Backlog](./v10-backlog.md) | Defines TDD-first stories for V10. |
+| [V10 Traceability](./v10-traceability.md) | Maps V10 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

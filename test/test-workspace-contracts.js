@@ -10,6 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
 const { buildSessionSetup } = require('../tools/workspace/packet');
 const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
 const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
@@ -124,6 +125,24 @@ function validResultArtifact() {
       retryable: true,
       nextAction: 'Fix validation and rerun focused tests.',
     },
+  };
+}
+
+function validExecutorContract() {
+  return {
+    kind: 'bmad-workspace-executor-contract',
+    schemaVersion: 1,
+    sessionId: 'session-2026-05-04-example',
+    packetRef: 'packets/bmad-work-packet.json',
+    renderedPromptRef: 'packets/rendered-prompt.md',
+    resultLedgerRef: 'results',
+    routing: validRouting(),
+    sessionType: 'normal',
+    executionMode: 'manual',
+    executorKind: 'codex',
+    allowedWriteRoots: [path.join(os.tmpdir(), 'bmad-workspace-contract-root')],
+    forbiddenActions: [...FORBIDDEN_EXECUTOR_ACTIONS],
+    manualExecutionSteps: ['Inspect status.', 'Use rendered prompt.', 'Record result.'],
   };
 }
 
@@ -325,6 +344,77 @@ function runTests() {
     assert(result.ok === true, 'valid result artifact is accepted', result.errors.join('; '));
   }
 
+  section('Workspace Executor Contract');
+
+  {
+    const result = validateExecutorContract(validExecutorContract(), {
+      expectedSessionId: 'session-2026-05-04-example',
+      expectedPacketRef: 'packets/bmad-work-packet.json',
+      expectedRenderedPromptRef: 'packets/rendered-prompt.md',
+    });
+    assert(result.ok === true, 'valid executor contract is accepted', result.errors.join('; '));
+  }
+
+  {
+    const contract = validExecutorContract();
+    contract.schemaVersion = 2;
+    const result = validateExecutorContract(contract);
+    assert(result.ok === false, 'executor contract rejects unsupported schema version');
+    assert(
+      result.errors.some((error) => error.includes('schemaVersion')),
+      'executor schema rejection names schemaVersion',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const contract = validExecutorContract();
+    contract.packetRef = '../escape.json';
+    const result = validateExecutorContract(contract);
+    assert(result.ok === false, 'executor contract rejects unsafe packet refs');
+    assert(
+      result.errors.some((error) => error.includes('packetRef')),
+      'unsafe packet ref rejection names packetRef',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const contract = validExecutorContract();
+    contract.allowedWriteRoots = [];
+    const result = validateExecutorContract(contract);
+    assert(result.ok === false, 'executor contract rejects empty allowed write roots');
+    assert(
+      result.errors.some((error) => error.includes('allowedWriteRoots')),
+      'empty roots rejection names allowedWriteRoots',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const contract = validExecutorContract();
+    contract.allowedWriteRoots = ['relative-root'];
+    const result = validateExecutorContract(contract);
+    assert(result.ok === false, 'executor contract rejects relative write roots');
+    assert(
+      result.errors.some((error) => error.includes('absolute path')),
+      'relative roots rejection names absolute path',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const contract = validExecutorContract();
+    contract.forbiddenActions = contract.forbiddenActions.filter((action) => action !== 'workspace-run');
+    const result = validateExecutorContract(contract);
+    assert(result.ok === false, 'executor contract requires forbidden action constants');
+    assert(
+      result.errors.some((error) => error.includes('workspace-run')),
+      'forbidden action rejection names missing constant',
+      result.errors.join('; '),
+    );
+  }
+
   {
     const resultArtifact = validResultArtifact();
     resultArtifact.outcome = 'unknown';
@@ -469,6 +559,25 @@ function runTests() {
   {
     const contract = validCapabilityContract();
     contract.capabilities.push({
+      id: 'executor.codex.manual',
+      group: 'executor.codex',
+      provider: 'codex',
+      interface: 'manual-executor-contract',
+      allowedInNormalSession: true,
+      allowedInBaseImprovement: true,
+      requiresGrant: true,
+      writes: ['workspace-session/packets'],
+      forbiddenWrites: ['workspace-base'],
+      outputs: ['executor-contract.json'],
+      upstreamGapProofRequired: false,
+    });
+    const result = validateCapabilityContract(contract);
+    assert(result.ok === true, 'manual Codex executor capability is accepted', result.errors.join('; '));
+  }
+
+  {
+    const contract = validCapabilityContract();
+    contract.capabilities.push({
       id: 'runtime.session.custom-scheduler',
       group: 'runtime.session',
       provider: 'custom-scheduler',
@@ -555,6 +664,8 @@ function runTests() {
     assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
     assert(skillContent.includes('bmad workspace verify-archive'), 'source skill documents workspace verify-archive');
+    assert(skillContent.includes('Executor Contract'), 'source skill documents Executor Contract');
+    assert(skillContent.includes('executionMode: manual'), 'source skill documents manual execution mode');
     assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
     assert(skillContent.includes('routing.routingSchemaVersion'), 'source skill documents routing schema');
     assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
@@ -659,6 +770,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT9-001', 'S84', 'tools/workspace/result.js', 'RESULT_SECRET_DETECTED']) {
       assert(traceability.includes(text), `V9 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V10 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v10-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V10 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT10-001', 'S94', 'tools/workspace/executor-contract.js', 'EXECUTOR_CONTRACT_INVALID']) {
+      assert(traceability.includes(text), `V10 traceability maps ${text}`, traceability);
     }
   }
 

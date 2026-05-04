@@ -111,6 +111,7 @@ function createArtifactMap(sessionRoot, instance = {}) {
     grants: artifactStatus(sessionRoot, instance.grantsRef || 'grants.json'),
     intake: artifactStatus(sessionRoot, instance.repoIntakeRef || 'intake/repo-intake.json'),
     packet: artifactStatus(sessionRoot, instance.packetRef || 'packets/bmad-work-packet.json'),
+    executorContract: artifactStatus(sessionRoot, instance.executorContractRef || 'packets/executor-contract.json'),
     results: artifactStatus(sessionRoot, 'results'),
     review: artifactStatus(sessionRoot, instance.reviewRef || 'review/summary.json'),
   };

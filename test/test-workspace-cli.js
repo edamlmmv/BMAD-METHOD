@@ -680,6 +680,13 @@ function runTests() {
     );
     const basePacketText = `${basePacket.stdout}\n${basePacket.stderr}`;
     assert(basePacket.status === 0, 'Base Improvement packet exits zero', basePacketText);
+    const basePacketOutput = JSON.parse(basePacket.stdout);
+    const baseExecutorContract = readJson(basePacketOutput.executorContractPath);
+    assert(
+      baseExecutorContract.allowedWriteRoots.includes(path.join(fs.realpathSync.native(baseWorktreePath), 'docs', 'workspace')),
+      'Base Improvement executor contract scopes allowed roots to granted base paths',
+      JSON.stringify(baseExecutorContract, null, 2),
+    );
 
     const baseReview = runCli(['workspace', 'review', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -916,6 +923,7 @@ function runTests() {
     assert(fs.existsSync(packetOutput.packetPath), 'packet writes bmad-work-packet.json', packetText);
     assert(fs.existsSync(packetOutput.renderedPromptPath), 'packet writes rendered-prompt.md', packetText);
     assert(fs.existsSync(packetOutput.capabilityContractPath), 'packet writes capabilities.json', packetText);
+    assert(fs.existsSync(packetOutput.executorContractPath), 'packet writes executor-contract.json', packetText);
 
     const sessionPacket = readJson(packetOutput.packetPath);
     assert(sessionPacket.kind === 'bmad-work-packet', 'packet records V4 kind', JSON.stringify(sessionPacket, null, 2));
@@ -971,14 +979,90 @@ function runTests() {
       'packet references rendered prompt',
       JSON.stringify(sessionPacket, null, 2),
     );
+    assert(
+      sessionPacket.executorContractRef === 'packets/executor-contract.json',
+      'packet references executor contract',
+      JSON.stringify(sessionPacket, null, 2),
+    );
+
+    const executorContract = readJson(packetOutput.executorContractPath);
+    assert(
+      executorContract.kind === 'bmad-workspace-executor-contract',
+      'executor contract records kind',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(executorContract.schemaVersion === 1, 'executor contract records schema version', JSON.stringify(executorContract, null, 2));
+    assert(
+      executorContract.sessionId === launchOutput.sessionId,
+      'executor contract records session id',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.packetRef === 'packets/bmad-work-packet.json',
+      'executor contract references packet',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.renderedPromptRef === 'packets/rendered-prompt.md',
+      'executor contract references rendered prompt',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.resultLedgerRef === 'results',
+      'executor contract references result ledger directory',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.executionMode === 'manual',
+      'executor contract records manual execution mode',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.executorKind === 'codex',
+      'executor contract records Codex executor kind',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      Array.isArray(executorContract.allowedWriteRoots) &&
+        executorContract.allowedWriteRoots.length === 1 &&
+        path.isAbsolute(executorContract.allowedWriteRoots[0]),
+      'executor contract records absolute allowed write roots',
+      JSON.stringify(executorContract, null, 2),
+    );
+    assert(
+      executorContract.allowedWriteRoots[0] === fs.realpathSync.native(guardRepoPack.repos[0].worktreePath),
+      'executor contract derives allowed roots from grants',
+      JSON.stringify(executorContract, null, 2),
+    );
+    for (const forbiddenAction of ['workspace-run', 'scheduler', 'watcher', 'daemon', 'live-adapter-activation', 'hidden-subprocess']) {
+      assert(
+        executorContract.forbiddenActions.includes(forbiddenAction),
+        `executor contract forbids ${forbiddenAction}`,
+        JSON.stringify(executorContract, null, 2),
+      );
+    }
+    assert(
+      executorContract.manualExecutionSteps.some((step) => step.includes('bmad workspace result')),
+      'executor contract names Result Ledger recording step',
+      JSON.stringify(executorContract, null, 2),
+    );
+
+    const capabilityContract = readJson(packetOutput.capabilityContractPath);
+    assert(
+      capabilityContract.capabilities.some((capability) => capability.id === 'executor.codex.manual'),
+      'Capability Contract includes manual Codex executor readiness',
+      JSON.stringify(capabilityContract, null, 2),
+    );
 
     const renderedPrompt = fs.readFileSync(packetOutput.renderedPromptPath, 'utf8');
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-work-packet.json`'), 'rendered prompt names packet source');
     assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
     assert(renderedPrompt.includes('Do not mutate Workspace Base'), 'rendered prompt includes packet constraints');
     assert(renderedPrompt.includes('GOAL_QUICK_DEV'), 'rendered prompt includes routing reason code');
+    assert(renderedPrompt.includes('packets/executor-contract.json'), 'rendered prompt references executor contract');
 
     const originalPacketContent = fs.readFileSync(packetOutput.packetPath, 'utf8');
+    const originalExecutorContractContent = fs.readFileSync(packetOutput.executorContractPath, 'utf8');
     const legacyPacket = JSON.parse(originalPacketContent);
     delete legacyPacket.routing;
     fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(legacyPacket, null, 2)}\n`);
@@ -996,6 +1080,100 @@ function runTests() {
     assert(legacyHandoff.status === 0, 'handoff accepts legacy packet without routing', legacyHandoffText);
     assert(legacyHandoff.stdout.includes('routeSource: `legacy-missing`'), 'handoff marks legacy missing routing', legacyHandoffText);
     fs.writeFileSync(packetOutput.packetPath, originalPacketContent);
+
+    const legacyExecutorPacket = JSON.parse(originalPacketContent);
+    delete legacyExecutorPacket.executorContractRef;
+    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(legacyExecutorPacket, null, 2)}\n`);
+    const legacyExecutorStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const legacyExecutorStatusText = `${legacyExecutorStatus.stdout}\n${legacyExecutorStatus.stderr}`;
+    assert(legacyExecutorStatus.status === 0, 'status accepts legacy packet without executor contract', legacyExecutorStatusText);
+    const legacyExecutorStatusOutput = JSON.parse(legacyExecutorStatus.stdout);
+    assert(
+      legacyExecutorStatusOutput.executorContract.state === 'legacy-missing',
+      'status marks legacy missing executor contract',
+      legacyExecutorStatusText,
+    );
+    assert(
+      legacyExecutorStatusOutput.checks.some((item) => item.code === 'EXECUTOR_CONTRACT_LEGACY_MISSING' && item.severity === 'warning'),
+      'status reports legacy executor contract warning',
+      legacyExecutorStatusText,
+    );
+    const legacyExecutorHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const legacyExecutorHandoffText = `${legacyExecutorHandoff.stdout}\n${legacyExecutorHandoff.stderr}`;
+    assert(legacyExecutorHandoff.status === 0, 'handoff accepts legacy packet without executor contract', legacyExecutorHandoffText);
+    assert(
+      legacyExecutorHandoff.stdout.includes('state: `legacy-missing`'),
+      'handoff marks legacy missing executor contract',
+      legacyExecutorHandoffText,
+    );
+    fs.writeFileSync(packetOutput.packetPath, originalPacketContent);
+
+    fs.rmSync(packetOutput.executorContractPath);
+    const missingExecutorStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingExecutorStatusText = `${missingExecutorStatus.stdout}\n${missingExecutorStatus.stderr}`;
+    assert(missingExecutorStatus.status === 0, 'status with missing declared executor contract exits zero', missingExecutorStatusText);
+    const missingExecutorStatusOutput = JSON.parse(missingExecutorStatus.stdout);
+    assert(
+      missingExecutorStatusOutput.status === 'invalid',
+      'status with missing declared executor contract is invalid',
+      missingExecutorStatusText,
+    );
+    assert(
+      missingExecutorStatusOutput.checks.some((item) => item.code === 'EXECUTOR_CONTRACT_MISSING'),
+      'status names missing declared executor contract',
+      missingExecutorStatusText,
+    );
+    const missingExecutorHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingExecutorHandoffText = `${missingExecutorHandoff.stdout}\n${missingExecutorHandoff.stderr}`;
+    assert(missingExecutorHandoff.status !== 0, 'handoff fails missing declared executor contract', missingExecutorHandoffText);
+    assert(
+      missingExecutorHandoffText.includes('SESSION_INVALID'),
+      'handoff missing executor contract names invalid session',
+      missingExecutorHandoffText,
+    );
+    const missingExecutorArchiveRoot = path.join(tempRoot, 'missing-executor-contract-archive');
+    const missingExecutorArchive = runCli(
+      ['workspace', 'archive', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', missingExecutorArchiveRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingExecutorArchiveText = `${missingExecutorArchive.stdout}\n${missingExecutorArchive.stderr}`;
+    assert(missingExecutorArchive.status !== 0, 'archive fails missing declared executor contract', missingExecutorArchiveText);
+    assert(
+      missingExecutorArchiveText.includes('EXECUTOR_CONTRACT_INVALID'),
+      'archive missing executor contract names executor contract invalid',
+      missingExecutorArchiveText,
+    );
+    assert(
+      !fs.existsSync(missingExecutorArchiveRoot),
+      'archive missing executor contract writes no output dir',
+      missingExecutorArchiveText,
+    );
+    fs.writeFileSync(packetOutput.executorContractPath, originalExecutorContractContent);
+
+    fs.writeFileSync(packetOutput.executorContractPath, `${JSON.stringify({ kind: 'not-executor-contract' }, null, 2)}\n`);
+    const invalidExecutorStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidExecutorStatusText = `${invalidExecutorStatus.stdout}\n${invalidExecutorStatus.stderr}`;
+    assert(invalidExecutorStatus.status === 0, 'status with invalid executor contract exits zero', invalidExecutorStatusText);
+    const invalidExecutorStatusOutput = JSON.parse(invalidExecutorStatus.stdout);
+    assert(invalidExecutorStatusOutput.status === 'invalid', 'status with invalid executor contract is invalid', invalidExecutorStatusText);
+    assert(
+      invalidExecutorStatusOutput.checks.some((item) => item.code === 'EXECUTOR_CONTRACT_INVALID'),
+      'status names invalid executor contract',
+      invalidExecutorStatusText,
+    );
+    fs.writeFileSync(packetOutput.executorContractPath, originalExecutorContractContent);
 
     const packetFingerprint = fingerprintTree(path.join(launchOutput.sessionRoot, 'packets'));
     const unknownWorkflowAfterPacket = runCli(
@@ -1568,6 +1746,11 @@ function runTests() {
       archiveText,
     );
     assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'packets', 'executor-contract.json')),
+      'archive copies executor contract',
+      archiveText,
+    );
+    assert(
       fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'summary.json')),
       'archive copies review summary',
       archiveText,
@@ -1596,6 +1779,11 @@ function runTests() {
     assert(manifest.statusRef === 'status.json', 'archive manifest records status ref', JSON.stringify(manifest, null, 2));
     assert(manifest.handoffRef === 'handoff.md', 'archive manifest records handoff ref', JSON.stringify(manifest, null, 2));
     assert(manifest.closeoutRef === 'closeout.md', 'archive manifest records closeout ref', JSON.stringify(manifest, null, 2));
+    assert(
+      manifest.artifacts.executorContract.present === true,
+      'archive manifest records executor contract artifact',
+      JSON.stringify(manifest, null, 2),
+    );
     const manifestPaths = manifest.files.map((file) => file.path);
     assert(
       JSON.stringify(manifestPaths) === JSON.stringify([...manifestPaths].sort()),
@@ -1630,7 +1818,18 @@ function runTests() {
       'archive status preserves routed workflow',
       JSON.stringify(archivedStatus, null, 2),
     );
+    assert(
+      archivedStatus.executorContract.state === 'valid',
+      'archive status preserves executor contract state',
+      JSON.stringify(archivedStatus, null, 2),
+    );
     assert(archivedStatus.results.count === 1, 'archive status preserves result count', JSON.stringify(archivedStatus, null, 2));
+    const archivedExecutorContract = readJson(path.join(archiveRoot, 'session-artifacts', 'packets', 'executor-contract.json'));
+    assert(
+      archivedExecutorContract.executionMode === 'manual',
+      'archive preserves executor contract execution mode',
+      JSON.stringify(archivedExecutorContract, null, 2),
+    );
     const archivedResult = readJson(path.join(archiveRoot, 'session-artifacts', 'results', 'result-001.json'));
     assert(archivedResult.outcome === 'succeeded', 'archive preserves result outcome', JSON.stringify(archivedResult, null, 2));
 
@@ -1658,6 +1857,22 @@ function runTests() {
     assert(beforeVerifyArchive === afterVerifyArchive, 'verify-archive is read-only', verifyArchiveText);
     const verifyOutput = JSON.parse(verifyArchive.stdout);
     assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
+
+    const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');
+    copyTree(archiveRoot, invalidExecutorArchiveRoot);
+    const invalidArchivedExecutorPath = path.join(invalidExecutorArchiveRoot, 'session-artifacts', 'packets', 'executor-contract.json');
+    fs.writeFileSync(invalidArchivedExecutorPath, `${JSON.stringify({ kind: 'not-executor-contract' }, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidExecutorArchiveRoot);
+    const invalidExecutorArchive = runCli(['workspace', 'verify-archive', invalidExecutorArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidExecutorArchiveText = `${invalidExecutorArchive.stdout}\n${invalidExecutorArchive.stderr}`;
+    assert(invalidExecutorArchive.status !== 0, 'verify-archive invalid executor contract exits nonzero', invalidExecutorArchiveText);
+    assert(
+      invalidExecutorArchiveText.includes('ARCHIVE_EXECUTOR_CONTRACT_INVALID'),
+      'verify-archive invalid executor contract names stable error',
+      invalidExecutorArchiveText,
+    );
 
     const invalidResultArchiveRoot = path.join(tempRoot, 'invalid-result-archive');
     copyTree(archiveRoot, invalidResultArchiveRoot);

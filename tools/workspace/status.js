@@ -4,6 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
+const { readExecutorContractStatus } = require('./executor-contract');
 const { createLegacyRouting } = require('./routing');
 const { readResultLedger } = require('./result');
 
@@ -47,6 +48,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     grants: artifactStatus(sessionRoot, 'grants.json'),
     intake: { present: false },
     packet: artifactStatus(sessionRoot, 'packets/bmad-work-packet.json'),
+    executorContract: artifactStatus(sessionRoot, 'packets/executor-contract.json'),
     review: artifactStatus(sessionRoot, 'review/summary.json'),
   };
 
@@ -65,6 +67,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     intake: { state: 'missing', repos: [] },
     setup: { state: 'missing', entries: {} },
     routing: null,
+    executorContract: { state: 'missing', present: false, valid: false },
     results: { state: 'none', count: 0, latest: null, entries: [] },
     review: { state: 'missing', clean: null, changedRepos: [] },
     checks,
@@ -189,6 +192,8 @@ function readPacketStatus({ sessionRoot, status, checks }) {
 
   status.routing = packet.routing || createLegacyRouting(packet);
   status.setup = inspectSessionSetup(packet.sessionSetup, checks);
+  status.executorContract = readExecutorContractStatus({ sessionRoot, packet, checks });
+  status.artifacts.executorContract = artifactStatus(sessionRoot, packet.executorContractRef || 'packets/executor-contract.json');
 }
 
 function inspectSessionSetup(sessionSetup, checks) {
@@ -295,6 +300,9 @@ function readBaseImprovementReadiness({ instance, grants, sessionRoot, status, c
 }
 
 function summarizeStatus(status) {
+  if (status.checks.some((item) => item.code.startsWith('EXECUTOR_CONTRACT_') && item.severity === 'error')) {
+    return 'invalid';
+  }
   if (status.checks.some((item) => item.code.includes('INVALID') || item.code.includes('UNSUPPORTED'))) {
     return 'invalid';
   }

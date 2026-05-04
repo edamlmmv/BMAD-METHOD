@@ -4,6 +4,7 @@ const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { readSessionStatus } = require('./status');
 const { renderSessionHandoff } = require('./handoff');
+const { validateExecutorContract } = require('./executor-contract');
 const { scanForSecrets, validateResultArtifact } = require('./result');
 
 const ARCHIVE_VERSION = 1;
@@ -19,6 +20,9 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
   assertOutputAvailable(archiveRoot);
 
   const status = readSessionStatus({ sessionId, runtimeRoot });
+  if (['declared-missing', 'invalid'].includes(status.executorContract?.state)) {
+    throw new Error(`EXECUTOR_CONTRACT_INVALID: executor contract is ${status.executorContract.state} for ${sessionId}`);
+  }
   if (status.status === 'invalid') {
     throw new Error(`SESSION_INVALID: session artifacts are invalid for ${sessionId}`);
   }
@@ -121,6 +125,7 @@ function verifyArchive({ archivePath }) {
     verifiedFiles.push(file.path);
   }
 
+  validateArchivedExecutorContract(archiveRoot, manifest);
   validateChecksumFile(archiveRoot, manifest.files);
 
   return {
@@ -164,6 +169,7 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
     intake: copyIfPresent(sessionRoot, archiveRoot, status.artifacts.intake.ref),
     packet: copyIfPresent(sessionRoot, archiveRoot, 'packets/bmad-work-packet.json'),
     renderedPrompt: copyIfPresent(sessionRoot, archiveRoot, 'packets/rendered-prompt.md'),
+    executorContract: copyIfPresent(sessionRoot, archiveRoot, status.executorContract?.ref),
     results: copyResultArtifacts({ sessionRoot, archiveRoot, status }),
     review: copyIfPresent(sessionRoot, archiveRoot, 'review/summary.json'),
   };
@@ -380,6 +386,47 @@ function validateChecksumFile(archiveRoot, files) {
   const actual = fs.readFileSync(checksumPath, 'utf8');
   if (actual !== expected) {
     throw new Error('ARCHIVE_CHECKSUM_MISMATCH: checksums.sha256');
+  }
+}
+
+function validateArchivedExecutorContract(archiveRoot, manifest) {
+  const packetArtifact = manifest.artifacts?.packet;
+  if (!packetArtifact?.present) {
+    return;
+  }
+
+  const packet = readOptionalJson(path.join(archiveRoot, packetArtifact.archiveRef));
+  if (!packet?.executorContractRef) {
+    return;
+  }
+
+  const contractArtifact = manifest.artifacts?.executorContract;
+  if (!contractArtifact?.present) {
+    throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_MISSING: ${packet.executorContractRef}`);
+  }
+
+  let contract;
+  try {
+    contract = JSON.parse(fs.readFileSync(path.join(archiveRoot, contractArtifact.archiveRef), 'utf8'));
+  } catch (error) {
+    throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_INVALID: ${contractArtifact.archiveRef}: ${error.message}`);
+  }
+
+  const validation = validateExecutorContract(contract, {
+    expectedSessionId: manifest.sessionId,
+    expectedPacketRef: packetArtifact.sourceRef,
+    expectedRenderedPromptRef: packet.renderedPromptRef,
+  });
+  if (!validation.ok) {
+    throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_INVALID: ${contractArtifact.archiveRef}: ${validation.errors.join('; ')}`);
+  }
+
+  for (const ref of [contract.packetRef, contract.renderedPromptRef]) {
+    const archivedRef = path.posix.join('session-artifacts', toPosix(ref));
+    const archivedPath = path.join(archiveRoot, archivedRef);
+    if (!fs.existsSync(archivedPath) || !fs.statSync(archivedPath).isFile()) {
+      throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_REF_MISSING: ${ref}`);
+    }
   }
 }
 

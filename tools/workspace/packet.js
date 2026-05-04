@@ -5,6 +5,7 @@ const { execFileSync } = require('node:child_process');
 const { parse } = require('csv-parse/sync');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateCapabilityContract, validateWorkPacket } = require('./contracts');
+const { EXECUTOR_CONTRACT_REF, buildExecutorContract, validateExecutorContract } = require('./executor-contract');
 const { routeWorkspace } = require('./routing');
 
 function cleanGitEnv() {
@@ -111,10 +112,14 @@ function buildWorkPacket({
   const packetRef = 'packets/bmad-work-packet.json';
   const renderedPromptRef = 'packets/rendered-prompt.md';
   const capabilityContractRef = 'capabilities.json';
+  const executorContractRef = EXECUTOR_CONTRACT_REF;
   const packetPath = path.join(sessionRoot, packetRef);
   const renderedPromptPath = path.join(sessionRoot, renderedPromptRef);
   const capabilityContractPath = path.join(sessionRoot, capabilityContractRef);
+  const executorContractPath = path.join(sessionRoot, executorContractRef);
 
+  const repoPack = readJson(path.join(sessionRoot, instance.repoPackRef));
+  const grants = readJson(path.join(sessionRoot, instance.grantsRef));
   const capabilityContract = createCapabilityContract(instance.workspaceBasePath);
   assertValid('Capability Contract', validateCapabilityContract(capabilityContract));
 
@@ -134,16 +139,37 @@ function buildWorkPacket({
     ],
     capabilityContractRef,
     renderedPromptRef,
+    executorContractRef,
     routing,
     sessionSetup,
     reviewPlan: 'Run BMAD Code Review after execution',
   };
 
   assertValid('BMAD Work Packet', validateWorkPacket(packet));
+  const renderedPrompt = renderPrompt(packet);
+  const executorContract = buildExecutorContract({
+    sessionId,
+    sessionType: instance.sessionType || 'normal',
+    packetRef,
+    renderedPromptRef,
+    routing,
+    grants,
+    repoPack,
+    workspaceBasePath: instance.workspaceBasePath,
+  });
+  assertValid(
+    'Executor Contract',
+    validateExecutorContract(executorContract, {
+      expectedSessionId: sessionId,
+      expectedPacketRef: packetRef,
+      expectedRenderedPromptRef: renderedPromptRef,
+    }),
+  );
 
   writeJsonAtomic(capabilityContractPath, capabilityContract);
   writeJsonAtomic(packetPath, packet);
-  writeFileAtomic(renderedPromptPath, renderPrompt(packet));
+  writeFileAtomic(renderedPromptPath, renderedPrompt);
+  writeJsonAtomic(executorContractPath, executorContract);
 
   const updatedInstance = {
     ...instance,
@@ -151,6 +177,7 @@ function buildWorkPacket({
     packetRef,
     capabilityContractRef,
     renderedPromptRef,
+    executorContractRef,
   };
   writeJsonAtomic(instancePath, updatedInstance);
 
@@ -160,6 +187,7 @@ function buildWorkPacket({
     packetPath,
     renderedPromptPath,
     capabilityContractPath,
+    executorContractPath,
     repoIntakePath: readiness.repoIntakePath,
   };
 }
@@ -331,6 +359,19 @@ function createCapabilityContract(workspaceBasePath) {
         outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
         upstreamGapProofRequired: false,
       },
+      {
+        id: 'executor.codex.manual',
+        group: 'executor.codex',
+        provider: 'codex',
+        interface: 'manual-executor-contract',
+        allowedInNormalSession: true,
+        allowedInBaseImprovement: true,
+        requiresGrant: true,
+        writes: ['workspace-session/packets'],
+        forbiddenWrites: ['workspace-base', 'target-repo', 'scheduler', 'daemon', 'live-adapter'],
+        outputs: ['executor-contract.json'],
+        upstreamGapProofRequired: false,
+      },
     ],
   };
 }
@@ -380,6 +421,9 @@ ${packet.acceptanceCriteria.map((criterion) => `- ${criterion}`).join('\n')}
 
 ## Capability Contract
 ${packet.capabilityContractRef}
+
+## Executor Contract
+${packet.executorContractRef}
 
 ## Review Plan
 ${packet.reviewPlan}

@@ -58,6 +58,30 @@ bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 Treat `packets/bmad-work-packet.json` as the BMAD Work Packet. The rendered
 prompt is derived from that packet and is not the source of truth.
 
+V10 uses one active packet bundle per Workspace Session. Re-running
+`bmad workspace packet` explicitly rebuilds that active bundle, including
+`packets/bmad-work-packet.json`, `packets/rendered-prompt.md`, and
+`packets/executor-contract.json`. Read-only commands never regenerate packet
+artifacts.
+
+## Executor Contract
+
+New BMAD Work Packets record `executorContractRef:
+packets/executor-contract.json`. The Executor Contract is a manual readiness
+artifact only. It declares `executionMode: manual`, `executorKind: codex`,
+granted `allowedWriteRoots`, forbidden actions, and manual execution steps.
+
+All refs in the contract are Session-relative POSIX paths except
+`allowedWriteRoots`, which are canonical absolute granted roots by design.
+Allowed roots come only from Workspace grants and repo worktrees. They are never
+inferred from the current working directory.
+
+The contract tells a human or Codex operator to inspect status, use the rendered
+prompt, work only inside granted roots, run checks manually, and record evidence
+with `bmad workspace result`. It does not invoke Codex, run shell commands,
+schedule work, activate live adapters, restore, replay, merge, promote, or write
+outside granted roots.
+
 ## Routing Contract
 
 V8 packets include deterministic BMAD workflow routing:
@@ -152,8 +176,8 @@ bmad workspace handoff <session-id> --runtime-root <runtime-root>
 ```
 
 Handoff emits raw Markdown with fixed sections for identity, status, blockers,
-BMAD Work Packet, Setup Gate, Result Ledger, Worktree Review, Base Improvement
-readiness, next BMAD route, and read-only boundary.
+BMAD Work Packet, Executor Contract, Setup Gate, Result Ledger, Worktree Review,
+Base Improvement readiness, next BMAD route, and read-only boundary.
 
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
@@ -220,6 +244,8 @@ run, expand grants, or promote changes.
 - Check Git status before and after session operations.
 - Do not create schedulers, daemons, memory graphs, live adapters,
   auto-promotion, or hidden execution.
+- Treat Executor Contract artifacts as manual readiness declarations, not
+  runtime permission or execution output.
 - Do not treat Result Ledger artifacts as execution, restore, or replay input.
 - Treat archives as evidence bundles only; never as restore or execution inputs.
 - Keep unrelated dirty files untouched.

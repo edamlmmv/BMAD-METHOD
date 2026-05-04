@@ -25,6 +25,7 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
     renderStatus(status),
     renderBlockers(status),
     renderPacket(status, packet),
+    renderExecutorContract(status),
     renderSetupGate(status),
     renderResultLedger(status),
     renderReview(status, review),
@@ -89,7 +90,22 @@ function renderPacket(status, packet) {
 - routeReasonCodes: ${formatList(status.routing?.reasonCodes || [])}
 - renderedPromptRef: ${packet.renderedPromptRef ? `\`${packet.renderedPromptRef}\`` : 'Not found'}
 - renderedPromptPath: ${renderedPromptPath ? `\`${renderedPromptPath}\`` : 'Not found'}
+- executorContractRef: ${packet.executorContractRef ? `\`${packet.executorContractRef}\`` : 'Not found'}
 - capabilityContractRef: ${packet.capabilityContractRef ? `\`${packet.capabilityContractRef}\`` : 'Not found'}`;
+}
+
+function renderExecutorContract(status) {
+  const contract = status.executorContract || { state: 'missing', present: false };
+  return `## Executor Contract
+
+- state: \`${contract.state}\`
+- ref: ${contract.ref ? `\`${contract.ref}\`` : 'Not found'}
+- path: ${contract.path ? `\`${contract.path}\`` : 'Not found'}
+- executionMode: ${contract.executionMode ? `\`${contract.executionMode}\`` : 'Not found'}
+- executorKind: ${contract.executorKind ? `\`${contract.executorKind}\`` : 'Not found'}
+- allowedWriteRoots: ${formatList(contract.allowedWriteRoots || [])}
+- forbiddenActionCount: \`${(contract.forbiddenActions || []).length}\`
+- manualExecutionSteps: ${formatList(contract.manualExecutionSteps || [])}`;
 }
 
 function renderSetupGate(status) {

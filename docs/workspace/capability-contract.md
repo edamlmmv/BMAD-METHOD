@@ -27,6 +27,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `evidence.graph` | Produce Repo Intake from code and docs. | Graphify |
 | `evidence.docs` | Retrieve trusted current docs. | Context7, official docs |
 | `executor.codex` | Execute rendered prompts. | Codex |
+| `executor.codex.manual` | Declare manual Codex readiness without runtime execution. | Codex |
 | `runtime.session` | Provide sessions, tasks, goals, Cron, or Heartbeat. | OpenClaw, Hermes |
 | `repo.git` | Create worktrees, diff, status, commit, rollback. | Git |
 | `host.mcp` | Expose bounded tool and context surfaces. | MCP servers |
