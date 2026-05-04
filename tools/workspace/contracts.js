@@ -89,6 +89,7 @@ function validateSessionSetup(sessionSetup, errors) {
       if ('skipReason' in entry) {
         errors.push(`packet.sessionSetup.${step}.skipReason is only valid when status is skipped`);
       }
+      validateCompleteSetupRef(entry, step, errors);
       continue;
     }
 
@@ -103,6 +104,41 @@ function validateSessionSetup(sessionSetup, errors) {
     }
 
     errors.push(`packet.sessionSetup.${step}.status must be complete or skipped`);
+  }
+}
+
+function validateCompleteSetupRef(entry, step, errors) {
+  if (!('refType' in entry)) {
+    return;
+  }
+
+  if (!['file', 'external'].includes(entry.refType)) {
+    errors.push(`packet.sessionSetup.${step}.refType must be file or external`);
+    return;
+  }
+
+  if (entry.refType === 'file') {
+    if (typeof entry.resolvedRef !== 'string' || entry.resolvedRef.trim() === '') {
+      errors.push(`packet.sessionSetup.${step}.resolvedRef must be a non-empty string for file refs`);
+    }
+    if (typeof entry.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(entry.sha256)) {
+      errors.push(`packet.sessionSetup.${step}.sha256 must be a 64-character hex string for file refs`);
+    }
+    if (entry.verification && entry.verification !== 'local-verified') {
+      errors.push(`packet.sessionSetup.${step}.verification must be local-verified for file refs`);
+    }
+  }
+
+  if (entry.refType === 'external') {
+    if (entry.verification !== 'external-unverified') {
+      errors.push(`packet.sessionSetup.${step}.verification must be external-unverified for external refs`);
+    }
+    if ('sha256' in entry) {
+      errors.push(`packet.sessionSetup.${step}.sha256 is not valid for external refs`);
+    }
+    if ('resolvedRef' in entry) {
+      errors.push(`packet.sessionSetup.${step}.resolvedRef is not valid for external refs`);
+    }
   }
 }
 

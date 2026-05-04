@@ -8,6 +8,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const crypto = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const colors = {
@@ -92,6 +93,40 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function fingerprintTree(root) {
+  if (!fs.existsSync(root)) {
+    return 'missing';
+  }
+
+  const entries = [];
+  function walk(currentPath) {
+    for (const entry of fs.readdirSync(currentPath).sort()) {
+      const absolutePath = path.join(currentPath, entry);
+      const relativePath = path.relative(root, absolutePath);
+      const stat = fs.statSync(absolutePath);
+      if (stat.isDirectory()) {
+        entries.push({ type: 'dir', path: relativePath });
+        walk(absolutePath);
+        continue;
+      }
+      if (stat.isFile()) {
+        entries.push({
+          type: 'file',
+          path: relativePath,
+          sha256: sha256File(absolutePath),
+        });
+      }
+    }
+  }
+
+  walk(root);
+  return JSON.stringify(entries);
+}
+
 function assertSessionOutput(output, testPrefix) {
   assert(
     typeof output.sessionId === 'string' && output.sessionId.length > 0,
@@ -125,7 +160,7 @@ function runTests() {
   for (const option of ['--zoom-out-ref', '--ubiquitous-language-ref', '--grill-decisions-ref', '--tdd-plan-ref', '--skip-setup']) {
     assert(output.includes(option), `workspace help lists ${option}`, output);
   }
-  for (const subcommand of ['launch', 'intake', 'packet', 'review', 'destroy', 'authorize']) {
+  for (const subcommand of ['launch', 'intake', 'packet', 'status', 'review', 'destroy', 'authorize']) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
 
@@ -138,6 +173,12 @@ function runTests() {
   const goalPath = path.join(tempRoot, 'goal.md');
   const runtimeRoot = path.join(tempRoot, 'runtime');
   fs.writeFileSync(goalPath, 'Fix target repo bug.\n');
+  const setupDocsDir = path.join(baseRepo.path, 'docs', 'workspace');
+  fs.mkdirSync(setupDocsDir, { recursive: true });
+  fs.writeFileSync(path.join(setupDocsDir, 'v4-zoom-out.md'), 'Zoom out map.\n');
+  fs.writeFileSync(path.join(setupDocsDir, 'v4-grill-decisions.md'), 'Decision log.\n');
+  fs.writeFileSync(path.join(setupDocsDir, 'v4-backlog.md'), '# TDD Order\n');
+  fs.writeFileSync(path.join(baseRepo.path, 'UBIQUITOUS_LANGUAGE.md'), '# Ubiquitous Language\n');
 
   let launchOutput;
   let multiRepoOutput;
@@ -167,7 +208,32 @@ function runTests() {
     assert(grants.baseMutationGrant === false, 'normal launch has no Base Mutation Grant', JSON.stringify(grants, null, 2));
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
-    assert(baseStatus === '', 'launch does not dirty Workspace Base repo', baseStatus);
+    assert(baseStatus === '?? UBIQUITOUS_LANGUAGE.md\n?? docs/', 'launch does not add extra Workspace Base changes', baseStatus);
+
+    section('Workspace Status');
+
+    const missingStatus = runCli(['workspace', 'status', 'missing-session', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingStatusText = `${missingStatus.stdout}\n${missingStatus.stderr}`;
+    assert(missingStatus.status !== 0, 'status for missing session exits nonzero', missingStatusText);
+    assert(missingStatusText.includes('SESSION_NOT_FOUND'), 'missing status names SESSION_NOT_FOUND', missingStatusText);
+
+    const beforeLaunchStatus = fingerprintTree(launchOutput.sessionRoot);
+    const launchStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const launchStatusText = `${launchStatus.stdout}\n${launchStatus.stderr}`;
+    const afterLaunchStatus = fingerprintTree(launchOutput.sessionRoot);
+    assert(launchStatus.status === 0, 'status after launch exits zero', launchStatusText);
+    assert(beforeLaunchStatus === afterLaunchStatus, 'status after launch is read-only', launchStatusText);
+    const launchStatusOutput = JSON.parse(launchStatus.stdout);
+    assert(launchStatusOutput.status === 'blocked', 'status after launch reports blocked', launchStatusText);
+    assert(
+      launchStatusOutput.checks.some((item) => item.code === 'MISSING_INTAKE'),
+      'status after launch reports missing intake',
+      launchStatusText,
+    );
 
     section('Workspace Session Id');
 
@@ -193,6 +259,21 @@ function runTests() {
     sessionLaunchOutput = JSON.parse(sessionLaunch.stdout);
     assert(sessionLaunchOutput.sessionId === 'session-alias-only', '--session-id sets sessionId', sessionLaunchText);
     assertSessionOutput(sessionLaunchOutput, '--session-id launch output');
+
+    fs.mkdirSync(path.join(sessionLaunchOutput.sessionRoot, 'packets'), { recursive: true });
+    fs.writeFileSync(path.join(sessionLaunchOutput.sessionRoot, 'packets', 'bmad-work-packet.json'), '{not-json\n');
+    const malformedPacketStatus = runCli(['workspace', 'status', sessionLaunchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const malformedPacketStatusText = `${malformedPacketStatus.stdout}\n${malformedPacketStatus.stderr}`;
+    assert(malformedPacketStatus.status === 0, 'status with malformed packet exits zero', malformedPacketStatusText);
+    const malformedPacketStatusOutput = JSON.parse(malformedPacketStatus.stdout);
+    assert(malformedPacketStatusOutput.status === 'invalid', 'status with malformed packet reports invalid', malformedPacketStatusText);
+    assert(
+      malformedPacketStatusOutput.checks.some((item) => item.code === 'WORK_PACKET_INVALID_JSON'),
+      'status with malformed packet names WORK_PACKET_INVALID_JSON',
+      malformedPacketStatusText,
+    );
 
     const legacyMissionOption = runCli(
       [
@@ -376,6 +457,65 @@ function runTests() {
     assertSessionOutput(grantedBaseWriteOutput, 'Grant Guard base output');
     assert(grantedBaseWriteOutput.scope === 'workspace-base', 'Grant Guard reports workspace-base scope', grantedBaseWriteText);
 
+    const blockedBaseStatus = runCli(['workspace', 'status', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const blockedBaseStatusText = `${blockedBaseStatus.stdout}\n${blockedBaseStatus.stderr}`;
+    assert(blockedBaseStatus.status === 0, 'Base Improvement status exits zero while blocked', blockedBaseStatusText);
+    const blockedBaseStatusOutput = JSON.parse(blockedBaseStatus.stdout);
+    assert(
+      blockedBaseStatusOutput.baseImprovementReadiness.state === 'blocked',
+      'Base Improvement status reports blocked readiness',
+      blockedBaseStatusText,
+    );
+
+    const baseIntake = runCli(['workspace', 'intake', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const baseIntakeText = `${baseIntake.stdout}\n${baseIntake.stderr}`;
+    assert(baseIntake.status === 0, 'Base Improvement intake exits zero', baseIntakeText);
+
+    const basePacket = runCli(
+      [
+        'workspace',
+        'packet',
+        baseImprovementOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--zoom-out-ref',
+        'docs/workspace/v4-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const basePacketText = `${basePacket.stdout}\n${basePacket.stderr}`;
+    assert(basePacket.status === 0, 'Base Improvement packet exits zero', basePacketText);
+
+    const baseReview = runCli(['workspace', 'review', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const baseReviewText = `${baseReview.stdout}\n${baseReview.stderr}`;
+    assert(baseReview.status === 0, 'Base Improvement review exits zero', baseReviewText);
+
+    const readyBaseStatus = runCli(['workspace', 'status', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const readyBaseStatusText = `${readyBaseStatus.stdout}\n${readyBaseStatus.stderr}`;
+    assert(readyBaseStatus.status === 0, 'Base Improvement ready status exits zero', readyBaseStatusText);
+    const readyBaseStatusOutput = JSON.parse(readyBaseStatus.stdout);
+    assert(
+      readyBaseStatusOutput.baseImprovementReadiness.state === 'ready-for-human-review',
+      'Base Improvement status reports ready for human review',
+      readyBaseStatusText,
+    );
+
     const deniedBaseWrite = runCli(
       [
         'workspace',
@@ -437,6 +577,19 @@ function runTests() {
     assert(stalePacket.status !== 0, 'packet with stale intake exits nonzero', stalePacketText);
     assert(stalePacketText.includes('stale-intake'), 'packet with stale intake names stale-intake', stalePacketText);
 
+    const staleStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const staleStatusText = `${staleStatus.stdout}\n${staleStatus.stderr}`;
+    assert(staleStatus.status === 0, 'status with stale intake exits zero', staleStatusText);
+    const staleStatusOutput = JSON.parse(staleStatus.stdout);
+    assert(staleStatusOutput.status === 'stale', 'status with stale intake reports stale', staleStatusText);
+    assert(
+      staleStatusOutput.checks.some((item) => item.code === 'STALE_INTAKE'),
+      'status with stale intake names STALE_INTAKE',
+      staleStatusText,
+    );
+
     const reIntake = runCli(['workspace', 'intake', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
@@ -465,6 +618,35 @@ function runTests() {
       !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
       'packet without setup does not write partial packet',
       missingSetupPacketText,
+    );
+
+    const missingSetupRefPacket = runCli(
+      [
+        'workspace',
+        'packet',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--zoom-out-ref',
+        'docs/workspace/missing-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingSetupRefText = `${missingSetupRefPacket.stdout}\n${missingSetupRefPacket.stderr}`;
+    assert(missingSetupRefPacket.status !== 0, 'packet rejects missing local setup ref', missingSetupRefText);
+    assert(missingSetupRefText.includes('SETUP_REF_MISSING'), 'missing setup ref names SETUP_REF_MISSING', missingSetupRefText);
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with missing setup ref does not write partial packet',
+      missingSetupRefText,
     );
 
     const packet = runCli(
@@ -507,6 +689,11 @@ function runTests() {
       JSON.stringify(sessionPacket, null, 2),
     );
     assert(
+      sessionPacket.sessionSetup.zoomOut.sha256 === sha256File(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md')),
+      'packet records zoom-out setup checksum',
+      JSON.stringify(sessionPacket, null, 2),
+    );
+    assert(
       sessionPacket.repoIntakeRefs.includes('intake/repo-intake.json'),
       'packet references repo intake',
       JSON.stringify(sessionPacket, null, 2),
@@ -533,6 +720,21 @@ function runTests() {
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-work-packet.json`'), 'rendered prompt names packet source');
     assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
     assert(renderedPrompt.includes('Do not mutate Workspace Base'), 'rendered prompt includes packet constraints');
+
+    fs.appendFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Checksum drift.\n');
+    const checksumStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const checksumStatusText = `${checksumStatus.stdout}\n${checksumStatus.stderr}`;
+    assert(checksumStatus.status === 0, 'status with checksum drift exits zero', checksumStatusText);
+    const checksumStatusOutput = JSON.parse(checksumStatus.stdout);
+    assert(checksumStatusOutput.status === 'stale', 'status with checksum drift reports stale', checksumStatusText);
+    assert(
+      checksumStatusOutput.checks.some((item) => item.code === 'SETUP_REF_CHECKSUM_MISMATCH'),
+      'status names setup checksum mismatch',
+      checksumStatusText,
+    );
+    fs.writeFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Zoom out map.\n');
 
     const skippedPacket = runCli(
       [
@@ -564,6 +766,49 @@ function runTests() {
       JSON.stringify(skippedSessionPacket, null, 2),
     );
 
+    const externalPacket = runCli(
+      [
+        'workspace',
+        'packet',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--zoom-out-ref',
+        'external:zoom-out-thread-note',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+        env: { NO_PROXY: '*', HTTPS_PROXY: 'http://127.0.0.1:1', HTTP_PROXY: 'http://127.0.0.1:1' },
+      },
+    );
+    const externalPacketText = `${externalPacket.stdout}\n${externalPacket.stderr}`;
+    assert(externalPacket.status === 0, 'packet accepts external setup ref without network', externalPacketText);
+    const externalPacketOutput = JSON.parse(externalPacket.stdout);
+    const externalSessionPacket = readJson(externalPacketOutput.packetPath);
+    assert(
+      externalSessionPacket.sessionSetup.zoomOut.verification === 'external-unverified',
+      'external setup ref records unverified provenance',
+      JSON.stringify(externalSessionPacket, null, 2),
+    );
+    const externalStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+      env: { NO_PROXY: '*', HTTPS_PROXY: 'http://127.0.0.1:1', HTTP_PROXY: 'http://127.0.0.1:1' },
+    });
+    const externalStatusText = `${externalStatus.stdout}\n${externalStatus.stderr}`;
+    assert(externalStatus.status === 0, 'status accepts external setup ref without network', externalStatusText);
+    const externalStatusOutput = JSON.parse(externalStatus.stdout);
+    assert(
+      externalStatusOutput.checks.some((item) => item.code === 'SETUP_REF_EXTERNAL_UNVERIFIED' && item.severity === 'warning'),
+      'status reports external setup warning',
+      externalStatusText,
+    );
+
     const invalidSkipPacket = runCli(
       ['workspace', 'packet', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--skip-setup', 'badStep=nope'],
       {
@@ -587,6 +832,15 @@ function runTests() {
     const cleanSummary = readJson(cleanReviewOutput.summaryPath);
     assert(cleanSummary.clean === true, 'clean review reports clean worktree', JSON.stringify(cleanSummary, null, 2));
     assert(cleanSummary.repos[0].patchPath === null, 'clean review has no patch path', JSON.stringify(cleanSummary, null, 2));
+
+    const reviewedStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const reviewedStatusText = `${reviewedStatus.stdout}\n${reviewedStatus.stderr}`;
+    assert(reviewedStatus.status === 0, 'status after review exits zero', reviewedStatusText);
+    const reviewedStatusOutput = JSON.parse(reviewedStatus.stdout);
+    assert(reviewedStatusOutput.review.state === 'present', 'status after review reports review present', reviewedStatusText);
+    assert(reviewedStatusOutput.status === 'ready', 'status after review reports ready', reviewedStatusText);
 
     const reviewRepoPack = readJson(launchOutput.repoPackPath);
     const worktreeReadme = path.join(reviewRepoPack.repos[0].worktreePath, 'README.md');

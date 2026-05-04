@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
@@ -71,11 +72,17 @@ function validatePacketReadiness({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT
   };
 }
 
-function buildWorkPacket({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, setupRefs = {}, setupSkips = [] }) {
+function buildWorkPacket({
+  sessionId,
+  runtimeRoot = DEFAULT_RUNTIME_ROOT,
+  setupRefs = {},
+  setupSkips = [],
+  setupBasePath = process.cwd(),
+}) {
   const readiness = validatePacketReadiness({ sessionId, runtimeRoot });
   const session = loadSession(sessionId, runtimeRoot);
   const { instance, instancePath, sessionRoot } = session;
-  const sessionSetup = buildSessionSetup({ setupRefs, setupSkips });
+  const sessionSetup = buildSessionSetup({ setupRefs, setupSkips, setupBasePath });
 
   const packetRef = 'packets/bmad-work-packet.json';
   const renderedPromptRef = 'packets/rendered-prompt.md';
@@ -133,7 +140,7 @@ function buildWorkPacket({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, setupR
   };
 }
 
-function buildSessionSetup({ setupRefs, setupSkips }) {
+function buildSessionSetup({ setupRefs, setupSkips, setupBasePath = process.cwd() }) {
   const steps = {
     zoomOut: setupRefs.zoomOut,
     ubiquitousLanguage: setupRefs.ubiquitousLanguage,
@@ -153,7 +160,10 @@ function buildSessionSetup({ setupRefs, setupSkips }) {
     }
 
     if (typeof ref === 'string' && ref.trim() !== '') {
-      sessionSetup[step] = { status: 'complete', ref: ref.trim() };
+      sessionSetup[step] = {
+        status: 'complete',
+        ...resolveSetupRef(ref, setupBasePath),
+      };
     }
   }
 
@@ -163,6 +173,57 @@ function buildSessionSetup({ setupRefs, setupSkips }) {
   }
 
   return sessionSetup;
+}
+
+function resolveSetupRef(ref, setupBasePath) {
+  const trimmedRef = ref.trim();
+  if (trimmedRef.startsWith('external:')) {
+    if (trimmedRef === 'external:') {
+      throw new Error('SETUP_REF_MISSING: external setup ref requires a value');
+    }
+    return {
+      ref: trimmedRef,
+      refType: 'external',
+      verification: 'external-unverified',
+    };
+  }
+
+  const fileRef = trimmedRef.startsWith('file:') ? trimmedRef.slice('file:'.length) : trimmedRef;
+  const { filePath, fragment } = splitRefFragment(fileRef);
+  if (!filePath || filePath.trim() === '') {
+    throw new Error(`SETUP_REF_MISSING: ${trimmedRef}`);
+  }
+
+  const resolvedPath = path.resolve(setupBasePath, filePath);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`SETUP_REF_MISSING: ${trimmedRef}`);
+  }
+  if (!fs.statSync(resolvedPath).isFile()) {
+    throw new Error(`SETUP_REF_MISSING: ${trimmedRef} is not a file`);
+  }
+
+  return {
+    ref: trimmedRef,
+    refType: 'file',
+    resolvedRef: `${resolvedPath}${fragment}`,
+    sha256: sha256File(resolvedPath),
+    verification: 'local-verified',
+  };
+}
+
+function splitRefFragment(ref) {
+  const hashIndex = ref.indexOf('#');
+  if (hashIndex === -1) {
+    return { filePath: ref, fragment: '' };
+  }
+  return {
+    filePath: ref.slice(0, hashIndex),
+    fragment: ref.slice(hashIndex),
+  };
+}
+
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
 function parseSetupSkips(setupSkips = []) {
@@ -277,4 +338,6 @@ ${packet.reviewPlan}
 module.exports = {
   buildWorkPacket,
   validatePacketReadiness,
+  buildSessionSetup,
+  resolveSetupRef,
 };

@@ -21,7 +21,7 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`review`, `destroy`, and `authorize`.
+`status`, `review`, `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -43,6 +43,7 @@ bmad workspace packet <session-id> --runtime-root <runtime-root> \
   --ubiquitous-language-ref <ref> \
   --grill-decisions-ref <ref> \
   --tdd-plan-ref <ref>
+bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 ```
@@ -61,6 +62,28 @@ Every BMAD Work Packet requires setup entries for:
 
 Each setup entry must be complete with a ref or skipped with an explicit reason.
 Use `--skip-setup <step=reason>` only when the user accepts the skip.
+
+Setup refs may be local or external:
+
+- bare path or `file:<path>`: local evidence file; BMAD Workspace records
+  `sha256` and later reports checksum drift.
+- `external:<ref>`: opaque provenance; no network fetch, no checksum, warning
+  only as `external-unverified`.
+
+## Status
+
+Use status to inspect a Workspace Session without changing it:
+
+```bash
+bmad workspace status <session-id> --runtime-root <runtime-root>
+```
+
+Status reads session artifacts and reports blockers such as missing intake,
+stale intake, missing packet, setup checksum drift, missing review, and Base
+Improvement readiness.
+
+Status does not create, repair, resume, run, fetch, schedule, watch, promote, or
+merge anything.
 
 ## Base Improvement Session
 

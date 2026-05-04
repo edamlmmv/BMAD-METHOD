@@ -31,6 +31,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V4 Acceptance Tests](./v4-acceptance-tests.md) | Lists behavior tests for V4 setup and compatibility removal. |
 | [V4 Backlog](./v4-backlog.md) | Defines TDD-first stories for V4. |
 | [V4 Traceability](./v4-traceability.md) | Maps V4 acceptance tests to stories, tests, and files. |
+| [V5 PRD](./v5-prd.md) | Defines read-only status and setup provenance hardening. |
+| [V5 Acceptance Tests](./v5-acceptance-tests.md) | Lists behavior tests for V5 inspectability. |
+| [V5 Backlog](./v5-backlog.md) | Defines TDD-first stories for V5. |
+| [V5 Traceability](./v5-traceability.md) | Maps V5 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

@@ -4,13 +4,15 @@ const { buildWorkPacket } = require('../../workspace/packet');
 const { runWorktreeReview } = require('../../workspace/review');
 const { destroySession } = require('../../workspace/destroy');
 const { authorizeDurableWrite } = require('../../workspace/grant-guard');
+const { readSessionStatus } = require('../../workspace/status');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
-V4 workspace subcommands:
+Workspace subcommands:
   launch   create a disposable Workspace Session for selected repo paths
   intake   record Repo Intake evidence and target repo provenance
   packet   create a BMAD Work Packet from fresh intake and goal evidence
+  status   inspect Workspace Session state without writing or fetching
   review   emit Git worktree status and patch artifacts for review
   destroy  remove disposable runtime state without deleting target repo changes
   authorize validate a durable write path against Workspace Session grants`;
@@ -47,8 +49,8 @@ module.exports = {
       process.exit(0);
     }
 
-    if (!['launch', 'intake', 'packet', 'review', 'destroy', 'authorize'].includes(workspaceCommand)) {
-      process.stderr.write(`Workspace command not implemented in V1 yet: ${workspaceCommand}\n`);
+    if (!['launch', 'intake', 'packet', 'status', 'review', 'destroy', 'authorize'].includes(workspaceCommand)) {
+      process.stderr.write(`Workspace command not implemented: ${workspaceCommand}\n`);
       process.exit(1);
     }
 
@@ -86,6 +88,13 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
 
   if (workspaceCommand === 'review') {
     return runWorktreeReview({
+      sessionId,
+      runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'status') {
+    return readSessionStatus({
       sessionId,
       runtimeRoot: options.runtimeRoot,
     });

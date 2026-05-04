@@ -10,6 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { buildSessionSetup } = require('../tools/workspace/packet');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
 
 const colors = {
@@ -122,6 +123,66 @@ function runTests() {
     packet.sessionSetup.tddPlan = { status: 'skipped', skipReason: 'No code change.' };
     const result = validateWorkPacket(packet);
     assert(result.ok === true, 'packet accepts explicit setup skip reason', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.sessionSetup.zoomOut = {
+      status: 'complete',
+      ref: 'docs/workspace/v4-zoom-out.md',
+      refType: 'file',
+      resolvedRef: '/tmp/docs/workspace/v4-zoom-out.md',
+      sha256: 'a'.repeat(64),
+      verification: 'local-verified',
+    };
+    packet.sessionSetup.grillDecisions = {
+      status: 'complete',
+      ref: 'external:party-mode-thread',
+      refType: 'external',
+      verification: 'external-unverified',
+    };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === true, 'packet accepts V5 setup ref metadata', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.sessionSetup.zoomOut = {
+      status: 'complete',
+      ref: 'external:party-mode-thread',
+      refType: 'external',
+      verification: 'external-unverified',
+      sha256: 'a'.repeat(64),
+    };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects checksum on external setup ref');
+    assert(
+      result.errors.some((error) => error.includes('external refs')),
+      'external setup ref rejection names external refs',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-setup-ref-'));
+    try {
+      fs.writeFileSync(path.join(tempRoot, 'zoom-out.md'), 'Zoom out.\n');
+      const setup = buildSessionSetup({
+        setupBasePath: tempRoot,
+        setupRefs: {
+          zoomOut: 'zoom-out.md',
+          ubiquitousLanguage: 'file:zoom-out.md',
+          grillDecisions: 'external:party-mode-thread',
+          tddPlan: 'zoom-out.md#tdd',
+        },
+        setupSkips: [],
+      });
+      assert(setup.zoomOut.sha256.length === 64, 'local setup ref records sha256');
+      assert(setup.ubiquitousLanguage.refType === 'file', 'file setup ref records file type');
+      assert(setup.grillDecisions.verification === 'external-unverified', 'external setup ref records warning state');
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
   }
 
   {
@@ -250,6 +311,7 @@ function runTests() {
     const skillContent = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : '';
     assert(skillContent.includes('Workspace Session'), 'source skill uses Workspace Session language');
     assert(skillContent.includes('BMAD Work Packet'), 'source skill uses BMAD Work Packet language');
+    assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
 
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
@@ -291,6 +353,19 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT4-001', 'S25', 'test/test-workspace-cli.js', 'tools/workspace/']) {
       assert(traceability.includes(text), `V4 traceability maps ${text}`, traceability);
+    }
+    assert(!traceability.includes('| Planned |'), 'V4 traceability has no Planned story rows', traceability);
+  }
+
+  section('V5 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v5-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V5 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT5-001', 'S33', 'test/test-workspace-cli.js', 'tools/workspace/status.js']) {
+      assert(traceability.includes(text), `V5 traceability maps ${text}`, traceability);
     }
   }
 
