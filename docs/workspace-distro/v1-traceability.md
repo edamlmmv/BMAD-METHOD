@@ -33,7 +33,7 @@ Source planning commit:
 | S2 Workspace CLI help | Complete | `1547789032d4dba76bb98f569e9866a4e31462e8` | CLI help lists V1 workspace subcommands; launch behavior remains S3. |
 | S3 One-repo launch | Complete | `ada39dd0daa8b0dc2e5abb03cae317d41ff13c56` | Launch writes mission artifacts, creates Git worktree, and keeps base repo clean. |
 | S4 Multi-repo launch | Planned | TBD | After S3. |
-| S5 Repo Intake | Planned | TBD | Requires launch artifacts. |
+| S5 Repo Intake | Complete | `0456fc556cd3a5f42b2e925c40c5aa260c38f3ee` | Intake writes repo evidence and provenance; re-intake records new target HEAD. |
 | S6 Packet freshness guard | Planned | TBD | Requires intake. |
 | S7 BMAD Mission Packet builder | Planned | TBD | Requires S6. |
 | S8 Worktree Review | Planned | TBD | Requires changed worktree fixture. |
