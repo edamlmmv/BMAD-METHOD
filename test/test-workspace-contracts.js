@@ -25,6 +25,7 @@ const WORKSPACE_COMMANDS = [
   'list',
   'status',
   'handoff',
+  'evidence',
   'result',
   'closeout',
   'archive',
@@ -784,6 +785,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace list'), 'source skill documents workspace list');
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
+    assert(skillContent.includes('bmad workspace evidence'), 'source skill documents workspace evidence');
     assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
     assert(skillContent.includes('bmad workspace closeout'), 'source skill documents workspace closeout');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
@@ -800,14 +802,14 @@ function runTests() {
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
   }
 
-  section('V13 Release Readiness Contract');
+  section('V14 Release Readiness Contract');
 
   {
     const workspaceDocsRoot = path.join(repoRoot, 'docs', 'workspace');
     const indexPath = path.join(workspaceDocsRoot, 'index.md');
     const architecturePath = path.join(workspaceDocsRoot, 'architecture.md');
     const commandContractPath = path.join(workspaceDocsRoot, 'command-contract.md');
-    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v13-release-readiness.md');
+    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v14-release-readiness.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
@@ -821,8 +823,14 @@ function runTests() {
       'v13-traceability.md',
       'command-contract.md',
       'v13-release-readiness.md',
+      'operator-guide.md',
+      'v14-prd.md',
+      'v14-backlog.md',
+      'v14-acceptance-tests.md',
+      'v14-traceability.md',
+      'v14-release-readiness.md',
     ]) {
-      assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `V13 artifact exists: ${docName}`);
+      assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Workspace artifact exists: ${docName}`);
     }
 
     const index = fs.readFileSync(indexPath, 'utf8');
@@ -833,12 +841,19 @@ function runTests() {
       './v13-backlog.md',
       './v13-traceability.md',
       './v13-release-readiness.md',
+      './operator-guide.md',
+      './v14-prd.md',
+      './v14-acceptance-tests.md',
+      './v14-backlog.md',
+      './v14-traceability.md',
+      './v14-release-readiness.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
     }
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
-    assert(architecture.includes('The V13 system is'), 'architecture states V13 current system', architecture);
+    assert(architecture.includes('The V14 system is'), 'architecture states V14 current system', architecture);
+    assert(architecture.includes('## Evidence Index'), 'architecture documents Evidence Index', architecture);
     assert(architecture.includes('## Derived Lifecycle'), 'architecture documents derived lifecycle', architecture);
     assert(!architecture.includes('The V4 system is'), 'architecture omits stale V4 current-system framing', architecture);
     assert(
@@ -871,8 +886,11 @@ function runTests() {
       'every other command writes JSON',
       'Filesystem Effect',
       'Stable Error Families',
-      'V13 does not add `workspace run`',
+      'V14 does not add `workspace run`',
+      'Evidence Index Shape',
+      'archiveVersion: 2',
       'ARCHIVE_CHECKSUM_MISMATCH',
+      'ARCHIVE_EVIDENCE_INDEX_INVALID',
       'CLOSEOUT_SECRET_DETECTED',
       'EXECUTOR_CONTRACT_INVALID',
       'ROUTE_WORKFLOW_UNKNOWN',
@@ -889,6 +907,8 @@ function runTests() {
       'npm run validate:skills',
       'npm run quality',
       'bmad workspace',
+      'evidence-index.json',
+      'archiveVersion: 2',
       'verify-archive',
       'package-lock.json',
       'yarn.lock',
@@ -1052,6 +1072,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT13-001', 'S126', 'docs/workspace/command-contract.md', '.github/workflows/quality.yaml']) {
       assert(traceability.includes(text), `V13 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V14 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v14-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V14 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT14-001', 'S134', 'tools/workspace/evidence.js', 'ARCHIVE_EVIDENCE_INDEX_INVALID']) {
+      assert(traceability.includes(text), `V14 traceability maps ${text}`, traceability);
     }
   }
 

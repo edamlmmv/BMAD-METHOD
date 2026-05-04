@@ -16,7 +16,8 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [Architecture](./architecture.md) | Defines modules, boundaries, interfaces, storage, and adapter policy. |
 | [Capability Contract](./capability-contract.md) | Sketches the BMAD-governed adapter registry. |
 | [ADR Candidates](./adr-candidates.md) | Captures architecture decisions to promote into ADRs later. |
-| [Command Contract](./command-contract.md) | Freezes the V13 public Workspace CLI command contract. |
+| [Command Contract](./command-contract.md) | Defines the public Workspace CLI command contract. |
+| [Operator Guide](./operator-guide.md) | Describes the manual Workspace Session operator flow and Evidence Index use. |
 | [V1 Acceptance Tests](./v1-acceptance-tests.md) | Lists behavior tests for the first executable slice. |
 | [V1 Implementation Backlog](./v1-implementation-backlog.md) | Defines TDD-first epics, stories, risks, and cut list. |
 | [V1 Traceability](./v1-traceability.md) | Tracks story progress, acceptance mapping, and completion gates. |
@@ -69,11 +70,17 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V13 Backlog](./v13-backlog.md) | Defines TDD-first stories for V13. |
 | [V13 Traceability](./v13-traceability.md) | Maps V13 acceptance tests to stories, tests, and files. |
 | [V13 Release Readiness](./v13-release-readiness.md) | Provides the maintainer checklist for V13 validation. |
+| [V14 PRD](./v14-prd.md) | Defines Evidence Index and operator trust requirements. |
+| [V14 Acceptance Tests](./v14-acceptance-tests.md) | Lists behavior tests for V14 evidence inspection. |
+| [V14 Backlog](./v14-backlog.md) | Defines TDD-first stories for V14. |
+| [V14 Traceability](./v14-traceability.md) | Maps V14 acceptance tests to stories, tests, and files. |
+| [V14 Release Readiness](./v14-release-readiness.md) | Provides the maintainer checklist for V14 validation. |
 
 ## Doctrine
 
 - BMAD is the kernel and truth source.
 - Codex is the preferred executor.
+- Evidence Index is inspection evidence, not authority.
 - OpenClaw, Hermes, Graphify, Context7, Git, MCP, GitHub, and similar tools are
   adapters behind BMAD-owned interfaces.
 - No normal Workspace Session mutates the BMAD Workspace.

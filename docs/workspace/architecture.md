@@ -9,9 +9,10 @@ description: Architecture for a BMAD-centric portable workspace
 
 BMAD is the kernel. Everything durable is justified by BMAD artifacts, gates,
 manual evidence, and review. Codex executes outside the Workspace CLI. Adapter
-providers supply capabilities behind BMAD-owned interfaces. The V13 system is a
+providers supply capabilities behind BMAD-owned interfaces. The V14 system is a
 manual Workspace Session CLI and filesystem contract backed by Git worktrees,
-release-readiness checks, and evidence-only artifacts.
+release-readiness checks, read-only Evidence Index inspection, and
+evidence-only artifacts.
 
 ## Zoom-Out Map
 
@@ -29,6 +30,7 @@ Workspace Session
   -> accepts manual Result Ledger evidence
   -> emits Worktree Review
   -> accepts Manual Closeout evidence
+  -> emits read-only Evidence Index for operator trust
   -> can be archived, verified, destroyed, or retained for review
 ```
 
@@ -45,6 +47,7 @@ Workspace Session
 | Result Ledger | `result` | Record manual execution evidence as inert JSON data. |
 | Worktree Review | `review` | Produce per-repo status, patches, changed files, and review summary. |
 | Manual Closeout | `closeout` | Record final manual session decision and next manual review path. |
+| Evidence Index | `evidence` | Report artifacts, checksums, validation state, and next manual actions without writes. |
 | Archive | `archive`, `verify-archive` | Preserve and verify portable evidence bundles without restore or replay. |
 | Status and Handoff | `status`, `list`, `handoff` | Inspect session state and emit continuation context without writes. |
 | Grant Guard | `authorize` | Enforce path, repo, capability, persistence, and base-write rules. |
@@ -101,6 +104,7 @@ bmad workspace packet <session-id> --runtime-root <root> --workflow <skill[:acti
 bmad workspace status <session-id> --runtime-root <root>
 bmad workspace list --runtime-root <root>
 bmad workspace handoff <session-id> --runtime-root <root>
+bmad workspace evidence <session-id> --runtime-root <root>
 bmad workspace result <session-id> --runtime-root <root> --input <result-json> --result-id <id>
 bmad workspace review <session-id> --runtime-root <root>
 bmad workspace closeout <session-id> --runtime-root <root> --input <closeout-json> --closeout-id <id>
@@ -123,6 +127,10 @@ explicit workflow route is unknown.
 derived lifecycle state without persisting workflow authority.
 
 `handoff` emits copy-ready continuation context. It is Markdown, not JSON.
+
+`evidence` emits a read-only Evidence Index. It reports artifact presence,
+checksums, validation state, and next manual actions. It does not write session
+artifacts.
 
 `result` records manual execution evidence. It never executes command strings.
 
@@ -232,6 +240,18 @@ engine and does not authorize work.
 | `closeout-recorded` | One or more valid closeout artifacts exist. |
 | `blocked` | Any high-severity status check or invalid artifact exists. |
 
+## Evidence Index
+
+Evidence Index is a derived view over stored artifacts. It records:
+
+- `state: complete | warning | invalid`
+- artifact `stage`, `kind`, `ref`, `present`, `validationState`, `sha256`,
+  `bytes`, and `sourceCommand`
+- check `code`, `severity`, `message`, `ref`, and `nextManualAction`
+
+The index is not a durable authority, execution plan, restore input, replay
+input, approval, scheduler input, or adapter instruction.
+
 ## Sequence
 
 ```mermaid
@@ -242,6 +262,7 @@ flowchart TD
   Packet --> Contract["Manual Executor Contract"]
   Contract --> Handoff["Codex handoff"]
   Handoff --> ManualWork["Manual Codex or human work"]
+  Handoff --> Evidence["Evidence Index"]
   ManualWork --> Result["Result Ledger evidence"]
   Result --> Review["Worktree Review"]
   Review --> Closeout["Manual Closeout"]
@@ -252,11 +273,12 @@ flowchart TD
   Packet --> Status
   Result --> Status
   Closeout --> Status
+  Evidence --> Status
 ```
 
-## V13 Boundary
+## V14 Boundary
 
-V13 freezes and documents the V12 command surface. It hardens release readiness,
-package hygiene, CI parity, and docs/source/test alignment. It does not add
-`workspace run`, schedulers, watchers, daemons, restore/replay, merge/promotion,
-live adapters, hidden state machines, or automatic action from evidence.
+V14 adds read-only Evidence Index inspection and archive V2 evidence bundles.
+It does not add `workspace run`, schedulers, watchers, daemons, restore/replay,
+merge/promotion, live adapters, hidden state machines, or automatic action from
+evidence.

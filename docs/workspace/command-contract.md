@@ -1,12 +1,13 @@
 ---
 title: "BMAD Workspace Command Contract"
-description: Stable V13 public contract for Workspace CLI commands
+description: Stable V14 public contract for Workspace CLI commands
 ---
 
 # BMAD Workspace Command Contract
 
-V13 freezes the current Workspace CLI contract so docs, tests, and operators
-share one source of truth before any future runtime expansion.
+V14 extends the frozen Workspace CLI contract with read-only Evidence Index
+inspection. Docs, tests, and operators share one source of truth before any
+future runtime expansion.
 
 ## Contract Rules
 
@@ -29,6 +30,7 @@ share one source of truth before any future runtime expansion.
 | `status` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
 | `list` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
 | `handoff` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
+| `evidence` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
 | `result` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
 | `review` | JSON | Writes review summary, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
 | `closeout` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
@@ -55,10 +57,31 @@ share one source of truth before any future runtime expansion.
   `ARCHIVE_MANIFEST_INVALID`, `ARCHIVE_OUTPUT_EXISTS`,
   `ARCHIVE_CHECKSUM_MISMATCH`, `ARCHIVE_UNSAFE_PATH`,
   `ARCHIVE_RESULT_INVALID`, `ARCHIVE_CLOSEOUT_INVALID`,
-  `ARCHIVE_EXECUTOR_CONTRACT_INVALID`.
+  `ARCHIVE_EXECUTOR_CONTRACT_INVALID`, `ARCHIVE_EVIDENCE_INDEX_INVALID`.
+
+## Evidence Index Shape
+
+`evidence` returns:
+
+- `schemaVersion: 1`
+- `sessionId`, `sessionRoot`, and `generatedAt`
+- `state: complete | warning | invalid`
+- `artifacts[]` entries with `stage`, `kind`, `ref`, `present`,
+  `validationState`, `sha256`, `bytes`, and `sourceCommand`
+- `checks[]` entries with `code`, `severity`, `message`, `ref`, and
+  `nextManualAction`
+
+`evidence` never creates, repairs, fetches, executes, restores, replays,
+archives, destroys, merges, promotes, schedules, watches, or activates adapters.
+
+## Archive Versions
+
+`archiveVersion: 1` bundles remain valid for `verify-archive`.
+New V14 archives use `archiveVersion: 2` and include `evidence-index.json`.
+`verify-archive` validates the Evidence Index shape and checksum for V2 bundles.
 
 ## Non-Goals
 
-V13 does not add `workspace run`, automatic closeout, automatic archive,
+V14 does not add `workspace run`, automatic closeout, automatic archive,
 automatic destroy, scheduler, watcher, daemon, background worker, restore,
 replay, import, merge, promotion, live adapter activation, or hidden execution.

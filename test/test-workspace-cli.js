@@ -204,6 +204,7 @@ function runTests() {
     'list',
     'status',
     'handoff',
+    'evidence',
     'result',
     'closeout',
     'archive',
@@ -223,6 +224,7 @@ function runTests() {
     'list',
     'status',
     'handoff',
+    'evidence',
     'result',
     'closeout',
     'archive',
@@ -290,6 +292,15 @@ function runTests() {
     const missingStatusText = `${missingStatus.stdout}\n${missingStatus.stderr}`;
     assert(missingStatus.status !== 0, 'status for missing session exits nonzero', missingStatusText);
     assert(missingStatusText.includes('SESSION_NOT_FOUND'), 'missing status names SESSION_NOT_FOUND', missingStatusText);
+    assert(missingStatusText.includes('Next manual action:'), 'missing status includes next manual action hint', missingStatusText);
+
+    const missingEvidence = runCli(['workspace', 'evidence', 'missing-session', '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingEvidenceText = `${missingEvidence.stdout}\n${missingEvidence.stderr}`;
+    assert(missingEvidence.status !== 0, 'evidence for missing session exits nonzero', missingEvidenceText);
+    assert(missingEvidenceText.includes('SESSION_NOT_FOUND'), 'missing evidence names SESSION_NOT_FOUND', missingEvidenceText);
+    assert(missingEvidenceText.includes('Next manual action:'), 'missing evidence includes next manual action hint', missingEvidenceText);
 
     const beforeLaunchStatus = fingerprintTree(launchOutput.sessionRoot);
     const launchStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
@@ -305,6 +316,40 @@ function runTests() {
       launchStatusOutput.checks.some((item) => item.code === 'MISSING_INTAKE'),
       'status after launch reports missing intake',
       launchStatusText,
+    );
+    assert(
+      launchStatusOutput.checks.some((item) => item.code === 'MISSING_INTAKE' && item.nextManualAction.includes('bmad workspace intake')),
+      'status after launch includes next manual action',
+      launchStatusText,
+    );
+
+    section('Workspace Evidence');
+
+    const launchEvidenceBefore = fingerprintTree(launchOutput.sessionRoot);
+    const launchEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const launchEvidenceAfter = fingerprintTree(launchOutput.sessionRoot);
+    const launchEvidenceText = `${launchEvidence.stdout}\n${launchEvidence.stderr}`;
+    assert(launchEvidence.status === 0, 'evidence after launch exits zero', launchEvidenceText);
+    assert(launchEvidenceBefore === launchEvidenceAfter, 'evidence after launch is read-only', launchEvidenceText);
+    const launchEvidenceOutput = JSON.parse(launchEvidence.stdout);
+    assert(launchEvidenceOutput.schemaVersion === 1, 'evidence output records schemaVersion 1', launchEvidenceText);
+    assert(launchEvidenceOutput.state === 'invalid', 'evidence after launch reports invalid state', launchEvidenceText);
+    assert(
+      launchEvidenceOutput.artifacts.some((item) => item.kind === 'instance' && item.validationState === 'valid' && item.sha256),
+      'evidence records launch artifact checksum',
+      launchEvidenceText,
+    );
+    assert(
+      launchEvidenceOutput.artifacts.some((item) => item.kind === 'work-packet' && item.validationState === 'missing'),
+      'evidence records missing packet artifact',
+      launchEvidenceText,
+    );
+    assert(
+      launchEvidenceOutput.checks.some((item) => item.code === 'MISSING_INTAKE' && item.nextManualAction.includes('bmad workspace intake')),
+      'evidence records next manual action',
+      launchEvidenceText,
     );
 
     section('Workspace List');
@@ -1084,6 +1129,31 @@ function runTests() {
     assert(renderedPrompt.includes('GOAL_QUICK_DEV'), 'rendered prompt includes routing reason code');
     assert(renderedPrompt.includes('packets/executor-contract.json'), 'rendered prompt references executor contract');
 
+    const packetEvidenceBefore = fingerprintTree(launchOutput.sessionRoot);
+    const packetEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const packetEvidenceAfter = fingerprintTree(launchOutput.sessionRoot);
+    const packetEvidenceText = `${packetEvidence.stdout}\n${packetEvidence.stderr}`;
+    assert(packetEvidence.status === 0, 'evidence after packet exits zero', packetEvidenceText);
+    assert(packetEvidenceBefore === packetEvidenceAfter, 'evidence after packet is read-only', packetEvidenceText);
+    const packetEvidenceOutput = JSON.parse(packetEvidence.stdout);
+    assert(
+      packetEvidenceOutput.artifacts.some((item) => item.kind === 'work-packet' && item.validationState === 'valid' && item.sha256),
+      'evidence records packet checksum',
+      packetEvidenceText,
+    );
+    assert(
+      packetEvidenceOutput.artifacts.some((item) => item.kind === 'executor-contract' && item.validationState === 'valid'),
+      'evidence records executor contract state',
+      packetEvidenceText,
+    );
+    assert(
+      packetEvidenceOutput.checks.some((item) => item.code === 'REVIEW_MISSING' && item.nextManualAction.includes('bmad workspace review')),
+      'evidence after packet records review next action',
+      packetEvidenceText,
+    );
+
     const originalPacketContent = fs.readFileSync(packetOutput.packetPath, 'utf8');
     const originalExecutorContractContent = fs.readFileSync(packetOutput.executorContractPath, 'utf8');
     const legacyPacket = JSON.parse(originalPacketContent);
@@ -1319,6 +1389,16 @@ function runTests() {
       checksumStatusOutput.checks.some((item) => item.code === 'SETUP_REF_CHECKSUM_MISMATCH'),
       'status names setup checksum mismatch',
       checksumStatusText,
+    );
+    const checksumEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const checksumEvidenceText = `${checksumEvidence.stdout}\n${checksumEvidence.stderr}`;
+    assert(checksumEvidence.status === 0, 'evidence with checksum drift exits zero', checksumEvidenceText);
+    assert(
+      JSON.parse(checksumEvidence.stdout).checks.some((item) => item.code === 'SETUP_REF_CHECKSUM_MISMATCH'),
+      'evidence names setup checksum mismatch',
+      checksumEvidenceText,
     );
     fs.writeFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Zoom out map.\n');
 
@@ -1806,6 +1886,16 @@ function runTests() {
       'status with invalid result names RESULT_INVALID',
       invalidResultStatusText,
     );
+    const invalidResultEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidResultEvidenceText = `${invalidResultEvidence.stdout}\n${invalidResultEvidence.stderr}`;
+    assert(invalidResultEvidence.status === 0, 'evidence with invalid result exits zero', invalidResultEvidenceText);
+    assert(
+      JSON.parse(invalidResultEvidence.stdout).checks.some((item) => item.code === 'RESULT_INVALID'),
+      'evidence with invalid result names RESULT_INVALID',
+      invalidResultEvidenceText,
+    );
     fs.rmSync(invalidStoredResultPath);
 
     const secretStoredResultPath = path.join(launchOutput.sessionRoot, 'results', 'secret-result.json');
@@ -1824,6 +1914,17 @@ function runTests() {
       secretResultStatusText,
     );
     assert(!secretResultStatusText.includes(secretToken), 'status with secret-positive result is redacted', secretResultStatusText);
+    const secretResultEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const secretResultEvidenceText = `${secretResultEvidence.stdout}\n${secretResultEvidence.stderr}`;
+    assert(secretResultEvidence.status === 0, 'evidence with secret-positive result exits zero', secretResultEvidenceText);
+    assert(
+      JSON.parse(secretResultEvidence.stdout).checks.some((item) => item.code === 'RESULT_SECRET_DETECTED'),
+      'evidence with secret-positive result names RESULT_SECRET_DETECTED',
+      secretResultEvidenceText,
+    );
+    assert(!secretResultEvidenceText.includes(secretToken), 'evidence with secret-positive result is redacted', secretResultEvidenceText);
     fs.rmSync(secretStoredResultPath);
 
     const resultStatusBefore = fingerprintTree(runtimeRoot);
@@ -1863,6 +1964,7 @@ function runTests() {
       '## Identity',
       '## Status',
       '## Blockers',
+      '## Evidence Index',
       '## BMAD Work Packet',
       '## Setup Gate',
       '## Result Ledger',
@@ -1883,6 +1985,7 @@ function runTests() {
     assert(packetHandoff.stdout.includes('external:zoom-out-thread-note'), 'handoff includes external setup ref', packetHandoffText);
     assert(packetHandoff.stdout.includes('external-unverified'), 'handoff includes external setup warning', packetHandoffText);
     assert(packetHandoff.stdout.includes('SETUP_REF_EXTERNAL_UNVERIFIED'), 'handoff includes status checks', packetHandoffText);
+    assert(packetHandoff.stdout.includes('nextManualAction:'), 'handoff includes evidence next manual action', packetHandoffText);
     assert(
       packetHandoff.stdout.includes('Worktree Review has not been created.'),
       'handoff includes missing review blocker',
@@ -2040,6 +2143,16 @@ function runTests() {
       'status with invalid closeout names CLOSEOUT_INVALID',
       invalidCloseoutStatusText,
     );
+    const invalidCloseoutEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidCloseoutEvidenceText = `${invalidCloseoutEvidence.stdout}\n${invalidCloseoutEvidence.stderr}`;
+    assert(invalidCloseoutEvidence.status === 0, 'evidence with invalid closeout exits zero', invalidCloseoutEvidenceText);
+    assert(
+      JSON.parse(invalidCloseoutEvidence.stdout).checks.some((item) => item.code === 'CLOSEOUT_INVALID'),
+      'evidence with invalid closeout names CLOSEOUT_INVALID',
+      invalidCloseoutEvidenceText,
+    );
     fs.rmSync(invalidStoredCloseoutPath);
 
     const secretStoredCloseoutPath = path.join(launchOutput.sessionRoot, 'closeout', 'secret-closeout.json');
@@ -2058,6 +2171,21 @@ function runTests() {
       secretCloseoutStatusText,
     );
     assert(!secretCloseoutStatusText.includes(secretToken), 'status with secret-positive closeout is redacted', secretCloseoutStatusText);
+    const secretCloseoutEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const secretCloseoutEvidenceText = `${secretCloseoutEvidence.stdout}\n${secretCloseoutEvidence.stderr}`;
+    assert(secretCloseoutEvidence.status === 0, 'evidence with secret-positive closeout exits zero', secretCloseoutEvidenceText);
+    assert(
+      JSON.parse(secretCloseoutEvidence.stdout).checks.some((item) => item.code === 'CLOSEOUT_SECRET_DETECTED'),
+      'evidence with secret-positive closeout names CLOSEOUT_SECRET_DETECTED',
+      secretCloseoutEvidenceText,
+    );
+    assert(
+      !secretCloseoutEvidenceText.includes(secretToken),
+      'evidence with secret-positive closeout is redacted',
+      secretCloseoutEvidenceText,
+    );
     fs.rmSync(secretStoredCloseoutPath);
 
     const noResultIntake = runCli(['workspace', 'intake', multiRepoOutput.sessionId, '--runtime-root', runtimeRoot], {
@@ -2160,6 +2288,7 @@ function runTests() {
     assert(fs.existsSync(path.join(archiveRoot, 'manifest.json')), 'archive writes manifest.json', archiveText);
     assert(fs.existsSync(path.join(archiveRoot, 'checksums.sha256')), 'archive writes checksums.sha256', archiveText);
     assert(fs.existsSync(path.join(archiveRoot, 'status.json')), 'archive writes status.json', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'evidence-index.json')), 'archive writes evidence-index.json', archiveText);
     assert(fs.existsSync(path.join(archiveRoot, 'handoff.md')), 'archive writes handoff.md', archiveText);
     assert(fs.existsSync(path.join(archiveRoot, 'closeout.md')), 'archive writes closeout.md', archiveText);
     assert(
@@ -2201,9 +2330,14 @@ function runTests() {
 
     const manifest = readJson(path.join(archiveRoot, 'manifest.json'));
     assert(manifest.schemaVersion === 1, 'archive manifest records schemaVersion 1', JSON.stringify(manifest, null, 2));
-    assert(manifest.archiveVersion === 1, 'archive manifest records archiveVersion 1', JSON.stringify(manifest, null, 2));
+    assert(manifest.archiveVersion === 2, 'archive manifest records archiveVersion 2', JSON.stringify(manifest, null, 2));
     assert(manifest.sessionId === launchOutput.sessionId, 'archive manifest records sessionId', JSON.stringify(manifest, null, 2));
     assert(manifest.statusRef === 'status.json', 'archive manifest records status ref', JSON.stringify(manifest, null, 2));
+    assert(
+      manifest.evidenceIndexRef === 'evidence-index.json',
+      'archive manifest records evidence index ref',
+      JSON.stringify(manifest, null, 2),
+    );
     assert(manifest.handoffRef === 'handoff.md', 'archive manifest records handoff ref', JSON.stringify(manifest, null, 2));
     assert(manifest.closeoutRef === 'closeout.md', 'archive manifest records closeout ref', JSON.stringify(manifest, null, 2));
     assert(
@@ -2245,6 +2379,23 @@ function runTests() {
       JSON.stringify(archivedPacket, null, 2),
     );
     const archivedStatus = readJson(path.join(archiveRoot, 'status.json'));
+    const archivedEvidence = readJson(path.join(archiveRoot, 'evidence-index.json'));
+    assert(archivedEvidence.schemaVersion === 1, 'archive evidence records schemaVersion 1', JSON.stringify(archivedEvidence, null, 2));
+    assert(
+      archivedEvidence.sessionId === launchOutput.sessionId,
+      'archive evidence records sessionId',
+      JSON.stringify(archivedEvidence, null, 2),
+    );
+    assert(
+      archivedEvidence.artifacts.some((item) => item.kind === 'work-packet' && item.sha256),
+      'archive evidence preserves packet checksum',
+      JSON.stringify(archivedEvidence, null, 2),
+    );
+    assert(
+      archivedEvidence.checks.every((item) => typeof item.nextManualAction === 'string'),
+      'archive evidence preserves next manual actions',
+      JSON.stringify(archivedEvidence, null, 2),
+    );
     assert(
       archivedStatus.routing.selectedWorkflow === 'bmad-quick-dev',
       'archive status preserves routed workflow',
@@ -2303,6 +2454,24 @@ function runTests() {
     assert(beforeVerifyArchive === afterVerifyArchive, 'verify-archive is read-only', verifyArchiveText);
     const verifyOutput = JSON.parse(verifyArchive.stdout);
     assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
+    assert(verifyOutput.archiveVersion === 2, 'verify-archive reports archiveVersion 2', verifyArchiveText);
+
+    const archiveV1Root = path.join(tempRoot, 'archive-v1-compatible');
+    copyTree(archiveRoot, archiveV1Root);
+    const archiveV1ManifestPath = path.join(archiveV1Root, 'manifest.json');
+    const archiveV1Manifest = readJson(archiveV1ManifestPath);
+    archiveV1Manifest.archiveVersion = 1;
+    delete archiveV1Manifest.evidenceIndexRef;
+    archiveV1Manifest.files = archiveV1Manifest.files.filter((file) => file.path !== 'evidence-index.json');
+    fs.rmSync(path.join(archiveV1Root, 'evidence-index.json'));
+    fs.writeFileSync(archiveV1ManifestPath, `${JSON.stringify(archiveV1Manifest, null, 2)}\n`);
+    rewriteArchiveChecksums(archiveV1Root);
+    const verifyArchiveV1 = runCli(['workspace', 'verify-archive', archiveV1Root], {
+      cwd: baseRepo.path,
+    });
+    const verifyArchiveV1Text = `${verifyArchiveV1.stdout}\n${verifyArchiveV1.stderr}`;
+    assert(verifyArchiveV1.status === 0, 'verify-archive accepts archiveVersion 1', verifyArchiveV1Text);
+    assert(JSON.parse(verifyArchiveV1.stdout).archiveVersion === 1, 'verify-archive reports archiveVersion 1', verifyArchiveV1Text);
 
     const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');
     copyTree(archiveRoot, invalidExecutorArchiveRoot);
@@ -2350,6 +2519,22 @@ function runTests() {
       invalidCloseoutArchiveText.includes('ARCHIVE_CLOSEOUT_INVALID'),
       'verify-archive invalid closeout shape names ARCHIVE_CLOSEOUT_INVALID',
       invalidCloseoutArchiveText,
+    );
+
+    const invalidEvidenceArchiveRoot = path.join(tempRoot, 'invalid-evidence-archive');
+    copyTree(archiveRoot, invalidEvidenceArchiveRoot);
+    const invalidArchivedEvidencePath = path.join(invalidEvidenceArchiveRoot, 'evidence-index.json');
+    fs.writeFileSync(invalidArchivedEvidencePath, `${JSON.stringify({ kind: 'not-evidence-index' }, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidEvidenceArchiveRoot);
+    const invalidEvidenceArchive = runCli(['workspace', 'verify-archive', invalidEvidenceArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidEvidenceArchiveText = `${invalidEvidenceArchive.stdout}\n${invalidEvidenceArchive.stderr}`;
+    assert(invalidEvidenceArchive.status !== 0, 'verify-archive invalid evidence index exits nonzero', invalidEvidenceArchiveText);
+    assert(
+      invalidEvidenceArchiveText.includes('ARCHIVE_EVIDENCE_INDEX_INVALID'),
+      'verify-archive invalid evidence index names stable error',
+      invalidEvidenceArchiveText,
     );
 
     const archivedStatusPath = path.join(archiveRoot, 'status.json');

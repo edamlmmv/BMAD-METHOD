@@ -5,6 +5,7 @@ const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
 const { readExecutorContractStatus } = require('./executor-contract');
+const { enrichChecks } = require('./next-action');
 const { createLegacyRouting } = require('./routing');
 const { readResultLedger } = require('./result');
 const { readCloseoutLedger } = require('./closeout');
@@ -61,6 +62,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     schemaVersion: '0.1',
     sessionId,
     sessionRoot,
+    runtimeRoot: resolvedRuntimeRoot,
     sessionType: instance.sessionType || 'unknown',
     status: 'blocked',
     lifecycle: Array.isArray(instance.lifecycle) ? instance.lifecycle : [],
@@ -82,6 +84,13 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   readReviewStatus({ sessionRoot, status, checks });
   readCloseoutStatus({ sessionRoot, status, checks });
   readBaseImprovementReadiness({ instance, grants, sessionRoot, status, checks });
+  status.checks = enrichChecks(status.checks, { sessionId, runtimeRoot: resolvedRuntimeRoot });
+  if (status.baseImprovementReadiness) {
+    status.baseImprovementReadiness.checks = enrichChecks(status.baseImprovementReadiness.checks, {
+      sessionId,
+      runtimeRoot: resolvedRuntimeRoot,
+    });
+  }
 
   status.status = summarizeStatus(status);
   status.derivedLifecycle = deriveLifecycle(status);

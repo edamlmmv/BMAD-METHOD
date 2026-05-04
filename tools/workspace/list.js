@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { enrichChecks } = require('./next-action');
 const { readResultLedger } = require('./result');
 const { readCloseoutLedger } = require('./closeout');
 
@@ -33,7 +34,7 @@ function listSessions({ runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     .readdirSync(sessionsRoot, { withFileTypes: true })
     .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
 
-  inventory.sessions = entries.map((entry) => readSessionInventory(sessionsRoot, entry));
+  inventory.sessions = entries.map((entry) => readSessionInventory(sessionsRoot, entry, resolvedRuntimeRoot));
   return inventory;
 }
 
@@ -51,7 +52,7 @@ function assertReadableDirectory(directoryPath) {
   }
 }
 
-function readSessionInventory(sessionsRoot, entry) {
+function readSessionInventory(sessionsRoot, entry, runtimeRoot) {
   const sessionId = entry.name;
   const sessionRoot = path.join(sessionsRoot, sessionId);
   const checks = [];
@@ -71,22 +72,26 @@ function readSessionInventory(sessionsRoot, entry) {
 
   if (!SESSION_ID_PATTERN.test(sessionId)) {
     checks.push(check('SESSION_INVALID', 'error', 'Session id contains unsupported characters.', sessionRoot));
+    session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
     return session;
   }
 
   if (entry.isSymbolicLink()) {
     checks.push(check('SESSION_INVALID', 'error', 'Session entry is a symlink and was not followed.', sessionRoot));
+    session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
     return session;
   }
 
   if (!entry.isDirectory()) {
     checks.push(check('SESSION_INVALID', 'error', 'Session entry is not a directory.', sessionRoot));
+    session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
     return session;
   }
 
   const instancePath = path.join(sessionRoot, 'instance.json');
   if (!fs.existsSync(instancePath)) {
     checks.push(check('SESSION_INVALID', 'error', 'Session instance.json is missing.', instancePath));
+    session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
     return session;
   }
 
@@ -95,6 +100,7 @@ function readSessionInventory(sessionsRoot, entry) {
     instance = JSON.parse(fs.readFileSync(instancePath, 'utf8'));
   } catch (error) {
     checks.push(check('SESSION_INVALID', 'error', `Session instance.json is invalid JSON: ${error.message}`, instancePath));
+    session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
     return session;
   }
 
@@ -103,6 +109,7 @@ function readSessionInventory(sessionsRoot, entry) {
   session.artifacts = createArtifactMap(sessionRoot, instance);
   session.results = readResultLedger({ sessionRoot, sessionId, checks });
   session.closeout = readCloseoutLedger({ sessionRoot, sessionId, checks });
+  session.checks = enrichChecks(checks, { sessionId, runtimeRoot });
   session.derivedLifecycle = deriveInventoryLifecycle(session);
   session.valid = true;
   session.status = checks.some((item) => item.severity === 'error') ? 'blocked' : 'valid';

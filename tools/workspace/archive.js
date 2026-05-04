@@ -2,13 +2,14 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { readEvidenceIndex, validateEvidenceIndex } = require('./evidence');
 const { readSessionStatus } = require('./status');
 const { renderSessionHandoff } = require('./handoff');
 const { validateExecutorContract } = require('./executor-contract');
 const { scanForSecrets, validateResultArtifact } = require('./result');
 const { validateCloseoutArtifact } = require('./closeout');
 
-const ARCHIVE_VERSION = 1;
+const ARCHIVE_VERSION = 2;
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputPath }) {
@@ -35,6 +36,7 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
   }
 
   const handoff = renderSessionHandoff({ sessionId, runtimeRoot });
+  const evidence = readEvidenceIndex({ sessionId, runtimeRoot });
   const sessionRoot = status.sessionRoot;
   const runtimeRootResolved = path.resolve(runtimeRoot);
   const tempRoot = `${archiveRoot}.tmp-${process.pid}-${Date.now()}`;
@@ -44,6 +46,7 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
     const copiedArtifacts = copySessionArtifacts({ sessionRoot, status, archiveRoot: tempRoot });
 
     writeJson(path.join(tempRoot, 'status.json'), status);
+    writeJson(path.join(tempRoot, 'evidence-index.json'), evidence);
     fs.writeFileSync(path.join(tempRoot, 'handoff.md'), `${handoff.trimEnd()}\n`);
     fs.writeFileSync(path.join(tempRoot, 'closeout.md'), renderCloseout(status));
 
@@ -66,6 +69,7 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
         version: readPackageVersion(),
       },
       statusRef: 'status.json',
+      evidenceIndexRef: 'evidence-index.json',
       handoffRef: 'handoff.md',
       closeoutRef: 'closeout.md',
       artifacts: copiedArtifacts,
@@ -81,6 +85,7 @@ function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputP
       archiveRoot,
       manifestPath: path.join(archiveRoot, 'manifest.json'),
       statusPath: path.join(archiveRoot, 'status.json'),
+      evidenceIndexPath: path.join(archiveRoot, 'evidence-index.json'),
       handoffPath: path.join(archiveRoot, 'handoff.md'),
       closeoutPath: path.join(archiveRoot, 'closeout.md'),
       fileCount: files.length,
@@ -112,7 +117,7 @@ function verifyArchive({ archivePath }) {
 
   const manifest = readManifest(manifestPath);
   validateManifestShape(manifest);
-  validateControlFiles(archiveRoot);
+  validateControlFiles(archiveRoot, manifest);
 
   const verifiedFiles = [];
   for (const file of manifest.files) {
@@ -130,6 +135,7 @@ function verifyArchive({ archivePath }) {
     verifiedFiles.push(file.path);
   }
 
+  validateArchivedEvidenceIndex(archiveRoot, manifest);
   validateArchivedExecutorContract(archiveRoot, manifest);
   validateChecksumFile(archiveRoot, manifest.files);
 
@@ -364,8 +370,8 @@ function validateManifestShape(manifest) {
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
     throw new TypeError('ARCHIVE_MANIFEST_INVALID: manifest must be an object');
   }
-  if (manifest.schemaVersion !== 1 || manifest.archiveVersion !== ARCHIVE_VERSION) {
-    throw new Error('ARCHIVE_UNSUPPORTED_VERSION: expected schemaVersion 1 and archiveVersion 1');
+  if (manifest.schemaVersion !== 1 || ![1, 2].includes(manifest.archiveVersion)) {
+    throw new Error('ARCHIVE_UNSUPPORTED_VERSION: expected schemaVersion 1 and archiveVersion 1 or 2');
   }
   for (const field of ['createdAt', 'sessionId', 'sessionType', 'statusRef', 'handoffRef', 'closeoutRef']) {
     if (typeof manifest[field] !== 'string' || manifest[field].trim() === '') {
@@ -381,6 +387,9 @@ function validateManifestShape(manifest) {
   if (!Array.isArray(manifest.files)) {
     throw new TypeError('ARCHIVE_MANIFEST_INVALID: files must be an array');
   }
+  if (manifest.archiveVersion >= 2 && (typeof manifest.evidenceIndexRef !== 'string' || manifest.evidenceIndexRef.trim() === '')) {
+    throw new Error('ARCHIVE_MANIFEST_INVALID: evidenceIndexRef must be a non-empty string for archiveVersion 2');
+  }
   for (const file of manifest.files) {
     if (!file || typeof file !== 'object' || typeof file.path !== 'string' || typeof file.sha256 !== 'string') {
       throw new Error('ARCHIVE_MANIFEST_INVALID: each file needs path and sha256');
@@ -391,12 +400,34 @@ function validateManifestShape(manifest) {
   }
 }
 
-function validateControlFiles(archiveRoot) {
-  for (const requiredPath of ['checksums.sha256', 'status.json', 'handoff.md', 'closeout.md']) {
+function validateControlFiles(archiveRoot, manifest) {
+  const requiredPaths = ['checksums.sha256', 'status.json', 'handoff.md', 'closeout.md'];
+  if (manifest.archiveVersion >= 2) {
+    requiredPaths.push('evidence-index.json');
+  }
+  for (const requiredPath of requiredPaths) {
     const absolutePath = path.join(archiveRoot, requiredPath);
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
       throw new Error(`ARCHIVE_FILE_MISSING: ${requiredPath}`);
     }
+  }
+}
+
+function validateArchivedEvidenceIndex(archiveRoot, manifest) {
+  if (manifest.archiveVersion < 2) {
+    return;
+  }
+  assertSafeArchivePath(manifest.evidenceIndexRef);
+  const evidencePath = path.join(archiveRoot, manifest.evidenceIndexRef);
+  let evidence;
+  try {
+    evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+  } catch (error) {
+    throw new Error(`ARCHIVE_EVIDENCE_INDEX_INVALID: ${manifest.evidenceIndexRef}: ${error.message}`);
+  }
+  const validation = validateEvidenceIndex(evidence, { expectedSessionId: manifest.sessionId });
+  if (!validation.ok) {
+    throw new Error(`ARCHIVE_EVIDENCE_INDEX_INVALID: ${manifest.evidenceIndexRef}: ${validation.errors.join('; ')}`);
   }
 }
 

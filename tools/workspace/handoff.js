@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { readEvidenceIndex } = require('./evidence');
 const { readSessionStatus } = require('./status');
 
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -16,6 +17,7 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
   const instance = readJson(path.join(status.sessionRoot, 'instance.json'));
   const packet = readOptionalJson(status.artifacts.packet.path);
   const review = readOptionalJson(status.artifacts.review.path);
+  const evidence = readEvidenceIndex({ sessionId, runtimeRoot });
   const runtimeRootResolved = path.resolve(runtimeRoot);
 
   return [
@@ -24,6 +26,7 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
     renderIdentity({ status, instance, runtimeRoot: runtimeRootResolved }),
     renderStatus(status),
     renderBlockers(status),
+    renderEvidenceIndex(evidence),
     renderPacket(status, packet),
     renderExecutorContract(status),
     renderSetupGate(status),
@@ -34,6 +37,17 @@ function renderSessionHandoff({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT })
     renderNextRoute(status, packet),
     renderReadOnlyBoundary(),
   ].join('\n');
+}
+
+function renderEvidenceIndex(evidence) {
+  const issueCount = evidence.checks.filter((item) => item.severity === 'error' || item.severity === 'warning').length;
+  const firstAction = evidence.checks.find((item) => item.severity === 'error')?.nextManualAction || evidence.checks[0]?.nextManualAction;
+  return `## Evidence Index
+
+- state: \`${evidence.state}\`
+- artifacts: \`${evidence.artifacts.length}\`
+- issues: \`${issueCount}\`
+- nextManualAction: ${firstAction || 'None recorded'}`;
 }
 
 function assertSessionId(sessionId) {

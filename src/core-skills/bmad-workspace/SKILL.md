@@ -1,6 +1,6 @@
 ---
 name: bmad-workspace
-description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, recording manual results, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
+description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, inspecting Evidence Index output, recording manual results, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
 ---
 
 # BMAD Workspace
@@ -21,7 +21,7 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `result`, `closeout`, `archive`,
+`list`, `status`, `handoff`, `evidence`, `result`, `closeout`, `archive`,
 `verify-archive`, `review`, `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
@@ -48,6 +48,7 @@ bmad workspace packet <session-id> --runtime-root <runtime-root> \
 bmad workspace list --runtime-root <runtime-root>
 bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace handoff <session-id> --runtime-root <runtime-root>
+bmad workspace evidence <session-id> --runtime-root <runtime-root>
 bmad workspace result <session-id> --runtime-root <runtime-root> --input <result-json>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace closeout <session-id> --runtime-root <runtime-root> --input <closeout-json> --closeout-id <id>
@@ -216,6 +217,22 @@ Closeout, Base Improvement readiness, next BMAD route, and read-only boundary.
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
 
+## Evidence Index
+
+Use evidence to inspect stored Session artifacts without changing them:
+
+```bash
+bmad workspace evidence <session-id> --runtime-root <runtime-root>
+```
+
+Evidence emits JSON with `schemaVersion: 1`, `sessionId`, `sessionRoot`,
+`generatedAt`, `state`, `artifacts`, and `checks`. Artifacts include stage,
+kind, ref, presence, validation state, `sha256`, bytes, and source command.
+Checks include stable code, severity, message, ref, and `nextManualAction`.
+
+Evidence is read-only. It does not create, repair, fetch, execute, archive,
+destroy, restore, replay, merge, promote, schedule, watch, or activate adapters.
+
 ## Archive
 
 Use archive to capture a portable evidence bundle for a Workspace Session:
@@ -227,7 +244,7 @@ bmad workspace archive <session-id> --runtime-root <runtime-root> --output <arch
 Archive creates the exact requested output directory and fails if it already
 exists. It writes only that output directory. It copies known Session artifacts,
 valid result artifacts, valid closeout artifacts, status, handoff, closeout
-notes, and checksums. It does
+notes, Evidence Index, and checksums. It does
 not copy target repo contents, Workspace Base contents, local setup evidence
 files, secrets, or whole runtime directories.
 
@@ -243,9 +260,10 @@ bmad workspace verify-archive <archive-dir>
 ```
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
-checksums, archived result shape, and archived closeout shape. It does not
-fetch, repair, probe repos, restore, import, execute, schedule, merge, or change
-durable state.
+checksums, archived result shape, archived closeout shape, and V14 Evidence
+Index shape for archive V2 bundles. It accepts archive V1 bundles for backward
+compatibility. It does not fetch, repair, probe repos, restore, import,
+execute, schedule, merge, or change durable state.
 
 ## Base Improvement Session
 

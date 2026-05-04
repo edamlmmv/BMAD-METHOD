@@ -10,6 +10,8 @@ const { renderSessionHandoff } = require('../../workspace/handoff');
 const { archiveSession, verifyArchive } = require('../../workspace/archive');
 const { recordSessionResult } = require('../../workspace/result');
 const { recordSessionCloseout } = require('../../workspace/closeout');
+const { readEvidenceIndex } = require('../../workspace/evidence');
+const { nextManualActionForError } = require('../../workspace/next-action');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
@@ -20,6 +22,7 @@ Workspace subcommands:
   list     inventory Workspace Sessions without writing or fetching
   status   inspect Workspace Session state without writing or fetching
   handoff  emit copy-ready Codex continuation context
+  evidence emit read-only evidence index with artifact checksums and next actions
   result   record a manual execution result artifact without executing commands
   closeout record a manual Session closeout artifact without executing commands
   archive  create a portable Session evidence bundle
@@ -73,6 +76,7 @@ module.exports = {
         'list',
         'status',
         'handoff',
+        'evidence',
         'result',
         'closeout',
         'archive',
@@ -95,6 +99,9 @@ module.exports = {
       }
     } catch (error) {
       process.stderr.write(`Workspace ${workspaceCommand} failed: ${error.message}\n`);
+      process.stderr.write(
+        `Next manual action: ${nextManualActionForError(error.message, { sessionId, runtimeRoot: options.runtimeRoot })}\n`,
+      );
       process.exit(1);
     }
 
@@ -144,6 +151,13 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
 
   if (workspaceCommand === 'handoff') {
     return renderSessionHandoff({
+      sessionId,
+      runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'evidence') {
+    return readEvidenceIndex({
       sessionId,
       runtimeRoot: options.runtimeRoot,
     });
