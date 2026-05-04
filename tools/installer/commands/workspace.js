@@ -1,6 +1,7 @@
 const { launchMission } = require('../../workspace-distro/launch');
 const { runRepoIntake } = require('../../workspace-distro/intake');
 const { buildMissionPacket } = require('../../workspace-distro/packet');
+const { runWorktreeReview } = require('../../workspace-distro/review');
 
 const WORKSPACE_HELP = `BMAD Workspace Distro mission lifecycle.
 
@@ -34,7 +35,7 @@ module.exports = {
       process.exit(0);
     }
 
-    if (!['launch', 'intake', 'packet'].includes(workspaceCommand)) {
+    if (!['launch', 'intake', 'packet', 'review'].includes(workspaceCommand)) {
       process.stderr.write(`Workspace command not implemented in V1 yet: ${workspaceCommand}\n`);
       process.exit(1);
     }
@@ -64,6 +65,13 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
 
   if (workspaceCommand === 'intake') {
     return runRepoIntake({
+      missionId,
+      runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'review') {
+    return runWorktreeReview({
       missionId,
       runtimeRoot: options.runtimeRoot,
     });

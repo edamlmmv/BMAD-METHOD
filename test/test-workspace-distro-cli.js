@@ -232,6 +232,45 @@ function runTests() {
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-mission-packet.json`'), 'rendered prompt names packet source');
     assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
     assert(renderedPrompt.includes('Do not mutate Workspace Distro'), 'rendered prompt includes packet constraints');
+
+    section('Workspace Review');
+
+    const cleanReview = runCli(['workspace', 'review', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const cleanReviewText = `${cleanReview.stdout}\n${cleanReview.stderr}`;
+    assert(cleanReview.status === 0, 'clean review exits zero', cleanReviewText);
+    const cleanReviewOutput = JSON.parse(cleanReview.stdout);
+    assert(fs.existsSync(cleanReviewOutput.summaryPath), 'clean review writes summary.json', cleanReviewText);
+    const cleanSummary = readJson(cleanReviewOutput.summaryPath);
+    assert(cleanSummary.clean === true, 'clean review reports clean worktree', JSON.stringify(cleanSummary, null, 2));
+    assert(cleanSummary.repos[0].patchPath === null, 'clean review has no patch path', JSON.stringify(cleanSummary, null, 2));
+
+    const reviewRepoPack = readJson(launchOutput.repoPackPath);
+    const worktreeReadme = path.join(reviewRepoPack.repos[0].worktreePath, 'README.md');
+    fs.appendFileSync(worktreeReadme, 'Worktree review change.\n');
+
+    const changedReview = runCli(['workspace', 'review', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const changedReviewText = `${changedReview.stdout}\n${changedReview.stderr}`;
+    assert(changedReview.status === 0, 'changed review exits zero', changedReviewText);
+    const changedReviewOutput = JSON.parse(changedReview.stdout);
+    const changedSummary = readJson(changedReviewOutput.summaryPath);
+    assert(changedSummary.clean === false, 'changed review reports dirty worktree', JSON.stringify(changedSummary, null, 2));
+    assert(
+      changedSummary.repos[0].changedFiles.includes('README.md'),
+      'changed review records changed file',
+      JSON.stringify(changedSummary, null, 2),
+    );
+    assert(
+      fs.existsSync(changedSummary.repos[0].statusPath),
+      'changed review writes per-repo status.json',
+      JSON.stringify(changedSummary, null, 2),
+    );
+    assert(fs.existsSync(changedSummary.repos[0].patchPath), 'changed review writes diff.patch', JSON.stringify(changedSummary, null, 2));
+    const reviewPatch = fs.readFileSync(changedSummary.repos[0].patchPath, 'utf8');
+    assert(reviewPatch.includes('Worktree review change.'), 'changed review patch includes worktree diff');
   } catch (error) {
     assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {
