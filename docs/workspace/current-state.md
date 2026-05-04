@@ -30,5 +30,6 @@ input.
 
 ## Release Hygiene
 
-Historical version artifacts live under `docs/workspace/history/`. Current docs
-are the normative operator and contract surface.
+Historical Workspace planning records are compiled under
+`docs/workspace/history/`. Current docs are the normative operator and contract
+surface.

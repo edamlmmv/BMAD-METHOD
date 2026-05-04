@@ -992,13 +992,14 @@ function runTests() {
     }
 
     const historyFiles = fs.readdirSync(historyRoot);
-    const historyArtifactPattern = /^v\d+-(?:prd|backlog|acceptance-tests|traceability)\.md$/;
-    const historyArtifactNames = historyFiles.filter((fileName) => historyArtifactPattern.test(fileName));
-    assert(historyArtifactNames.length >= 4, 'Historical Workspace artifacts exist');
-    for (const docName of historyArtifactNames) {
-      assert(fs.existsSync(path.join(historyRoot, docName)), `Historical Workspace artifact exists: ${docName}`);
-      assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Historical artifact moved out of root: ${docName}`);
-    }
+    const historyArchivePath = path.join(historyRoot, 'compiled-bmads.md');
+    const historyArchive = fs.readFileSync(historyArchivePath, 'utf8');
+    const legacyHistoryArtifactPattern = /^v\d+-(?:prd|implementation-backlog|backlog|acceptance-tests|traceability)\.md$/;
+    assert(fs.existsSync(historyArchivePath), 'Compiled Workspace history archive exists');
+    assert(
+      !historyFiles.some((fileName) => legacyHistoryArtifactPattern.test(fileName)),
+      'Per-release Workspace history artifacts were compiled and removed',
+    );
 
     const releaseChecklistPattern = /^v\d+-release-readiness\.md$/;
     assert(
@@ -1088,15 +1089,15 @@ function runTests() {
     }
 
     const historyIndex = fs.readFileSync(path.join(historyRoot, 'index.md'), 'utf8');
-    for (const text of ['PRD', 'Backlog', 'Acceptance', 'Traceability']) {
+    for (const text of ['Compiled BMAD Workspace History', 'PRD', 'Backlog', 'Acceptance', 'Traceability']) {
       assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
     }
 
-    const operatorAffordancePrd = historyArtifactNames
-      .filter((fileName) => fileName.endsWith('-prd.md'))
-      .map((fileName) => fs.readFileSync(path.join(historyRoot, fileName), 'utf8'))
-      .find((content) => content.includes('Codex operator affordances'));
-    assert(Boolean(operatorAffordancePrd), 'history records Codex operator affordance plan');
+    assert(historyArchive.includes('Source artifacts compiled: 67'), 'history archive records source artifact count');
+    assert(historyArchive.includes('Release groups compiled: 17'), 'history archive records release group count');
+    assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
+    assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
+    assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
@@ -1104,7 +1105,7 @@ function runTests() {
       'optional capability discovery',
       'No Workspace slash-command execution engine',
     ]) {
-      assert(operatorAffordancePrd.includes(text), `operator affordance history includes ${text}`, operatorAffordancePrd);
+      assert(historyArchive.includes(text), `operator affordance history includes ${text}`, historyArchive);
     }
 
     const releaseReadiness = fs.readFileSync(releaseChecklistPath, 'utf8');
@@ -1129,7 +1130,7 @@ function runTests() {
       'yarn.lock',
       'hidden execution',
       'live adapter activation',
-      'Historical delivery notes live under',
+      'Historical delivery notes are compiled under',
       'stable contract names',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
@@ -1201,25 +1202,20 @@ function runTests() {
     assert(releaseRefFindings.length === 0, 'Workspace release refs stay inside history artifacts', releaseRefFindings.join('\n'));
   }
 
-  section('Workspace Traceability History');
+  section('Workspace Compiled History');
 
   {
     const historyRoot = path.join(repoRoot, 'docs', 'workspace', 'history');
-    const traceabilityFiles = fs
-      .readdirSync(historyRoot)
-      .filter((fileName) => /^v\d+-traceability\.md$/.test(fileName))
-      .sort();
-    assert(traceabilityFiles.length >= 10, 'Traceability history artifacts exist');
-
-    for (const fileName of traceabilityFiles) {
-      const traceability = fs.readFileSync(path.join(historyRoot, fileName), 'utf8');
-      assert(traceability.includes('Acceptance'), `traceability artifact maps acceptance: ${fileName}`, traceability);
-      assert(
-        ['Evidence', 'First Code Surface', 'Test Target'].some((text) => traceability.includes(text)),
-        `traceability artifact points to evidence: ${fileName}`,
-        traceability,
-      );
-    }
+    const historyArchive = fs.readFileSync(path.join(historyRoot, 'compiled-bmads.md'), 'utf8');
+    const releaseSummaries = historyArchive.match(/^### V\d+$/gm) || [];
+    assert(releaseSummaries.length >= 10, 'Compiled history preserves release summaries');
+    assert(historyArchive.includes('Acceptance anchors'), 'Compiled history maps acceptance anchors');
+    assert(historyArchive.includes('Traceability markers'), 'Compiled history points to evidence markers');
+    assert(
+      ['Evidence', 'First Code Surface', 'Test Target'].some((text) => historyArchive.includes(text)),
+      'Compiled history points to evidence',
+      historyArchive,
+    );
   }
 
   console.log(`\n${colors.cyan}Results: ${passed} passed, ${failed} failed${colors.reset}`);

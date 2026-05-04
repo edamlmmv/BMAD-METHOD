@@ -54,6 +54,6 @@ Do not add or document any of these as current behavior:
 
 ## History Boundary
 
-Historical delivery notes live under `docs/workspace/history/`. Current docs,
-source skills, and behavior tests should use stable contract names instead of
-Workspace release labels.
+Historical delivery notes are compiled under `docs/workspace/history/`. Current
+docs, source skills, and behavior tests should use stable contract names instead
+of Workspace release labels.
