@@ -108,15 +108,15 @@ function validateExecutorContract(contract, options = {}) {
 
 function readExecutorContractStatus({ sessionRoot, packet, packetRef = 'packets/bmad-work-packet.json', checks = [] }) {
   const base = {
-    ref: packet?.executorContractRef || EXECUTOR_CONTRACT_REF,
-    path: path.join(sessionRoot, packet?.executorContractRef || EXECUTOR_CONTRACT_REF),
-    state: 'legacy-missing',
+    ref: packet?.executorContractRef || null,
+    path: packet?.executorContractRef ? path.join(sessionRoot, packet.executorContractRef) : path.join(sessionRoot, EXECUTOR_CONTRACT_REF),
+    state: 'missing',
     present: false,
     valid: false,
   };
 
   if (!packet?.executorContractRef) {
-    checks.push(check('EXECUTOR_CONTRACT_LEGACY_MISSING', 'warning', 'BMAD Work Packet has no executorContractRef.', base.path));
+    checks.push(check('EXECUTOR_CONTRACT_MISSING', 'error', 'BMAD Work Packet has no executorContractRef.', base.path));
     return base;
   }
 

@@ -402,10 +402,10 @@ ${packet.goal}
 ${packet.bmadWorkflow}
 
 ## Routing
-- source: ${packet.routing?.source || 'legacy-missing'}
-- confidence: ${packet.routing?.confidence || 'weak'}
-- reasonCodes: ${(packet.routing?.reasonCodes || []).join(', ') || 'ROUTING_LEGACY_MISSING'}
-- nextManualStep: ${packet.routing?.nextManualStep || 'Inspect legacy packet workflow.'}
+- source: ${packet.routing.source}
+- confidence: ${packet.routing.confidence}
+- reasonCodes: ${packet.routing.reasonCodes.join(', ')}
+- nextManualStep: ${packet.routing.nextManualStep}
 
 ## Evidence
 ${packet.repoIntakeRefs.map((reference) => `- ${reference}`).join('\n')}

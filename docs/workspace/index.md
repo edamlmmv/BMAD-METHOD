@@ -22,6 +22,7 @@ CLI records reviewable evidence.
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
+| Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
 | Deferred architecture decisions | [ADR Candidates](./adr-candidates.md) |
 
@@ -44,6 +45,12 @@ CLI records reviewable evidence.
 Versioned PRDs, backlogs, acceptance tests, and traceability tables are retained
 as historical evidence under [History](./history/index.md). Historical delivery
 records are not current operator guidance.
+
+## Templates
+
+Use [Fresh-Chat Workspace Prompt](./templates/fresh-chat-prompt.md) to start a
+new Codex chat with Workspace guardrails, BMAD skill routing, and evidence
+expectations already stated.
 
 ## Doctrine
 

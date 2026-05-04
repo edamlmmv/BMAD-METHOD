@@ -30,7 +30,7 @@ machine authorizes work or advances the session automatically.
 | `launched` | Valid `instance.json`. |
 | `intake-recorded` | Fresh Repo Intake exists. |
 | `packet-ready` | BMAD Work Packet and rendered prompt validate. |
-| `executor-ready` | Executor Contract validates or legacy warning exists. |
+| `executor-ready` | Executor Contract validates. |
 | `result-recorded` | One or more valid Result Ledger artifacts exist. |
 | `review-recorded` | Worktree Review and Review Manifest exist. |
 | `closeout-recorded` | One or more valid closeout artifacts exist. |

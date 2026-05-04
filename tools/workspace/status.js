@@ -6,7 +6,6 @@ const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
 const { readExecutorContractStatus } = require('./executor-contract');
 const { enrichChecks } = require('./next-action');
-const { createLegacyRouting } = require('./routing');
 const { readResultLedger } = require('./result');
 const { readCloseoutLedger } = require('./closeout');
 const { REVIEW_MANIFEST_REF, readReviewManifestStatus } = require('./review-manifest');
@@ -211,10 +210,10 @@ function readPacketStatus({ sessionRoot, status, checks }) {
     return;
   }
 
-  status.routing = packet.routing || createLegacyRouting(packet);
+  status.routing = packet.routing;
   status.setup = inspectSessionSetup(packet.sessionSetup, checks);
   status.executorContract = readExecutorContractStatus({ sessionRoot, packet, checks });
-  status.artifacts.executorContract = artifactStatus(sessionRoot, packet.executorContractRef || 'packets/executor-contract.json');
+  status.artifacts.executorContract = artifactStatus(sessionRoot, packet.executorContractRef);
 }
 
 function inspectSessionSetup(sessionSetup, checks) {
@@ -351,7 +350,7 @@ function deriveLifecycle(status) {
   if ((status.results?.count || 0) > 0) {
     return 'result-recorded';
   }
-  if (status.executorContract?.state === 'valid' || status.executorContract?.state === 'legacy-missing') {
+  if (status.executorContract?.state === 'valid') {
     return 'executor-ready';
   }
   if (status.artifacts.packet?.present && status.setup?.state !== 'invalid') {

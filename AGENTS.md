@@ -10,3 +10,4 @@ Open source framework for structured, agent-assisted software delivery.
 
 - Skill validation rules are in `tools/skill-validator.md`.
 - Deterministic skill checks run via `npm run validate:skills` (included in `quality`).
+- Always use the OpenAI developer documentation MCP server if you need to work with the OpenAI API, ChatGPT Apps SDK, Codex, or other OpenAI developer products without me having to explicitly ask.

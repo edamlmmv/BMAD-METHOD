@@ -119,10 +119,9 @@ turns review findings into approval.
 
 ## Archive Formats
 
-`archiveVersion: 1` bundles remain valid for `verify-archive`.
 Current archives use `archiveVersion: 2` and include `evidence-index.json`.
-`verify-archive` validates the Evidence Index shape and checksum for
-`archiveVersion: 2` bundles.
+`verify-archive` rejects old archive formats and validates the Evidence Index
+shape and checksum for current bundles.
 
 ## Diff Shape
 
@@ -135,9 +134,8 @@ Current archives use `archiveVersion: 2` and include `evidence-index.json`.
 - `fileDeltas` grouped as added, removed, changed, and unchanged
 - `statusDeltas`, `evidenceDeltas`, `packetDeltas`, and `closeoutDeltas`
 
-`archiveVersion: 1` inputs remain comparable, but Evidence Index deltas are
-marked `incomparable` because those bundles do not require
-`evidence-index.json`.
+Inputs must be verified current Workspace archives. Old archive formats are
+rejected before comparison.
 
 ## Non-Goals
 

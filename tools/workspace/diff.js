@@ -126,17 +126,6 @@ function fileRecord(file) {
 }
 
 function diffEvidence(left, right) {
-  if (left.manifest.archiveVersion < 2 || right.manifest.archiveVersion < 2) {
-    return {
-      state: 'incomparable',
-      reason: 'Evidence Index is only required for archiveVersion 2.',
-      leftAvailable: left.manifest.archiveVersion >= 2,
-      rightAvailable: right.manifest.archiveVersion >= 2,
-      artifacts: emptyDeltaSet(),
-      checks: emptyDeltaSet(),
-    };
-  }
-
   const leftEvidence = readArchiveJson(left, left.manifest.evidenceIndexRef);
   const rightEvidence = readArchiveJson(right, right.manifest.evidenceIndexRef);
   return {

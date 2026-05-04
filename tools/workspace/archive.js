@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { validateWorkPacket } = require('./contracts');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { readEvidenceIndex, validateEvidenceIndex } = require('./evidence');
 const { readSessionStatus } = require('./status');
@@ -12,6 +13,21 @@ const { validateCloseoutArtifact } = require('./closeout');
 
 const ARCHIVE_VERSION = 2;
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
+const ALLOWED_MANIFEST_FIELDS = new Set([
+  'schemaVersion',
+  'archiveVersion',
+  'createdAt',
+  'sessionId',
+  'sessionType',
+  'source',
+  'tool',
+  'statusRef',
+  'evidenceIndexRef',
+  'handoffRef',
+  'closeoutRef',
+  'artifacts',
+  'files',
+]);
 
 function archiveSession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, outputPath }) {
   assertSessionId(sessionId, 'archive');
@@ -307,7 +323,7 @@ function renderCloseout(status) {
 - state: \`${status.status}\`
 - setup: \`${status.setup?.state || 'missing'}\`
 - routeWorkflow: \`${status.routing?.selectedWorkflow || 'Not found'}\`
-- routeSource: \`${status.routing?.source || 'legacy-missing'}\`
+- routeSource: \`${status.routing?.source || 'Not found'}\`
 - results: \`${status.results?.count || 0}\`
 - latestResult: \`${status.results?.latest?.resultId || 'Not found'}\`
 - review: \`${status.review?.state || 'missing'}\`
@@ -373,8 +389,13 @@ function validateManifestShape(manifest) {
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
     throw new TypeError('ARCHIVE_MANIFEST_INVALID: manifest must be an object');
   }
-  if (manifest.schemaVersion !== 1 || ![1, 2].includes(manifest.archiveVersion)) {
-    throw new Error('ARCHIVE_UNSUPPORTED_VERSION: expected schemaVersion 1 and archiveVersion 1 or 2');
+  for (const field of Object.keys(manifest)) {
+    if (!ALLOWED_MANIFEST_FIELDS.has(field)) {
+      throw new Error(`ARCHIVE_MANIFEST_INVALID: ${field} is not allowed by current Workspace archive contract`);
+    }
+  }
+  if (manifest.schemaVersion !== 1 || manifest.archiveVersion !== ARCHIVE_VERSION) {
+    throw new Error(`ARCHIVE_UNSUPPORTED_VERSION: expected schemaVersion 1 and archiveVersion ${ARCHIVE_VERSION}`);
   }
   for (const field of ['createdAt', 'sessionId', 'sessionType', 'statusRef', 'handoffRef', 'closeoutRef']) {
     if (typeof manifest[field] !== 'string' || manifest[field].trim() === '') {
@@ -391,8 +412,8 @@ function validateManifestShape(manifest) {
     throw new TypeError('ARCHIVE_MANIFEST_INVALID: files must be an array');
   }
   const seenPaths = new Set();
-  if (manifest.archiveVersion >= 2 && (typeof manifest.evidenceIndexRef !== 'string' || manifest.evidenceIndexRef.trim() === '')) {
-    throw new Error('ARCHIVE_MANIFEST_INVALID: evidenceIndexRef must be a non-empty string for archiveVersion 2');
+  if (typeof manifest.evidenceIndexRef !== 'string' || manifest.evidenceIndexRef.trim() === '') {
+    throw new Error(`ARCHIVE_MANIFEST_INVALID: evidenceIndexRef must be a non-empty string for archiveVersion ${ARCHIVE_VERSION}`);
   }
   for (const file of manifest.files) {
     if (!file || typeof file !== 'object' || typeof file.path !== 'string' || typeof file.sha256 !== 'string') {
@@ -409,10 +430,7 @@ function validateManifestShape(manifest) {
 }
 
 function validateControlFiles(archiveRoot, manifest) {
-  const requiredPaths = ['checksums.sha256', 'status.json', 'handoff.md', 'closeout.md'];
-  if (manifest.archiveVersion >= 2) {
-    requiredPaths.push('evidence-index.json');
-  }
+  const requiredPaths = ['checksums.sha256', 'status.json', 'handoff.md', 'closeout.md', 'evidence-index.json'];
   for (const requiredPath of requiredPaths) {
     const absolutePath = path.join(archiveRoot, requiredPath);
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
@@ -422,9 +440,6 @@ function validateControlFiles(archiveRoot, manifest) {
 }
 
 function validateArchivedEvidenceIndex(archiveRoot, manifest) {
-  if (manifest.archiveVersion < 2) {
-    return;
-  }
   assertSafeArchivePath(manifest.evidenceIndexRef);
   const evidencePath = path.join(archiveRoot, manifest.evidenceIndexRef);
   let evidence;
@@ -455,8 +470,9 @@ function validateArchivedExecutorContract(archiveRoot, manifest) {
   }
 
   const packet = readOptionalJson(path.join(archiveRoot, packetArtifact.archiveRef));
-  if (!packet?.executorContractRef) {
-    return;
+  const packetValidation = validateWorkPacket(packet);
+  if (!packetValidation.ok) {
+    throw new Error(`ARCHIVE_PACKET_INVALID: ${packetArtifact.archiveRef}: ${packetValidation.errors.join('; ')}`);
   }
 
   const contractArtifact = manifest.artifacts?.executorContract;

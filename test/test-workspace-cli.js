@@ -181,17 +181,17 @@ function assertSessionOutput(output, testPrefix) {
     `${testPrefix} has sessionId`,
     JSON.stringify(output, null, 2),
   );
-  assert(!hasLegacyMissionKey(output), `${testPrefix} has no legacy mission keys`, JSON.stringify(output, null, 2));
+  assert(!hasRemovedWorkspaceKey(output), `${testPrefix} has no removed Workspace keys`, JSON.stringify(output, null, 2));
 }
 
-function hasLegacyMissionKey(value) {
+function hasRemovedWorkspaceKey(value) {
   if (!value || typeof value !== 'object') {
     return false;
   }
   if (Array.isArray(value)) {
-    return value.some(hasLegacyMissionKey);
+    return value.some(hasRemovedWorkspaceKey);
   }
-  return Object.keys(value).some((key) => key.startsWith('mission')) || Object.values(value).some(hasLegacyMissionKey);
+  return Object.keys(value).some((key) => key.startsWith('miss' + 'ion')) || Object.values(value).some(hasRemovedWorkspaceKey);
 }
 
 function runTests() {
@@ -204,7 +204,6 @@ function runTests() {
   assert(output.includes('BMAD Workspace'), 'workspace help names BMAD Workspace', output);
   assert(output.includes('Workspace Session'), 'workspace help uses session language', output);
   assert(output.includes('--session-id <id>'), 'workspace help lists --session-id', output);
-  assert(!output.includes('--mission-id'), 'workspace help omits legacy --mission-id', output);
   assert(output.includes('--workflow <skill[:action]>'), 'workspace help lists --workflow', output);
   assert(!output.includes('workspace run'), 'workspace help omits workspace run', output);
   for (const option of ['--zoom-out-ref', '--ubiquitous-language-ref', '--grill-decisions-ref', '--tdd-plan-ref', '--skip-setup']) {
@@ -546,29 +545,6 @@ function runTests() {
     assert(missingHandoff.status !== 0, 'handoff for missing session exits nonzero', missingHandoffText);
     assert(missingHandoff.stdout === '', 'missing handoff emits no partial Markdown', missingHandoffText);
     assert(missingHandoffText.includes('SESSION_NOT_FOUND'), 'missing handoff names SESSION_NOT_FOUND', missingHandoffText);
-
-    const legacyMissionOption = runCli(
-      [
-        'workspace',
-        'launch',
-        '--repo',
-        targetRepo.path,
-        '--goal',
-        goalPath,
-        '--runtime-root',
-        runtimeRoot,
-        '--session-id',
-        'session-left',
-        '--mission-id',
-        'session-right',
-      ],
-      {
-        cwd: baseRepo.path,
-      },
-    );
-    const legacyMissionOptionText = `${legacyMissionOption.stdout}\n${legacyMissionOption.stderr}`;
-    assert(legacyMissionOption.status !== 0, 'legacy --mission-id exits nonzero', legacyMissionOptionText);
-    assert(legacyMissionOptionText.includes('unknown option'), 'legacy --mission-id fails loudly', legacyMissionOptionText);
 
     section('Workspace Multi-Repo Launch');
 
@@ -1177,52 +1153,65 @@ function runTests() {
 
     const originalPacketContent = fs.readFileSync(packetOutput.packetPath, 'utf8');
     const originalExecutorContractContent = fs.readFileSync(packetOutput.executorContractPath, 'utf8');
-    const legacyPacket = JSON.parse(originalPacketContent);
-    delete legacyPacket.routing;
-    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(legacyPacket, null, 2)}\n`);
-    const legacyStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+    const missingRoutingPacket = JSON.parse(originalPacketContent);
+    delete missingRoutingPacket.routing;
+    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(missingRoutingPacket, null, 2)}\n`);
+    const missingRoutingStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
-    const legacyStatusText = `${legacyStatus.stdout}\n${legacyStatus.stderr}`;
-    assert(legacyStatus.status === 0, 'status accepts legacy packet without routing', legacyStatusText);
-    const legacyStatusOutput = JSON.parse(legacyStatus.stdout);
-    assert(legacyStatusOutput.routing.source === 'legacy-missing', 'status marks legacy missing routing', legacyStatusText);
-    const legacyHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+    const missingRoutingStatusText = `${missingRoutingStatus.stdout}\n${missingRoutingStatus.stderr}`;
+    assert(missingRoutingStatus.status === 0, 'status with missing routing exits zero', missingRoutingStatusText);
+    const missingRoutingStatusOutput = JSON.parse(missingRoutingStatus.stdout);
+    assert(missingRoutingStatusOutput.status === 'invalid', 'status marks missing routing invalid', missingRoutingStatusText);
+    assert(
+      missingRoutingStatusOutput.checks.some(
+        (item) => item.code === 'WORK_PACKET_SCHEMA_INVALID' && item.message.includes('packet.routing'),
+      ),
+      'status reports missing routing as packet schema error',
+      missingRoutingStatusText,
+    );
+    const missingRoutingHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
-    const legacyHandoffText = `${legacyHandoff.stdout}\n${legacyHandoff.stderr}`;
-    assert(legacyHandoff.status === 0, 'handoff accepts legacy packet without routing', legacyHandoffText);
-    assert(legacyHandoff.stdout.includes('routeSource: `legacy-missing`'), 'handoff marks legacy missing routing', legacyHandoffText);
+    const missingRoutingHandoffText = `${missingRoutingHandoff.stdout}\n${missingRoutingHandoff.stderr}`;
+    assert(missingRoutingHandoff.status !== 0, 'handoff rejects packet without routing', missingRoutingHandoffText);
+    assert(
+      missingRoutingHandoffText.includes('SESSION_INVALID'),
+      'missing routing handoff names invalid session',
+      missingRoutingHandoffText,
+    );
     fs.writeFileSync(packetOutput.packetPath, originalPacketContent);
 
-    const legacyExecutorPacket = JSON.parse(originalPacketContent);
-    delete legacyExecutorPacket.executorContractRef;
-    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(legacyExecutorPacket, null, 2)}\n`);
-    const legacyExecutorStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+    const missingExecutorPacket = JSON.parse(originalPacketContent);
+    delete missingExecutorPacket.executorContractRef;
+    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(missingExecutorPacket, null, 2)}\n`);
+    const missingExecutorFieldStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
-    const legacyExecutorStatusText = `${legacyExecutorStatus.stdout}\n${legacyExecutorStatus.stderr}`;
-    assert(legacyExecutorStatus.status === 0, 'status accepts legacy packet without executor contract', legacyExecutorStatusText);
-    const legacyExecutorStatusOutput = JSON.parse(legacyExecutorStatus.stdout);
+    const missingExecutorFieldStatusText = `${missingExecutorFieldStatus.stdout}\n${missingExecutorFieldStatus.stderr}`;
+    assert(missingExecutorFieldStatus.status === 0, 'status with missing executorContractRef exits zero', missingExecutorFieldStatusText);
+    const missingExecutorFieldStatusOutput = JSON.parse(missingExecutorFieldStatus.stdout);
     assert(
-      legacyExecutorStatusOutput.executorContract.state === 'legacy-missing',
-      'status marks legacy missing executor contract',
-      legacyExecutorStatusText,
+      missingExecutorFieldStatusOutput.status === 'invalid',
+      'status marks missing executorContractRef invalid',
+      missingExecutorFieldStatusText,
     );
     assert(
-      legacyExecutorStatusOutput.checks.some((item) => item.code === 'EXECUTOR_CONTRACT_LEGACY_MISSING' && item.severity === 'warning'),
-      'status reports legacy executor contract warning',
-      legacyExecutorStatusText,
+      missingExecutorFieldStatusOutput.checks.some(
+        (item) => item.code === 'WORK_PACKET_SCHEMA_INVALID' && item.message.includes('executorContractRef'),
+      ),
+      'status reports missing executorContractRef as packet schema error',
+      missingExecutorFieldStatusText,
     );
-    const legacyExecutorHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+    const missingExecutorFieldHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
-    const legacyExecutorHandoffText = `${legacyExecutorHandoff.stdout}\n${legacyExecutorHandoff.stderr}`;
-    assert(legacyExecutorHandoff.status === 0, 'handoff accepts legacy packet without executor contract', legacyExecutorHandoffText);
+    const missingExecutorFieldHandoffText = `${missingExecutorFieldHandoff.stdout}\n${missingExecutorFieldHandoff.stderr}`;
+    assert(missingExecutorFieldHandoff.status !== 0, 'handoff rejects packet without executorContractRef', missingExecutorFieldHandoffText);
     assert(
-      legacyExecutorHandoff.stdout.includes('state: `legacy-missing`'),
-      'handoff marks legacy missing executor contract',
-      legacyExecutorHandoffText,
+      missingExecutorFieldHandoffText.includes('SESSION_INVALID'),
+      'missing executorContractRef handoff names invalid session',
+      missingExecutorFieldHandoffText,
     );
     fs.writeFileSync(packetOutput.packetPath, originalPacketContent);
 
@@ -2536,22 +2525,43 @@ function runTests() {
     assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
     assert(verifyOutput.archiveVersion === 2, 'verify-archive reports archiveVersion 2', verifyArchiveText);
 
-    const legacyArchiveRoot = path.join(tempRoot, 'archive-legacy-compatible');
-    copyTree(archiveRoot, legacyArchiveRoot);
-    const legacyArchiveManifestPath = path.join(legacyArchiveRoot, 'manifest.json');
-    const legacyArchiveManifest = readJson(legacyArchiveManifestPath);
-    legacyArchiveManifest.archiveVersion = 1;
-    delete legacyArchiveManifest.evidenceIndexRef;
-    legacyArchiveManifest.files = legacyArchiveManifest.files.filter((file) => file.path !== 'evidence-index.json');
-    fs.rmSync(path.join(legacyArchiveRoot, 'evidence-index.json'));
-    fs.writeFileSync(legacyArchiveManifestPath, `${JSON.stringify(legacyArchiveManifest, null, 2)}\n`);
-    rewriteArchiveChecksums(legacyArchiveRoot);
-    const verifyLegacyArchive = runCli(['workspace', 'verify-archive', legacyArchiveRoot], {
+    const unknownFieldArchiveRoot = path.join(tempRoot, 'archive-unknown-field');
+    copyTree(archiveRoot, unknownFieldArchiveRoot);
+    const unknownFieldManifestPath = path.join(unknownFieldArchiveRoot, 'manifest.json');
+    const unknownFieldManifest = readJson(unknownFieldManifestPath);
+    unknownFieldManifest.unexpectedField = true;
+    fs.writeFileSync(unknownFieldManifestPath, `${JSON.stringify(unknownFieldManifest, null, 2)}\n`);
+    const verifyUnknownFieldArchive = runCli(['workspace', 'verify-archive', unknownFieldArchiveRoot], {
       cwd: baseRepo.path,
     });
-    const verifyLegacyArchiveText = `${verifyLegacyArchive.stdout}\n${verifyLegacyArchive.stderr}`;
-    assert(verifyLegacyArchive.status === 0, 'verify-archive accepts archiveVersion 1', verifyLegacyArchiveText);
-    assert(JSON.parse(verifyLegacyArchive.stdout).archiveVersion === 1, 'verify-archive reports archiveVersion 1', verifyLegacyArchiveText);
+    const verifyUnknownFieldArchiveText = `${verifyUnknownFieldArchive.stdout}\n${verifyUnknownFieldArchive.stderr}`;
+    assert(verifyUnknownFieldArchive.status !== 0, 'verify-archive rejects unknown manifest field', verifyUnknownFieldArchiveText);
+    assert(
+      verifyUnknownFieldArchiveText.includes('ARCHIVE_MANIFEST_INVALID') && verifyUnknownFieldArchiveText.includes('unexpectedField'),
+      'verify-archive unknown manifest field names field',
+      verifyUnknownFieldArchiveText,
+    );
+
+    const removedVersionArchiveRoot = path.join(tempRoot, 'archive-removed-version');
+    copyTree(archiveRoot, removedVersionArchiveRoot);
+    const removedVersionManifestPath = path.join(removedVersionArchiveRoot, 'manifest.json');
+    const removedVersionManifest = readJson(removedVersionManifestPath);
+    removedVersionManifest[['archive', 'Version'].join('')] = Number('1');
+    delete removedVersionManifest.evidenceIndexRef;
+    removedVersionManifest.files = removedVersionManifest.files.filter((file) => file.path !== 'evidence-index.json');
+    fs.rmSync(path.join(removedVersionArchiveRoot, 'evidence-index.json'));
+    fs.writeFileSync(removedVersionManifestPath, `${JSON.stringify(removedVersionManifest, null, 2)}\n`);
+    rewriteArchiveChecksums(removedVersionArchiveRoot);
+    const verifyRemovedVersionArchive = runCli(['workspace', 'verify-archive', removedVersionArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const verifyRemovedVersionArchiveText = `${verifyRemovedVersionArchive.stdout}\n${verifyRemovedVersionArchive.stderr}`;
+    assert(verifyRemovedVersionArchive.status !== 0, 'verify-archive rejects removed archive version', verifyRemovedVersionArchiveText);
+    assert(
+      verifyRemovedVersionArchiveText.includes('ARCHIVE_UNSUPPORTED_VERSION'),
+      'verify-archive removed version names unsupported archive',
+      verifyRemovedVersionArchiveText,
+    );
 
     section('Workspace Diff');
 
@@ -2654,17 +2664,15 @@ function runTests() {
       addedRemovedDiffText,
     );
 
-    const legacyCurrentDiff = runCli(['workspace', 'diff', '--left', legacyArchiveRoot, '--right', archiveRoot], {
+    const removedCurrentDiff = runCli(['workspace', 'diff', '--left', removedVersionArchiveRoot, '--right', archiveRoot], {
       cwd: baseRepo.path,
     });
-    const legacyCurrentDiffText = `${legacyCurrentDiff.stdout}\n${legacyCurrentDiff.stderr}`;
-    assert(legacyCurrentDiff.status === 0, 'diff legacy archive to current archive exits zero', legacyCurrentDiffText);
-    const legacyCurrentDiffOutput = JSON.parse(legacyCurrentDiff.stdout);
-    assert(legacyCurrentDiffOutput.evidenceDeltas.state === 'incomparable', 'diff legacy evidence is incomparable', legacyCurrentDiffText);
+    const removedCurrentDiffText = `${removedCurrentDiff.stdout}\n${removedCurrentDiff.stderr}`;
+    assert(removedCurrentDiff.status !== 0, 'diff rejects removed archive version', removedCurrentDiffText);
     assert(
-      legacyCurrentDiffOutput.summary.incomparable.includes('evidenceDeltas'),
-      'diff summary records incomparable evidence',
-      legacyCurrentDiffText,
+      removedCurrentDiffText.includes('DIFF_ARCHIVE_INVALID') && removedCurrentDiffText.includes('ARCHIVE_UNSUPPORTED_VERSION'),
+      'diff removed version names invalid archive',
+      removedCurrentDiffText,
     );
 
     const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');

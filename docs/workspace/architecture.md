@@ -244,7 +244,7 @@ engine and does not authorize work.
 | `launched` | `instance.json` exists and validates. |
 | `intake-recorded` | Repo Intake exists and is fresh. |
 | `packet-ready` | BMAD Work Packet and rendered prompt validate. |
-| `executor-ready` | Executor Contract validates or legacy warning is reported. |
+| `executor-ready` | Executor Contract validates. |
 | `result-recorded` | One or more valid Result Ledger artifacts exist. |
 | `review-recorded` | Worktree Review summary exists and validates. |
 | `closeout-recorded` | One or more valid closeout artifacts exist. |
@@ -289,7 +289,7 @@ bundles. It records:
 - file deltas by safe relative path, SHA-256, and bytes
 - status, packet, closeout, and Evidence Index deltas after volatile field
   normalization
-- incomparable markers when an `archiveVersion: 1` bundle has no Evidence Index
+- rejection of old archive formats before comparison
 
 The diff is not a restore plan, replay input, import input, merge instruction,
 promotion approval, scheduler input, watcher input, or adapter instruction.

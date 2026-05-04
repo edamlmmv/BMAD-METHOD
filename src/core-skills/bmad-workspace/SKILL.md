@@ -108,6 +108,14 @@ Future slash commands should stay generic. Each command needs a name, required
 capability, inputs, expected evidence refs, and an operator-assist-only
 boundary before it belongs in the Workspace flow.
 
+For fresh Codex chats that need Workspace awareness, start from:
+
+- `{project-root}/docs/workspace/templates/fresh-chat-prompt.md`
+
+The prompt is an operator aid only. It does not authorize hidden execution,
+Workspace mutation, scheduler behavior, watcher behavior, restore, replay,
+merge, promotion, or live adapter activation.
+
 ## Routing Contract
 
 Packets include deterministic BMAD workflow routing:
@@ -301,10 +309,9 @@ bmad workspace verify-archive <archive-dir>
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
 checksums, archived result shape, archived closeout shape, Review Manifest
-shape, and Evidence Index shape for `archiveVersion: 2` bundles. It accepts
-`archiveVersion: 1` bundles for backward compatibility. It does not fetch,
-repair, probe repos, restore, import, execute, schedule, merge, or change
-durable state.
+shape, and Evidence Index shape for current `archiveVersion: 2` bundles. It
+rejects old archive formats. It does not fetch, repair, probe repos, restore,
+import, execute, schedule, merge, or change durable state.
 
 ## Diff
 
@@ -317,9 +324,8 @@ bmad workspace diff --left <archive-dir> --right <archive-dir>
 
 Diff emits JSON with `schemaVersion: 1`, `diffVersion: 1`, source descriptors,
 summary counts, file deltas, status deltas, Evidence Index deltas, packet
-deltas, and closeout deltas. `archiveVersion: 1` inputs remain usable; Evidence
-Index deltas are marked `incomparable` when an archive lacks
-`archiveVersion: 2` evidence.
+deltas, and closeout deltas. Inputs must be verified current Workspace archives.
+Old archive formats are rejected before comparison.
 
 Diff is read-only. It does not fetch, repair, restore, replay, import, sync,
 apply, merge, promote, schedule, watch, execute, or activate adapters.

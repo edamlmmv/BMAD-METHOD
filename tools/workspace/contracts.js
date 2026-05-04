@@ -15,8 +15,12 @@ const REQUIRED_PACKET_FIELDS = [
   'acceptanceCriteria',
   'capabilityContractRef',
   'renderedPromptRef',
+  'executorContractRef',
+  'routing',
   'sessionSetup',
 ];
+
+const ALLOWED_PACKET_FIELDS = new Set([...REQUIRED_PACKET_FIELDS, 'reviewPlan']);
 
 const REQUIRED_CAPABILITY_FIELDS = [
   'id',
@@ -39,11 +43,7 @@ function validateWorkPacket(packet) {
     return invalid('packet must be an object');
   }
 
-  for (const legacyField of ['missionId', 'missionRoot', 'missionType']) {
-    if (legacyField in packet) {
-      errors.push(`legacy-workspace-artifact-unsupported: packet.${legacyField} is not supported by packetVersion 4`);
-    }
-  }
+  validateAllowedFields(packet, ALLOWED_PACKET_FIELDS, 'packet', errors);
 
   for (const field of REQUIRED_PACKET_FIELDS) {
     if (!(field in packet)) {
@@ -55,7 +55,7 @@ function validateWorkPacket(packet) {
     errors.push('packet.kind must be bmad-work-packet');
   }
   if (packet.packetVersion !== 4) {
-    errors.push('legacy-workspace-artifact-unsupported: packet.packetVersion must be 4');
+    errors.push('packet.packetVersion must be 4');
   }
   requireNonEmptyString(packet, 'sessionId', errors);
   requireNonEmptyString(packet, 'bmadWorkflow', errors);
@@ -66,26 +66,30 @@ function validateWorkPacket(packet) {
   requireNonEmptyArray(packet, 'acceptanceCriteria', errors);
   requireNonEmptyString(packet, 'capabilityContractRef', errors);
   requireNonEmptyString(packet, 'renderedPromptRef', errors);
-  if ('executorContractRef' in packet) {
-    requireNonEmptyString(packet, 'executorContractRef', errors);
-    if (
-      typeof packet.executorContractRef === 'string' &&
-      (packet.executorContractRef.includes('\\') ||
-        packet.executorContractRef.split('/').includes('..') ||
-        packet.executorContractRef.startsWith('/'))
-    ) {
-      errors.push('packet.executorContractRef must be a safe session-relative POSIX path');
-    }
+  requireNonEmptyString(packet, 'executorContractRef', errors);
+  if (
+    typeof packet.executorContractRef === 'string' &&
+    (packet.executorContractRef.includes('\\') ||
+      packet.executorContractRef.split('/').includes('..') ||
+      packet.executorContractRef.startsWith('/'))
+  ) {
+    errors.push('packet.executorContractRef must be a safe session-relative POSIX path');
   }
-  if ('routing' in packet) {
-    validateRoutingDecision(packet.routing, errors);
-    if (packet.routing?.selectedWorkflow && packet.bmadWorkflow !== packet.routing.selectedWorkflow) {
-      errors.push('packet.bmadWorkflow must equal packet.routing.selectedWorkflow');
-    }
+  validateRoutingDecision(packet.routing, errors);
+  if (packet.routing?.selectedWorkflow && packet.bmadWorkflow !== packet.routing.selectedWorkflow) {
+    errors.push('packet.bmadWorkflow must equal packet.routing.selectedWorkflow');
   }
   validateSessionSetup(packet.sessionSetup, errors);
 
   return result(errors);
+}
+
+function validateAllowedFields(object, allowedFields, label, errors) {
+  for (const field of Object.keys(object)) {
+    if (!allowedFields.has(field)) {
+      errors.push(`${label}.${field} is not allowed by current Workspace contract`);
+    }
+  }
 }
 
 function validateSessionSetup(sessionSetup, errors) {

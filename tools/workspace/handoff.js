@@ -100,8 +100,8 @@ function renderPacket(status, packet) {
 - packetVersion: \`${packet.packetVersion || 'Not found'}\`
 - bmadWorkflow: \`${packet.bmadWorkflow || 'Not found'}\`
 - routeWorkflow: \`${status.routing?.selectedWorkflow || packet.bmadWorkflow || 'Not found'}\`
-- routeSource: \`${status.routing?.source || 'legacy-missing'}\`
-- routeConfidence: \`${status.routing?.confidence || 'weak'}\`
+- routeSource: \`${status.routing?.source || 'Not found'}\`
+- routeConfidence: \`${status.routing?.confidence || 'Not found'}\`
 - routeReasonCodes: ${formatList(status.routing?.reasonCodes || [])}
 - renderedPromptRef: ${packet.renderedPromptRef ? `\`${packet.renderedPromptRef}\`` : 'Not found'}
 - renderedPromptPath: ${renderedPromptPath ? `\`${renderedPromptPath}\`` : 'Not found'}

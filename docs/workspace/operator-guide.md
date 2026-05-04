@@ -42,6 +42,13 @@ record their useful outputs as BMAD evidence, and never treat them as hidden
 execution, approval, restore, replay, merge, promotion, scheduler, watcher, or
 live adapter activation.
 
+## Fresh-Chat Prompt
+
+Use [Fresh-Chat Workspace Prompt](./templates/fresh-chat-prompt.md) when a new
+Codex thread should begin with Workspace guardrails, BMAD skill routing, and an
+evidence plan before action. The prompt is an operator aid only; it does not
+authorize hidden execution or Workspace mutation.
+
 ## Evidence Index
 
 Use `evidence` when deciding what to inspect next. It reports artifact presence,

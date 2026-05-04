@@ -78,6 +78,8 @@ function validWorkPacket() {
     acceptanceCriteria: ['Tests pass', 'Worktree Review ready'],
     capabilityContractRef: 'capabilities.json',
     renderedPromptRef: 'packets/rendered-prompt.md',
+    executorContractRef: 'packets/executor-contract.json',
+    routing: validRouting(),
     sessionSetup: {
       zoomOut: { status: 'complete', ref: 'docs/workspace/setup-zoom-out.md' },
       ubiquitousLanguage: { status: 'complete', ref: 'UBIQUITOUS_LANGUAGE.md' },
@@ -319,6 +321,46 @@ function findWorkspaceReleaseRefsOutsideHistory() {
   return findings;
 }
 
+function findWorkspaceRemovedContractRefsOutsideHistory() {
+  const scannedFiles = [
+    ...listFiles(path.join(repoRoot, 'docs', 'workspace'), {
+      extensions: ['.md', '.json'],
+      skip: ['docs/workspace/history', 'docs/workspace/vendor'],
+    }),
+    ...listFiles(path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace'), { extensions: ['.md'] }),
+    ...listFiles(path.join(repoRoot, 'tools', 'workspace'), { extensions: ['.js'] }),
+    path.join(repoRoot, 'test', 'test-workspace-contracts.js'),
+    path.join(repoRoot, 'test', 'test-workspace-cli.js'),
+  ];
+  const bannedTerms = [
+    ['legacy', 'missing'].join('-'),
+    ['legacy', 'workspace', 'artifact', 'unsupported'].join('-'),
+    ['mission', 'Id'].join(''),
+    ['mission', 'Root'].join(''),
+    ['mission', 'Type'].join(''),
+    ['mission', '-id'].join(''),
+    ['archiveVersion:', '1'].join(' '),
+    ['backward', 'compatibility'].join(' '),
+  ];
+  const findings = [];
+
+  for (const filePath of scannedFiles) {
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const relativePath = path.relative(repoRoot, filePath).split(path.sep).join('/');
+    const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+    for (const [index, line] of lines.entries()) {
+      const matches = bannedTerms.filter((term) => line.includes(term));
+      if (matches.length > 0) {
+        findings.push(`${relativePath}:${index + 1}: ${matches.join(', ')}`);
+      }
+    }
+  }
+
+  return findings;
+}
+
 function runTests() {
   section('BMAD Work Packet');
 
@@ -360,12 +402,48 @@ function runTests() {
 
   {
     const packet = validWorkPacket();
+    packet.routing = { ...validRouting(), source: ['legacy', 'missing'].join('-') };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects removed routing source');
+    assert(
+      result.errors.some((error) => error.includes('packet.routing.source')),
+      'removed routing source rejection names source',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
     delete packet.acceptanceCriteria;
     const result = validateWorkPacket(packet);
     assert(result.ok === false, 'packet without acceptanceCriteria is rejected');
     assert(
       result.errors.some((error) => error.includes('acceptanceCriteria')),
       'packet rejection names acceptanceCriteria',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    delete packet.routing;
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet without routing is rejected');
+    assert(
+      result.errors.some((error) => error.includes('packet.routing')),
+      'packet routing rejection names routing',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    delete packet.executorContractRef;
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet without executorContractRef is rejected');
+    assert(
+      result.errors.some((error) => error.includes('executorContractRef')),
+      'packet executor contract rejection names executorContractRef',
       result.errors.join('; '),
     );
   }
@@ -463,12 +541,25 @@ function runTests() {
 
   {
     const packet = validWorkPacket();
-    packet.missionId = packet.sessionId;
+    packet.unexpectedField = 'unexpected';
     const result = validateWorkPacket(packet);
-    assert(result.ok === false, 'packet rejects legacy mission fields');
+    assert(result.ok === false, 'packet rejects unknown top-level fields');
     assert(
-      result.errors.some((error) => error.includes('legacy-workspace-artifact-unsupported')),
-      'legacy packet rejection names legacy-workspace-artifact-unsupported',
+      result.errors.some((error) => error.includes('packet.unexpectedField is not allowed')),
+      'unknown packet field rejection names field',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    const removedField = ['mission', 'Id'].join('');
+    packet[removedField] = packet.sessionId;
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects removed mission-era fields as unknown');
+    assert(
+      result.errors.some((error) => error.includes(`packet.${removedField} is not allowed`)),
+      'removed packet field rejection names field',
       result.errors.join('; '),
     );
   }
@@ -947,8 +1038,6 @@ function runTests() {
     ]) {
       assert(skillContent.includes(text), `source skill documents ${text}`, skillContent);
     }
-    assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
-
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
     assert(moduleHelp.includes('Core,bmad-workspace,'), 'module-help registers bmad-workspace skill');
     assert(moduleHelp.includes('Core,bmad-workspace,BMAD Workspace,WS,'), 'module-help registers WS menu code');
@@ -994,10 +1083,10 @@ function runTests() {
     const historyFiles = fs.readdirSync(historyRoot);
     const historyArchivePath = path.join(historyRoot, 'compiled-bmads.md');
     const historyArchive = fs.readFileSync(historyArchivePath, 'utf8');
-    const legacyHistoryArtifactPattern = /^v\d+-(?:prd|implementation-backlog|backlog|acceptance-tests|traceability)\.md$/;
+    const removedHistoryArtifactPattern = /^v\d+-(?:prd|implementation-backlog|backlog|acceptance-tests|traceability)\.md$/;
     assert(fs.existsSync(historyArchivePath), 'Compiled Workspace history archive exists');
     assert(
-      !historyFiles.some((fileName) => legacyHistoryArtifactPattern.test(fileName)),
+      !historyFiles.some((fileName) => removedHistoryArtifactPattern.test(fileName)),
       'Per-release Workspace history artifacts were compiled and removed',
     );
 
@@ -1200,6 +1289,12 @@ function runTests() {
 
     const releaseRefFindings = findWorkspaceReleaseRefsOutsideHistory();
     assert(releaseRefFindings.length === 0, 'Workspace release refs stay inside history artifacts', releaseRefFindings.join('\n'));
+    const removedContractFindings = findWorkspaceRemovedContractRefsOutsideHistory();
+    assert(
+      removedContractFindings.length === 0,
+      'removed Workspace contract refs stay out of current surfaces',
+      removedContractFindings.join('\n'),
+    );
   }
 
   section('Workspace Compiled History');

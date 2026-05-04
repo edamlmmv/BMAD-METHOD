@@ -1,8 +1,20 @@
 const ROUTING_SCHEMA_VERSION = 1;
 
 const ROUTEABLE_MODULE = 'BMad Method';
-const SOURCE_VALUES = new Set(['override', 'deterministic', 'legacy-missing']);
+const SOURCE_VALUES = new Set(['override', 'deterministic']);
 const CONFIDENCE_VALUES = new Set(['explicit', 'strong', 'weak', 'blocked', 'needs-decision']);
+const ALLOWED_ROUTING_FIELDS = new Set([
+  'routingSchemaVersion',
+  'selectedWorkflow',
+  'selectedAction',
+  'source',
+  'confidence',
+  'reasonCodes',
+  'alternatives',
+  'inputRefs',
+  'blockers',
+  'nextManualStep',
+]);
 
 function createRouteableCatalog(rows) {
   if (!Array.isArray(rows)) {
@@ -93,29 +105,12 @@ function routeWorkspace(input = {}) {
   });
 }
 
-function createLegacyRouting(packet = {}) {
-  const selectedWorkflow = typeof packet.bmadWorkflow === 'string' && packet.bmadWorkflow.trim() !== '' ? packet.bmadWorkflow : 'unknown';
-  return {
-    routingSchemaVersion: ROUTING_SCHEMA_VERSION,
-    selectedWorkflow,
-    source: 'legacy-missing',
-    confidence: 'weak',
-    reasonCodes: ['ROUTING_LEGACY_MISSING'],
-    alternatives: [],
-    inputRefs: {
-      repoIntakeRefs: Array.isArray(packet.repoIntakeRefs) ? packet.repoIntakeRefs : [],
-      artifactRefs: {},
-    },
-    blockers: [],
-    nextManualStep: `Inspect legacy BMAD Work Packet workflow ${selectedWorkflow}.`,
-  };
-}
-
 function validateRoutingDecision(routing, errors, label = 'packet.routing') {
   if (!isObject(routing)) {
     errors.push(`${label} must be an object`);
     return;
   }
+  validateAllowedFields(routing, ALLOWED_ROUTING_FIELDS, label, errors);
   if (routing.routingSchemaVersion !== ROUTING_SCHEMA_VERSION) {
     errors.push(`${label}.routingSchemaVersion must be ${ROUTING_SCHEMA_VERSION}`);
   }
@@ -124,7 +119,7 @@ function validateRoutingDecision(routing, errors, label = 'packet.routing') {
     errors.push(`${label}.selectedAction must be a string`);
   }
   if (!SOURCE_VALUES.has(routing.source)) {
-    errors.push(`${label}.source must be override, deterministic, or legacy-missing`);
+    errors.push(`${label}.source must be override or deterministic`);
   }
   if (!CONFIDENCE_VALUES.has(routing.confidence)) {
     errors.push(`${label}.confidence must be explicit, strong, weak, blocked, or needs-decision`);
@@ -140,6 +135,14 @@ function validateRoutingDecision(routing, errors, label = 'packet.routing') {
     errors.push(`${label}.blockers must be an array`);
   }
   requireNonEmptyString(routing, 'nextManualStep', errors, label);
+}
+
+function validateAllowedFields(object, allowedFields, label, errors) {
+  for (const field of Object.keys(object)) {
+    if (!allowedFields.has(field)) {
+      errors.push(`${label}.${field} is not allowed by current Workspace contract`);
+    }
+  }
 }
 
 function isRouteableRow(row) {
@@ -385,7 +388,6 @@ function requireStringArray(object, field, errors, label) {
 
 module.exports = {
   ROUTING_SCHEMA_VERSION,
-  createLegacyRouting,
   createRouteableCatalog,
   routeWorkspace,
   validateRoutingDecision,

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
-const { createLegacyRouting, validateRoutingDecision } = require('./routing');
+const { validateRoutingDecision } = require('./routing');
 
 const RESULT_SCHEMA_VERSION = 1;
 const RESULT_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -99,7 +99,7 @@ function buildResultArtifact({ input, sessionId, resultId, createdAt, packet, pa
     createdAt,
     packetRef,
     renderedPromptRef: packet.renderedPromptRef || null,
-    routing: packet.routing || createLegacyRouting(packet),
+    routing: packet.routing,
     outcome: input.outcome,
     summary: input.summary,
     ...(Array.isArray(input.commands) ? { commands: input.commands } : {}),

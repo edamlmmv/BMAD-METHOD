@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
-const { createLegacyRouting, validateRoutingDecision } = require('./routing');
+const { validateRoutingDecision } = require('./routing');
 const { scanForSecrets } = require('./result');
 
 const CLOSEOUT_SCHEMA_VERSION = 1;
@@ -94,7 +94,7 @@ function buildCloseoutArtifact({ input, sessionId, closeoutId, createdAt, packet
     closeoutId,
     createdAt,
     packetRef,
-    routing: packet.routing || createLegacyRouting(packet),
+    routing: packet.routing,
     executorContractRef: status.executorContract?.ref || null,
     resultRefs: (status.results?.entries || [])
       .filter((entry) => entry.valid)
