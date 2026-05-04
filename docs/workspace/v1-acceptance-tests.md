@@ -1,9 +1,9 @@
 ---
-title: "Workspace Distro V1 Acceptance Tests"
-description: Acceptance tests for the first Workspace Distro implementation slice
+title: "BMAD Workspace V1 Acceptance Tests"
+description: Acceptance tests for the first BMAD Workspace implementation slice
 ---
 
-# Workspace Distro V1 Acceptance Tests
+# BMAD Workspace V1 Acceptance Tests
 
 ## Launch
 
@@ -11,7 +11,7 @@ description: Acceptance tests for the first Workspace Distro implementation slic
 | --- | --- | --- |
 | AT-001 | Launch normal mission with one target repo. | Mission Workspace exists with `instance.json`, `repo-pack.json`, grants, and repo worktree. |
 | AT-002 | Launch normal mission with multiple target repos. | Repo Pack records each repo, branch, HEAD, and worktree path. |
-| AT-003 | Launch normal mission. | Workspace Distro has no new or modified files. |
+| AT-003 | Launch normal mission. | BMAD Workspace has no new or modified files. |
 
 ## Repo Intake
 
@@ -43,7 +43,7 @@ description: Acceptance tests for the first Workspace Distro implementation slic
 | ID | Scenario | Expected Result |
 | --- | --- | --- |
 | AT-040 | Run normal mission with Codex Executor. | Writes are limited to target repo worktree and mission runtime paths. |
-| AT-041 | Executor attempts Workspace Distro write during normal mission. | Run stops and records Grant Guard violation. |
+| AT-041 | Executor attempts BMAD Workspace write during normal mission. | Run stops and records Grant Guard violation. |
 | AT-042 | Executor fails before completion. | Result and transcript artifacts are still written for review. |
 
 ## Worktree Review
@@ -59,7 +59,7 @@ description: Acceptance tests for the first Workspace Distro implementation slic
 | ID | Scenario | Expected Result |
 | --- | --- | --- |
 | AT-060 | Launch Base Improvement Mission without Base Mutation Grant. | Launch or packet creation fails. |
-| AT-061 | Launch Base Improvement Mission with grant. | Workspace Distro worktree is created on a dedicated branch. |
+| AT-061 | Launch Base Improvement Mission with grant. | BMAD Workspace worktree is created on a dedicated branch. |
 | AT-062 | Base Improvement Mission writes outside granted paths. | Grant Guard blocks write and records violation. |
 | AT-063 | Promote base change. | Promotion requires BMAD artifact, grant, Worktree Review, and explicit user action. |
 

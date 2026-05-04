@@ -7,7 +7,7 @@ description: Goal template for a grant-governed Workspace Session
 
 ## Goal
 
-Describe the smallest Workspace Distro improvement this Workspace Session should
+Describe the smallest BMAD Workspace improvement this Workspace Session should
 prepare.
 
 ## BMAD Work Packet

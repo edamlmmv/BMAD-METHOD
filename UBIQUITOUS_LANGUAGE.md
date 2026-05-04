@@ -16,8 +16,8 @@
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Workspace Distro** | The durable BMAD-centered base that carries methodology, agents, skills, policies, adapters, settings, and secret references. | Base, toolchain repo, distro |
-| **Workspace Session** | A disposable runtime launched from a Workspace Distro for one bounded goal against selected repo inputs. | Instance, run, Mission Workspace |
+| **BMAD Workspace** | The durable BMAD-centered base that carries methodology, agents, skills, policies, adapters, settings, and secret references. | Base, toolchain repo, workspace |
+| **Workspace Session** | A disposable runtime launched from a BMAD Workspace for one bounded goal against selected repo inputs. | Instance, run, Mission Workspace |
 | **Session** | A bounded job with a goal, Repo Pack, grants, BMAD Work Packet, and exit criteria. | Mission, task, ticket, job |
 | **Repo Pack** | The selected target repositories attached to a Workspace Session. | Mounted repos, repo set |
 | **Target Repo** | A repository in the Repo Pack that is allowed to receive session changes. | External repo, project repo |
@@ -32,11 +32,11 @@
 | --- | --- | --- |
 | **Capability Contract** | A BMAD-governed registry of adapter capabilities available to a Workspace Session. | Tool list, memory, provider map |
 | **Grant** | An explicit permission record that names allowed capabilities, paths, repos, and persistence rights. | Permission, access, approval |
-| **Base Mutation Grant** | A Grant that explicitly permits changes to the Workspace Distro. | Self-improvement permission, base write |
-| **Base Improvement Session** | A session whose target is the Workspace Distro and whose writes require a Base Mutation Grant. | Self-improvement loop, Base Improvement Mission |
-| **Promotion** | The explicit integration of reviewed changes into the Workspace Distro. | Merge back, persist, learn |
+| **Base Mutation Grant** | A Grant that explicitly permits changes to the BMAD Workspace. | Self-improvement permission, base write |
+| **Base Improvement Session** | A session whose target is the BMAD Workspace and whose writes require a Base Mutation Grant. | Self-improvement loop, Base Improvement Mission |
+| **Promotion** | The explicit integration of reviewed changes into the BMAD Workspace. | Merge back, persist, learn |
 | **Session State** | Runtime data created inside a Workspace Session that dies unless explicitly retained for review. | Memory, context, cache, Mission State |
-| **Standing Order** | A durable BMAD-owned rule stored in the Workspace Distro. | Persistent memory, instruction |
+| **Standing Order** | A durable BMAD-owned rule stored in the BMAD Workspace. | Persistent memory, instruction |
 | **Drift** | Any durable change that lacks a BMAD Artifact, Grant, or Git diff proving why it exists. | Accidental mutation, residue |
 
 ## Adapter capabilities
@@ -51,20 +51,20 @@
 
 ## Relationships
 
-- A **Workspace Distro** creates zero or more **Workspace Sessions**.
+- A **BMAD Workspace** creates zero or more **Workspace Sessions**.
 - A **Workspace Session** attaches one **Repo Pack** and produces one or more **BMAD Work Packets**.
 - A **BMAD Work Packet** must include **Repo Intake** evidence before execution.
 - A **Rendered Prompt** is derived from a **BMAD Work Packet** and executed by the **Codex Executor**.
 - A **Capability Contract** exposes one or more **Adapters** to a **Workspace Session**.
-- A normal **Session** may change **Target Repos** but may not change the **Workspace Distro**.
-- A **Base Improvement Session** may change the **Workspace Distro** only through a **Base Mutation Grant**.
+- A normal **Session** may change **Target Repos** but may not change the **BMAD Workspace**.
+- A **Base Improvement Session** may change the **BMAD Workspace** only through a **Base Mutation Grant**.
 - **Promotion** requires a **Worktree Review** and must be explicit.
 - **Session State** dies with the **Workspace Session** unless retained for **Worktree Review**.
 
 ## Example dialogue
 
 > **Dev:** "Can this **Workspace Session** remember a fix and improve future runs?"
-> **Domain expert:** "Only if you start a **Base Improvement Session**. A normal **Session** writes the **Target Repo**, not the **Workspace Distro**."
+> **Domain expert:** "Only if you start a **Base Improvement Session**. A normal **Session** writes the **Target Repo**, not the **BMAD Workspace**."
 > **Dev:** "So the **Rendered Prompt** is not the source of truth?"
 > **Domain expert:** "Correct. The **BMAD Work Packet** is the source of truth; the **Rendered Prompt** is derived for the **Codex Executor**."
 > **Dev:** "Where do OpenClaw, Hermes, and Graphify fit?"
@@ -80,4 +80,4 @@
 - "prompt" can mean the planning artifact or executor text. Use **BMAD Work Packet** for the source artifact and **Rendered Prompt** for executor text.
 - "memory" can mean adapter storage, graph evidence, session cache, or durable rules. Use **Session State** for disposable data and **Standing Order** for durable rules.
 - "self-improvement" can imply automatic base mutation. Use **Base Improvement Session** and require a **Base Mutation Grant**.
-- "promotion" can mean merging target repo changes or improving the base. Use **Promotion** only for explicit integration into the **Workspace Distro**.
+- "promotion" can mean merging target repo changes or improving the base. Use **Promotion** only for explicit integration into the **BMAD Workspace**.

@@ -61,7 +61,7 @@ function validateCapabilityContract(contract) {
   }
 
   requireNonEmptyString(contract, 'schemaVersion', errors);
-  requireNonEmptyString(contract, 'workspaceDistroVersion', errors);
+  requireNonEmptyString(contract, 'workspaceVersion', errors);
 
   if (!Array.isArray(contract.capabilities) || contract.capabilities.length === 0) {
     errors.push('contract.capabilities must be a non-empty array');
@@ -109,8 +109,8 @@ function validateCapability(capability, index, errors) {
     if (capability.group !== 'evidence.graph') {
       errors.push(`${label}.group must be evidence.graph for repo intake`);
     }
-    if (!arrayIncludes(capability.forbiddenWrites, 'workspace-distro')) {
-      errors.push(`${label}.forbiddenWrites must include workspace-distro`);
+    if (!arrayIncludes(capability.forbiddenWrites, 'workspace-base')) {
+      errors.push(`${label}.forbiddenWrites must include workspace-base`);
     }
     for (const output of ['repo-intake.json', 'graph.json', 'provenance.json']) {
       if (!arrayIncludes(capability.outputs, output)) {

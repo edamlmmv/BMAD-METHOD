@@ -1,9 +1,9 @@
 ---
-title: "Workspace Distro V2 Backlog"
+title: "BMAD Workspace V2 Backlog"
 description: TDD-first backlog for session language and self-improvement packet kit
 ---
 
-# Workspace Distro V2 Backlog
+# BMAD Workspace V2 Backlog
 
 ## V2 Boundary
 
@@ -29,7 +29,7 @@ V1 lifecycle and does not introduce autonomous execution.
 | S14 | JSON output is additive. | Workspace command output | `sessionId/sessionRoot` missing. | Aliases mirror legacy fields. | AT2-005 |
 | S15 | Packet kit is validated. | `validateSelfImprovementPacketKit` | Missing kit passes. | Required files and fields checked. | AT2-010, AT2-011 |
 | S16 | Packet kit forbids hidden execution. | Templates | Prompt omits no-run rule. | Templates name forbidden actions. | AT2-012 |
-| S17 | Source skill is repo-owned. | `src/core-skills/bmad-workspace-distro/SKILL.md` | Skill missing. | Skill exists and module help registers it. | AT2-020, AT2-021 |
+| S17 | Source skill is repo-owned. | `src/core-skills/bmad-workspace/SKILL.md` | Skill missing. | Skill exists and module help registers it. | AT2-020, AT2-021 |
 | S18 | Skill validation remains green. | `npm run validate:skills` | New skill fails deterministic checks. | Skill frontmatter and body pass. | AT2-022 |
 | S19 | V2 progress is traceable. | `v2-traceability.md` | Acceptance ids unmapped. | Matrix links acceptance, story, test, and file. | AT2-030, AT2-031 |
 

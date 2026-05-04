@@ -1,14 +1,14 @@
-const { launchMission } = require('../../workspace-distro/launch');
-const { runRepoIntake } = require('../../workspace-distro/intake');
-const { buildMissionPacket } = require('../../workspace-distro/packet');
-const { runWorktreeReview } = require('../../workspace-distro/review');
-const { destroyMission } = require('../../workspace-distro/destroy');
-const { authorizeDurableWrite } = require('../../workspace-distro/grant-guard');
-const { resolveLaunchSessionId, withSessionAliases } = require('../../workspace-distro/session');
+const { launchMission } = require('../../workspace/launch');
+const { runRepoIntake } = require('../../workspace/intake');
+const { buildMissionPacket } = require('../../workspace/packet');
+const { runWorktreeReview } = require('../../workspace/review');
+const { destroyMission } = require('../../workspace/destroy');
+const { authorizeDurableWrite } = require('../../workspace/grant-guard');
+const { resolveLaunchSessionId, withSessionAliases } = require('../../workspace/session');
 
-const WORKSPACE_HELP = `BMAD Workspace Distro Workspace Session lifecycle.
+const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
 
-V2 session-compatible subcommands:
+V3 workspace subcommands:
   launch   create a disposable Workspace Session for selected repo paths
   intake   record Repo Intake evidence and target repo provenance
   packet   create a BMAD Work Packet from fresh intake and goal evidence
@@ -72,7 +72,7 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
           missionId: options.missionId,
           sessionId: options.sessionId,
         }),
-        workspaceDistroPath: process.cwd(),
+        workspaceBasePath: process.cwd(),
         baseImprovement: options.baseImprovement,
         grantPath: options.grant,
       }),

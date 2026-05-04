@@ -1,9 +1,9 @@
 ---
-title: "Workspace Distro ADR Candidates"
-description: Candidate architecture decisions for the BMAD Workspace Distro
+title: "BMAD Workspace ADR Candidates"
+description: Candidate architecture decisions for the BMAD Workspace
 ---
 
-# Workspace Distro ADR Candidates
+# BMAD Workspace ADR Candidates
 
 ## ADR-001 BMAD Is The Kernel
 
@@ -42,7 +42,7 @@ no custom UI.
 **Status:** Candidate
 
 **Decision:** Never promote mission learnings or changes into the Workspace
-Distro automatically.
+Workspace automatically.
 
 **Rationale:** Normal mission residue would corrupt portability and make future
 behavior non-reproducible.

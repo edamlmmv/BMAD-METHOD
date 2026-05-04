@@ -4,7 +4,7 @@ Core,bmad-brainstorming,Brainstorming,BSP,Use early in ideation or when stuck ge
 Core,bmad-party-mode,Party Mode,PM,Orchestrate multi-agent discussions when you need multiple perspectives or want agents to collaborate.,,anytime,,,false,,
 Core,bmad-help,BMad Help,BH,,,anytime,,,false,,
 Core,bmad-prompt-builder,Prompt Builder,PB,"Build copy-ready prompts that combine the smallest useful BMAD skill chain for a task.",,anytime,,,false,,
-Core,bmad-workspace-distro,Workspace Distro,WD,"Operate BMAD Workspace Distro Workspace Sessions from Codex, including Repo Intake, BMAD Work Packets, Worktree Review, destroy, and grant-governed base improvement.",,anytime,,,false,{project-root}/docs/workspace-distro,workspace session artifacts
+Core,bmad-workspace,BMAD Workspace,WS,"Operate BMAD Workspace Sessions from Codex, including Repo Intake, BMAD Work Packets, Worktree Review, destroy, and grant-governed base improvement.",,anytime,,,false,{project-root}/docs/workspace,workspace session artifacts
 Core,bmad-index-docs,Index Docs,ID,Use when LLM needs to understand available docs without loading everything.,,anytime,,,false,,
 Core,bmad-shard-doc,Shard Document,SD,Use when doc becomes too large (>500 lines) to manage effectively.,[path],anytime,,,false,,
 Core,bmad-editorial-review-prose,Editorial Review - Prose,EP,Use after drafting to polish written content.,[path],anytime,,,false,report located with target document,three-column markdown table with suggested fixes

@@ -1,8 +1,8 @@
 /**
- * Workspace Distro CLI Tests
+ * BMAD Workspace CLI Tests
  *
- * Public behavior checks for the BMAD Workspace Distro V1 CLI surface.
- * Usage: node test/test-workspace-distro-cli.js
+ * Public behavior checks for the BMAD Workspace V1 CLI surface.
+ * Usage: node test/test-workspace-cli.js
  */
 
 const path = require('node:path');
@@ -106,7 +106,7 @@ function runTests() {
   const output = `${result.stdout}\n${result.stderr}`;
 
   assert(result.status === 0, 'workspace help exits zero', output);
-  assert(output.includes('BMAD Workspace Distro'), 'workspace help names BMAD Workspace Distro', output);
+  assert(output.includes('BMAD Workspace'), 'workspace help names BMAD Workspace', output);
   assert(output.includes('Workspace Session'), 'workspace help uses session language', output);
   assert(output.includes('--session-id <id>'), 'workspace help lists --session-id alias', output);
   for (const subcommand of ['launch', 'intake', 'packet', 'review', 'destroy', 'authorize']) {
@@ -116,7 +116,7 @@ function runTests() {
   section('Workspace Launch');
 
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-cli-'));
-  const baseRepo = createGitRepo(tempRoot, 'workspace-distro-base');
+  const baseRepo = createGitRepo(tempRoot, 'workspace-base');
   const targetRepo = createGitRepo(tempRoot, 'target-repo');
   const secondTargetRepo = createGitRepo(tempRoot, 'second-target-repo');
   const goalPath = path.join(tempRoot, 'goal.md');
@@ -151,7 +151,7 @@ function runTests() {
     assert(grants.baseMutationGrant === false, 'normal launch has no Base Mutation Grant', JSON.stringify(grants, null, 2));
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
-    assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
+    assert(baseStatus === '', 'launch does not dirty Workspace Base repo', baseStatus);
 
     section('Workspace Session Alias');
 
@@ -328,8 +328,8 @@ function runTests() {
         {
           schemaVersion: '0.1',
           baseMutationGrant: true,
-          allowedBasePaths: ['docs/workspace-distro'],
-          bmadArtifactRef: 'docs/workspace-distro/v1-implementation-backlog.md',
+          allowedBasePaths: ['docs/workspace'],
+          bmadArtifactRef: 'docs/workspace/v1-implementation-backlog.md',
         },
         null,
         2,
@@ -361,9 +361,9 @@ function runTests() {
 
     const baseRepoPack = readJson(baseImprovementOutput.repoPackPath);
     const baseWorktreePath = baseRepoPack.repos[0].worktreePath;
-    assert(fs.existsSync(baseWorktreePath), 'Base Improvement creates Workspace Distro worktree', JSON.stringify(baseRepoPack, null, 2));
+    assert(fs.existsSync(baseWorktreePath), 'Base Improvement creates BMAD Workspace worktree', JSON.stringify(baseRepoPack, null, 2));
     assert(
-      git(['branch', '--show-current'], baseWorktreePath).startsWith('codex/workspace-distro/'),
+      git(['branch', '--show-current'], baseWorktreePath).startsWith('codex/workspace/'),
       'Base Improvement uses dedicated codex branch',
       JSON.stringify(baseRepoPack, null, 2),
     );
@@ -374,7 +374,7 @@ function runTests() {
         'authorize',
         baseImprovementOutput.missionId,
         '--write-path',
-        path.join(baseWorktreePath, 'docs', 'workspace-distro', 's11.md'),
+        path.join(baseWorktreePath, 'docs', 'workspace', 's11.md'),
         '--runtime-root',
         runtimeRoot,
       ],
@@ -384,7 +384,9 @@ function runTests() {
     );
     const grantedBaseWriteText = `${grantedBaseWrite.stdout}\n${grantedBaseWrite.stderr}`;
     assert(grantedBaseWrite.status === 0, 'Grant Guard allows granted base path write', grantedBaseWriteText);
-    assertSessionAliases(JSON.parse(grantedBaseWrite.stdout), 'Grant Guard base output');
+    const grantedBaseWriteOutput = JSON.parse(grantedBaseWrite.stdout);
+    assertSessionAliases(grantedBaseWriteOutput, 'Grant Guard base output');
+    assert(grantedBaseWriteOutput.scope === 'workspace-base', 'Grant Guard reports workspace-base scope', grantedBaseWriteText);
 
     const deniedBaseWrite = runCli(
       [
@@ -433,7 +435,7 @@ function runTests() {
 
     const provenance = readJson(intakeOutput.provenancePath);
     assert(provenance.missionId === launchOutput.missionId, 'provenance records mission id', JSON.stringify(provenance, null, 2));
-    assert(provenance.scanner.id === 'workspace-distro.git-intake', 'provenance records scanner id', JSON.stringify(provenance, null, 2));
+    assert(provenance.scanner.id === 'workspace.git-intake', 'provenance records scanner id', JSON.stringify(provenance, null, 2));
 
     fs.appendFileSync(path.join(targetRepo.path, 'README.md'), 'More detail.\n');
     git(['add', 'README.md'], targetRepo.path);
@@ -480,7 +482,7 @@ function runTests() {
       JSON.stringify(missionPacket, null, 2),
     );
     assert(
-      missionPacket.constraints.includes('Do not mutate Workspace Distro'),
+      missionPacket.constraints.includes('Do not mutate Workspace Base'),
       'packet records base isolation constraint',
       JSON.stringify(missionPacket, null, 2),
     );
@@ -500,7 +502,7 @@ function runTests() {
     const renderedPrompt = fs.readFileSync(packetOutput.renderedPromptPath, 'utf8');
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-mission-packet.json`'), 'rendered prompt names packet source');
     assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
-    assert(renderedPrompt.includes('Do not mutate Workspace Distro'), 'rendered prompt includes packet constraints');
+    assert(renderedPrompt.includes('Do not mutate Workspace Base'), 'rendered prompt includes packet constraints');
 
     section('Workspace Review');
 

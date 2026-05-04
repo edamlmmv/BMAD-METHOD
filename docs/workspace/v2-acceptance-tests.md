@@ -1,9 +1,9 @@
 ---
-title: "Workspace Distro V2 Acceptance Tests"
+title: "BMAD Workspace V2 Acceptance Tests"
 description: Acceptance tests for session language and self-improvement packet kit
 ---
 
-# Workspace Distro V2 Acceptance Tests
+# BMAD Workspace V2 Acceptance Tests
 
 ## Boundary Language Contract
 
@@ -27,8 +27,8 @@ description: Acceptance tests for session language and self-improvement packet k
 
 | ID | Scenario | Expected Result |
 | --- | --- | --- |
-| AT2-020 | Inspect source skills. | Repo owns `src/core-skills/bmad-workspace-distro/SKILL.md`. |
-| AT2-021 | Inspect module help. | Catalog registers `bmad-workspace-distro`. |
+| AT2-020 | Inspect source skills. | Repo owns `src/core-skills/bmad-workspace/SKILL.md`. |
+| AT2-021 | Inspect module help. | Catalog registers `bmad-workspace`. |
 | AT2-022 | Run skill validation. | Deterministic skill validation passes. |
 
 ## Traceability

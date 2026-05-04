@@ -1,14 +1,14 @@
 ---
-title: "Workspace Distro V2 PRD"
+title: "BMAD Workspace V2 PRD"
 description: Session language and self-improvement packet kit requirements
 ---
 
-# Workspace Distro V2 PRD
+# BMAD Workspace V2 PRD
 
 ## Overview
 
 V2 is the Session Language + Self-Improvement Packet Kit release. It makes the
-Workspace Distro easier to use from Codex by exposing Workspace Session language,
+BMAD Workspace easier to use from Codex by exposing Workspace Session language,
 BMAD Work Packet templates, and repo-owned skill packaging while preserving the
 V1 lifecycle contract.
 
@@ -46,7 +46,7 @@ and keeps Promotion explicit.
 | V2-FR-005 | Public JSON command output shall include `sessionId` and `sessionRoot` aliases when legacy fields exist. |
 | V2-FR-006 | V1 `missionId`, `missionRoot`, and packet file names shall remain valid in V2. |
 | V2-FR-007 | Self-improvement templates shall validate required goal, grant, prompt, Work Packet, review, and traceability fields. |
-| V2-FR-008 | The repo shall own the `bmad-workspace-distro` source skill. |
+| V2-FR-008 | The repo shall own the `bmad-workspace` source skill. |
 | V2-FR-009 | V2 traceability shall map acceptance IDs to stories, tests, and first code or artifact surfaces. |
 
 ## Compatibility Matrix

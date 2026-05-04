@@ -1,9 +1,9 @@
 ---
-title: "Workspace Distro V2 Traceability"
+title: "BMAD Workspace V2 Traceability"
 description: Progress tracking for session language and self-improvement packet kit
 ---
 
-# Workspace Distro V2 Traceability
+# BMAD Workspace V2 Traceability
 
 ## Purpose
 
@@ -28,19 +28,19 @@ or artifact surface.
 
 | Acceptance Test | Epic | Story | TDD Test Target | First Code Or Artifact Surface |
 | --- | --- | --- | --- | --- |
-| AT2-001 | E6 | S12 | `test/test-workspace-distro-cli.js` | `tools/installer/commands/workspace.js` |
-| AT2-002 | E6 | S12 | `test/test-workspace-distro-cli.js` | `tools/installer/commands/workspace.js` |
-| AT2-003 | E6 | S13 | `test/test-workspace-distro-cli.js` | `tools/workspace-distro/session.js` |
-| AT2-004 | E6 | S13 | `test/test-workspace-distro-cli.js` | `tools/workspace-distro/session.js` |
-| AT2-005 | E6 | S14 | `test/test-workspace-distro-cli.js` | `tools/workspace-distro/session.js` |
-| AT2-010 | E7 | S15 | `test/test-workspace-distro-contracts.js` | `tools/workspace-distro/templates.js` |
-| AT2-011 | E7 | S15 | `test/test-workspace-distro-contracts.js` | `docs/workspace-distro/templates/` |
-| AT2-012 | E7 | S16 | `test/test-workspace-distro-contracts.js` | `docs/workspace-distro/templates/self-improvement-prompt.md` |
-| AT2-020 | E8 | S17 | `test/test-workspace-distro-contracts.js` | `src/core-skills/bmad-workspace-distro/SKILL.md` |
-| AT2-021 | E8 | S17 | `test/test-workspace-distro-contracts.js` | `src/core-skills/module-help.csv` |
-| AT2-022 | E8 | S18 | `npm run validate:skills` | `src/core-skills/bmad-workspace-distro/SKILL.md` |
-| AT2-030 | E9 | S19 | `test/test-workspace-distro-contracts.js` | `docs/workspace-distro/v2-traceability.md` |
-| AT2-031 | E9 | S19 | `test/test-workspace-distro-contracts.js` | `docs/workspace-distro/v2-prd.md` |
+| AT2-001 | E6 | S12 | `test/test-workspace-cli.js` | `tools/installer/commands/workspace.js` |
+| AT2-002 | E6 | S12 | `test/test-workspace-cli.js` | `tools/installer/commands/workspace.js` |
+| AT2-003 | E6 | S13 | `test/test-workspace-cli.js` | `tools/workspace/session.js` |
+| AT2-004 | E6 | S13 | `test/test-workspace-cli.js` | `tools/workspace/session.js` |
+| AT2-005 | E6 | S14 | `test/test-workspace-cli.js` | `tools/workspace/session.js` |
+| AT2-010 | E7 | S15 | `test/test-workspace-contracts.js` | `tools/workspace/templates.js` |
+| AT2-011 | E7 | S15 | `test/test-workspace-contracts.js` | `docs/workspace/templates/` |
+| AT2-012 | E7 | S16 | `test/test-workspace-contracts.js` | `docs/workspace/templates/self-improvement-prompt.md` |
+| AT2-020 | E8 | S17 | `test/test-workspace-contracts.js` | `src/core-skills/bmad-workspace/SKILL.md` |
+| AT2-021 | E8 | S17 | `test/test-workspace-contracts.js` | `src/core-skills/module-help.csv` |
+| AT2-022 | E8 | S18 | `npm run validate:skills` | `src/core-skills/bmad-workspace/SKILL.md` |
+| AT2-030 | E9 | S19 | `test/test-workspace-contracts.js` | `docs/workspace/v2-traceability.md` |
+| AT2-031 | E9 | S19 | `test/test-workspace-contracts.js` | `docs/workspace/v2-prd.md` |
 
 ## Completion Gate
 

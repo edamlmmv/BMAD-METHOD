@@ -1,13 +1,13 @@
 ---
-name: bmad-workspace-distro
-description: 'Operate BMAD Workspace Distro Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
+name: bmad-workspace
+description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
 ---
 
-# BMAD Workspace Distro
+# BMAD Workspace
 
 ## Purpose
 
-Operate the local BMAD Workspace Distro CLI as a BMAD-first Workspace Session
+Operate the local BMAD Workspace CLI as a BMAD-first Workspace Session
 harness. BMAD remains the source of truth, Codex performs the work, and Git
 worktrees provide review and provenance.
 
@@ -33,7 +33,7 @@ node {project-root}/tools/installer/bmad-cli.js workspace --help
 
 Use this path for target repo work. A normal Workspace Session may write target
 repo worktrees and session runtime artifacts. It must not write the Workspace
-Distro.
+Base.
 
 ```bash
 bmad workspace launch --repo <target-repo> --goal <goal-file> --runtime-root <runtime-root>
@@ -49,7 +49,7 @@ source of truth.
 
 ## Base Improvement Session
 
-Use this path only when the user explicitly grants Workspace Distro mutation.
+Use this path only when the user explicitly grants BMAD Workspace mutation.
 Require a Base Mutation Grant with scoped allowed paths and a BMAD artifact
 reference.
 
@@ -64,11 +64,11 @@ Promotion into the base is explicit only. No auto-promotion.
 
 For Codex-guided base improvement, start from:
 
-- `{project-root}/docs/workspace-distro/templates/self-improvement-goal.md`
-- `{project-root}/docs/workspace-distro/templates/base-mutation-grant.template.json`
-- `{project-root}/docs/workspace-distro/templates/bmad-work-packet.template.json`
-- `{project-root}/docs/workspace-distro/templates/self-improvement-prompt.md`
-- `{project-root}/docs/workspace-distro/templates/worktree-review-checklist.md`
+- `{project-root}/docs/workspace/templates/self-improvement-goal.md`
+- `{project-root}/docs/workspace/templates/base-mutation-grant.template.json`
+- `{project-root}/docs/workspace/templates/bmad-work-packet.template.json`
+- `{project-root}/docs/workspace/templates/self-improvement-prompt.md`
+- `{project-root}/docs/workspace/templates/worktree-review-checklist.md`
 
 The kit prepares a reviewable BMAD Work Packet. It does not execute a hidden
 run, expand grants, or promote changes.

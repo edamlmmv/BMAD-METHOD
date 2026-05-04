@@ -86,7 +86,7 @@ function buildMissionPacket({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   const renderedPromptPath = path.join(missionRoot, renderedPromptRef);
   const capabilityContractPath = path.join(missionRoot, capabilityContractRef);
 
-  const capabilityContract = createCapabilityContract(instance.workspaceDistroPath);
+  const capabilityContract = createCapabilityContract(instance.workspaceBasePath);
   assertValid('Capability Contract', validateCapabilityContract(capabilityContract));
   writeJson(capabilityContractPath, capabilityContract);
 
@@ -96,7 +96,7 @@ function buildMissionPacket({ missionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     bmadWorkflow: 'bmad-quick-dev',
     goal: readGoal(instance.goalPath),
     repoIntakeRefs: [instance.repoIntakeRef],
-    constraints: ['BMAD is kernel/truth', 'Do not mutate Workspace Distro', 'Use Repo Intake evidence before executor prompt'],
+    constraints: ['BMAD is kernel/truth', 'Do not mutate Workspace Base', 'Use Repo Intake evidence before executor prompt'],
     grants: [instance.grantsRef],
     acceptanceCriteria: [
       'BMAD Mission Packet remains source of truth',
@@ -151,21 +151,21 @@ function readGoal(goalPath) {
   return fs.readFileSync(goalPath, 'utf8').trim();
 }
 
-function createCapabilityContract(workspaceDistroPath) {
+function createCapabilityContract(workspaceBasePath) {
   return {
     schemaVersion: '0.1',
-    workspaceDistroVersion: resolveWorkspaceDistroVersion(workspaceDistroPath),
+    workspaceVersion: resolveWorkspaceVersion(workspaceBasePath),
     capabilities: [
       {
         id: 'evidence.graph.repo-intake',
         group: 'evidence.graph',
-        provider: 'workspace-distro.git-intake',
+        provider: 'workspace.git-intake',
         interface: 'repo-intake',
         allowedInNormalMission: true,
         allowedInBaseImprovement: true,
         requiresGrant: false,
         writes: ['mission-workspace/intake'],
-        forbiddenWrites: ['workspace-distro'],
+        forbiddenWrites: ['workspace-base'],
         outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
         upstreamGapProofRequired: false,
       },
@@ -173,9 +173,9 @@ function createCapabilityContract(workspaceDistroPath) {
   };
 }
 
-function resolveWorkspaceDistroVersion(workspaceDistroPath) {
+function resolveWorkspaceVersion(workspaceBasePath) {
   try {
-    return git(['rev-parse', 'HEAD'], workspaceDistroPath);
+    return git(['rev-parse', 'HEAD'], workspaceBasePath);
   } catch {
     return 'unknown';
   }

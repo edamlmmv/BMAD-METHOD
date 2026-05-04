@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "0.1",
+  "baseMutationGrant": true,
+  "allowedBasePaths": ["docs/workspace"],
+  "bmadArtifactRef": "docs/workspace/v2-backlog.md",
+  "reason": "Prepare a reviewable BMAD Workspace improvement through a Workspace Session."
+}

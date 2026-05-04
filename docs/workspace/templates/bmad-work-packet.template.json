@@ -11,8 +11,8 @@
     "Worktree Review evidence exists before explicit Promotion."
   ],
   "traceability": {
-    "acceptanceRef": "docs/workspace-distro/v2-acceptance-tests.md",
-    "storyRef": "docs/workspace-distro/v2-backlog.md",
+    "acceptanceRef": "docs/workspace/v2-acceptance-tests.md",
+    "storyRef": "docs/workspace/v2-backlog.md",
     "testTarget": "npm run test:workspace"
   },
   "forbiddenActions": ["workspace run", "auto-promotion", "hidden execution", "live adapter activation"]

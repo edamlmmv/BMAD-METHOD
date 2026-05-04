@@ -36,7 +36,7 @@ function assertMissionId(missionId) {
 
 function createScanner(generatedAt) {
   return {
-    id: 'workspace-distro.git-intake',
+    id: 'workspace.git-intake',
     version: '0.1',
     mode: 'code-only',
     generatedAt,

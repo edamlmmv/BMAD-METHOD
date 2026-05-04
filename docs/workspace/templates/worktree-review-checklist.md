@@ -1,11 +1,11 @@
 ---
 title: "Worktree Review Checklist"
-description: Review checklist for explicit Workspace Distro Promotion
+description: Review checklist for explicit BMAD Workspace Promotion
 ---
 
 # Worktree Review Checklist
 
-Use this checklist before explicit Promotion of any Workspace Distro change.
+Use this checklist before explicit Promotion of any BMAD Workspace change.
 
 ## Evidence
 

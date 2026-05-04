@@ -1,13 +1,13 @@
 ---
-title: "BMAD Workspace Distro PRD"
-description: Product requirements for a BMAD-centric portable workspace distro
+title: "BMAD Workspace PRD"
+description: Product requirements for a BMAD-centric portable workspace workspace
 ---
 
-# BMAD Workspace Distro PRD
+# BMAD Workspace PRD
 
 ## Overview
 
-The BMAD Workspace Distro is a portable, durable base that launches disposable
+The BMAD Workspace is a portable, durable base that launches disposable
 Mission Workspaces for bug fixes, feature work, research, and explicit base
 self-improvement. BMAD owns the workflow truth: routing, artifacts, gates,
 acceptance criteria, and review. Codex executes BMAD Mission Packets. OpenClaw,
@@ -19,7 +19,7 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
   Workspace with the same BMAD-centered tool base every time.
 - Run Repo Intake before executor prompts so BMAD Mission Packets are grounded in
   repo evidence.
-- Keep Workspace Distro state clean by default.
+- Keep BMAD Workspace state clean by default.
 - Make all mission changes reviewable through Git worktrees and patches.
 - Allow base self-improvement only through explicit grants, BMAD artifacts, and
   reviewable diffs.
@@ -33,8 +33,8 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
   proof.
 - No daemon requirement for V1.
 - No hidden cross-instance learning.
-- No automatic Promotion into the Workspace Distro.
-- No secret storage in the Workspace Distro or Mission Workspace artifacts.
+- No automatic Promotion into the BMAD Workspace.
+- No secret storage in the BMAD Workspace or Mission Workspace artifacts.
 - No custom review UI before Git worktrees and patches prove insufficient.
 
 ## User Jobs
@@ -43,14 +43,14 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 | --- | --- | --- |
 | Start clean work | Choose repos and launch a Mission Workspace quickly. | Mission has Repo Pack, grants, and empty runtime state. |
 | Fix or build | Execute BMAD-guided work in selected target repos. | Worktree Review shows intended changes and tests. |
-| Stay clean | Kill a Mission Workspace without polluting the base. | Workspace Distro has no ungranted diff. |
+| Stay clean | Kill a Mission Workspace without polluting the base. | BMAD Workspace has no ungranted diff. |
 | Inspect result | Review changed files in GitHub Desktop or equivalent. | Per-repo status and patch are available. |
 | Improve base | Explicitly run a Base Improvement Mission. | Base changes have grant, BMAD artifact, tests, and Worktree Review. |
 
 ## Normal Mission Lifecycle
 
 1. User chooses a Repo Pack and mission goal.
-2. Workspace Distro launches a disposable Mission Workspace.
+2. BMAD Workspace launches a disposable Mission Workspace.
 3. Repo Intake scans selected repos and records provenance.
 4. BMAD Router selects the smallest valid workflow.
 5. BMAD creates a BMAD Mission Packet.
@@ -58,13 +58,13 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 7. Codex Executor operates inside grants and Capability Contract.
 8. Git Adapter produces Worktree Review.
 9. User promotes target repo changes or destroys the Mission Workspace.
-10. Workspace Distro remains unchanged unless a Base Mutation Grant exists.
+10. BMAD Workspace remains unchanged unless a Base Mutation Grant exists.
 
 ## Base Improvement Lifecycle
 
 1. User explicitly starts a Base Improvement Mission or grants a Base Mutation
    Grant.
-2. Workspace Distro is mounted as the target repo in a dedicated worktree.
+2. BMAD Workspace is mounted as the target repo in a dedicated worktree.
 3. BMAD selects the right artifact path, such as PRD, architecture, story,
    implementation, or review.
 4. Codex Executor writes only granted base paths.
@@ -76,7 +76,7 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 | ID | Requirement |
 | --- | --- |
 | FR-001 | System shall treat BMAD artifacts as the source of truth for mission planning and execution. |
-| FR-002 | System shall launch a Mission Workspace from a Workspace Distro and one or more target repos. |
+| FR-002 | System shall launch a Mission Workspace from a BMAD Workspace and one or more target repos. |
 | FR-003 | System shall record launch inputs, grants, repo paths, branches, and base version. |
 | FR-004 | System shall run Repo Intake before BMAD Mission Packet creation. |
 | FR-005 | Repo Intake shall include repo identity, commit, scanned paths, scanner, timestamp, and summary evidence. |
@@ -85,10 +85,10 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 | FR-008 | Rendered Prompt shall be derived from BMAD Mission Packet content. |
 | FR-009 | Capability Contract shall expose adapters without requiring users to name provider internals in mission prompts. |
 | FR-010 | Normal missions shall allow writes only inside Target Repos and mission runtime paths. |
-| FR-011 | Base Improvement Missions shall require a Base Mutation Grant before any Workspace Distro writes. |
+| FR-011 | Base Improvement Missions shall require a Base Mutation Grant before any BMAD Workspace writes. |
 | FR-012 | Worktree Review shall emit per-repo status, patch, changed files, and review notes. |
 | FR-013 | Destroy shall remove disposable runtime state without deleting target repo commits or review artifacts retained by policy. |
-| FR-014 | Promotion into the Workspace Distro shall be explicit-only. |
+| FR-014 | Promotion into the BMAD Workspace shall be explicit-only. |
 | FR-015 | Adapter additions that duplicate existing engines shall require upstream-gap proof. |
 
 ## Non-Functional Requirements
@@ -105,7 +105,7 @@ Hermes, Graphify, Context7, Git, MCP, and GitHub provide adapter capabilities.
 ## Success Criteria
 
 - A normal mission can launch, intake, packet, run, review, and destroy with no
-  Workspace Distro diff.
+  BMAD Workspace diff.
 - A stale Repo Intake prevents packet creation.
 - A BMAD Mission Packet can recreate the rendered prompt and acceptance criteria.
 - Worktree Review can be opened by GitHub Desktop or inspected with Git CLI.

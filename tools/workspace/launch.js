@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
-const DEFAULT_RUNTIME_ROOT = path.join(os.tmpdir(), 'bmad-workspace-distro');
+const DEFAULT_RUNTIME_ROOT = path.join(os.tmpdir(), 'bmad-workspace');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -72,7 +72,7 @@ function launchMission({
   goalPath,
   runtimeRoot = DEFAULT_RUNTIME_ROOT,
   missionId = createMissionId(),
-  workspaceDistroPath = process.cwd(),
+  workspaceBasePath = process.cwd(),
   baseImprovement = false,
   grantPath,
 }) {
@@ -88,7 +88,7 @@ function launchMission({
       goalPath: resolvedGoalPath,
       runtimeRoot,
       missionId,
-      workspaceDistroPath,
+      workspaceBasePath,
       grantPath,
     });
   }
@@ -134,7 +134,7 @@ function launchMission({
       id: missionId,
       missionType: 'normal',
       createdAt,
-      workspaceDistroPath: path.resolve(workspaceDistroPath),
+      workspaceBasePath: path.resolve(workspaceBasePath),
       runtimeRoot: resolvedRuntimeRoot,
       missionRoot,
       goalPath: resolvedGoalPath,
@@ -153,7 +153,7 @@ function launchMission({
       baseMutationGrant: false,
       allowedBasePaths: [],
       targetRepoWrites: repos.map((repo) => repo.worktreePath),
-      forbiddenWrites: ['workspace-distro'],
+      forbiddenWrites: ['workspace-base'],
     };
 
     writeJson(instancePath, instance);
@@ -180,7 +180,7 @@ function launchMission({
   }
 }
 
-function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, workspaceDistroPath, grantPath }) {
+function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, workspaceBasePath, grantPath }) {
   const grant = readBaseMutationGrant(grantPath);
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
   const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
@@ -191,9 +191,9 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
 
   fs.mkdirSync(worktreesRoot, { recursive: true });
 
-  const workspaceRepo = resolveGitRepo(workspaceDistroPath);
-  const branchName = `codex/workspace-distro/${missionId}`;
-  const worktreePath = path.join(worktreesRoot, 'base-workspace-distro');
+  const workspaceRepo = resolveGitRepo(workspaceBasePath);
+  const branchName = `codex/workspace/${missionId}`;
+  const worktreePath = path.join(worktreesRoot, 'base-workspace');
   let worktreeCreated = false;
 
   try {
@@ -211,8 +211,8 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
       id: missionId,
       missionType: 'base-improvement',
       createdAt,
-      workspaceDistroPath: worktreePath,
-      sourceWorkspaceDistroPath: workspaceRepo.sourcePath,
+      workspaceBasePath: worktreePath,
+      sourceWorkspaceBasePath: workspaceRepo.sourcePath,
       runtimeRoot: resolvedRuntimeRoot,
       missionRoot,
       goalPath,
@@ -227,7 +227,7 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
       schemaVersion: '0.1',
       repos: [
         {
-          id: 'workspace-distro',
+          id: 'workspace-base',
           sourcePath: workspaceRepo.sourcePath,
           branch: workspaceRepo.branch,
           head: workspaceRepo.head,
@@ -242,7 +242,7 @@ function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, worksp
       baseMutationGrant: true,
       allowedBasePaths: grant.allowedBasePaths,
       targetRepoWrites: [],
-      forbiddenWrites: ['ungranted-workspace-distro-paths'],
+      forbiddenWrites: ['ungranted-workspace-base-paths'],
       sourceGrantPath: grant.sourceGrantPath,
       bmadArtifactRef: grant.bmadArtifactRef,
     };
@@ -312,12 +312,12 @@ function normalizeAllowedBasePaths(allowedBasePaths) {
 
   return allowedBasePaths.map((allowedPath) => {
     if (typeof allowedPath !== 'string' || allowedPath.trim() === '') {
-      throw new Error('base-mutation-grant-path-outside-distro');
+      throw new Error('base-mutation-grant-path-outside-workspace');
     }
 
     const normalizedPath = path.normalize(allowedPath.trim());
     if (path.isAbsolute(normalizedPath) || normalizedPath === '..' || normalizedPath.startsWith(`..${path.sep}`)) {
-      throw new Error('base-mutation-grant-path-outside-distro');
+      throw new Error('base-mutation-grant-path-outside-workspace');
     }
 
     return normalizedPath;

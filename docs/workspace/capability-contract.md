@@ -1,15 +1,15 @@
 ---
-title: "Workspace Distro Capability Contract"
-description: BMAD-governed capability registry for Workspace Distro adapters
+title: "BMAD Workspace Capability Contract"
+description: BMAD-governed capability registry for BMAD Workspace adapters
 ---
 
-# Workspace Distro Capability Contract
+# BMAD Workspace Capability Contract
 
 ## Purpose
 
 Capability Contract lets BMAD expose available tools to a Mission Workspace
 without turning provider names into prompt lore. A mission prompt should say what
-capability is needed; the Workspace Distro decides which adapter provides it.
+capability is needed; the BMAD Workspace decides which adapter provides it.
 
 ## Principles
 
@@ -37,7 +37,7 @@ capability is needed; the Workspace Distro decides which adapter provides it.
 ```json
 {
   "schemaVersion": "0.1",
-  "workspaceDistroVersion": "git-sha-or-tag",
+  "workspaceVersion": "git-sha-or-tag",
   "capabilities": [
     {
       "id": "evidence.graph.repo-intake",
@@ -48,7 +48,7 @@ capability is needed; the Workspace Distro decides which adapter provides it.
       "allowedInBaseImprovement": true,
       "requiresGrant": false,
       "writes": ["mission-workspace/intake"],
-      "forbiddenWrites": ["workspace-distro"],
+      "forbiddenWrites": ["workspace-base"],
       "outputs": ["repo-intake.json", "graph.json", "provenance.json"],
       "upstreamGapProofRequired": false
     }

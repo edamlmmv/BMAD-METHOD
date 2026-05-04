@@ -63,14 +63,14 @@ function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUN
   const repoPack = readJson(repoPackPath);
   const grants = readJson(grantsPath);
   const resolvedWritePath = path.resolve(writePath);
-  const workspaceDistroPath = path.resolve(instance.workspaceDistroPath);
+  const workspaceBasePath = path.resolve(instance.workspaceBasePath);
   const allowedTargetWrites = (grants.targetRepoWrites || repoPack.repos.map((repo) => repo.worktreePath)).map((targetPath) =>
     path.resolve(targetPath),
   );
-  const allowedBasePaths = (grants.allowedBasePaths || []).map((grantPath) => resolveGrantPath(workspaceDistroPath, grantPath));
+  const allowedBasePaths = (grants.allowedBasePaths || []).map((grantPath) => resolveGrantPath(workspaceBasePath, grantPath));
   const baseMutationGrant = grants.baseMutationGrant === true;
 
-  if (isPathInside(resolvedWritePath, workspaceDistroPath) && !baseMutationGrant) {
+  if (isPathInside(resolvedWritePath, workspaceBasePath) && !baseMutationGrant) {
     denyWrite({
       missionId,
       missionRoot,
@@ -81,9 +81,9 @@ function authorizeDurableWrite({ missionId, writePath, runtimeRoot = DEFAULT_RUN
     });
   }
 
-  if (isPathInside(resolvedWritePath, workspaceDistroPath)) {
+  if (isPathInside(resolvedWritePath, workspaceBasePath)) {
     if (allowedBasePaths.some((allowedPath) => isPathInside(resolvedWritePath, allowedPath))) {
-      return allowWrite({ missionId, writePath: resolvedWritePath, scope: 'workspace-distro' });
+      return allowWrite({ missionId, writePath: resolvedWritePath, scope: 'workspace-base' });
     }
 
     denyWrite({

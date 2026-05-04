@@ -1,9 +1,9 @@
 ---
-title: "BMAD Workspace Distro Architecture"
-description: Architecture for a BMAD-centric portable workspace distro
+title: "BMAD Workspace Architecture"
+description: Architecture for a BMAD-centric portable workspace workspace
 ---
 
-# BMAD Workspace Distro Architecture
+# BMAD Workspace Architecture
 
 ## Architecture Thesis
 
@@ -15,7 +15,7 @@ worktrees.
 ## Zoom-Out Map
 
 ```text
-Workspace Distro
+BMAD Workspace
   -> launches Mission Workspace
   -> provides BMAD Kernel, policies, adapters, templates, secret refs
 
@@ -34,7 +34,7 @@ Mission Workspace
 
 | Module | Interface | Responsibility |
 | --- | --- | --- |
-| Workspace Distro | `launch`, `policy`, `capabilities` | Own durable BMAD base, policies, adapters, templates, and secret references. |
+| BMAD Workspace | `launch`, `policy`, `capabilities` | Own durable BMAD base, policies, adapters, templates, and secret references. |
 | Mission Workspace | `instance.json`, `destroy` | Hold disposable runtime, grants, Repo Pack links, logs, and review artifacts. |
 | Repo Intake | `intake` | Produce code evidence and provenance before BMAD Mission Packet creation. |
 | BMAD Router | `route` | Select BMAD workflow path and required artifacts. |
@@ -48,7 +48,7 @@ Mission Workspace
 
 | Boundary | Example Artifacts | Persistence Rule |
 | --- | --- | --- |
-| Workspace Distro | BMAD skills, policies, templates, adapter registry, standing orders | Durable; changed only by Base Improvement Mission with grant. |
+| BMAD Workspace | BMAD skills, policies, templates, adapter registry, standing orders | Durable; changed only by Base Improvement Mission with grant. |
 | Mission Workspace | `instance.json`, intake output, packets, logs, review output | Disposable; retained only by explicit review policy. |
 | Target Repo Worktree | Source changes, tests, commits, patches | Durable in target repo workflow, not in base. |
 | Secret Store | Token references, credential handles | External; values never copied into artifacts. |
@@ -56,7 +56,7 @@ Mission Workspace
 ## Filesystem Sketch
 
 ```text
-workspace-distro/
+workspace/
   bmad/
     policies/
     templates/
@@ -124,7 +124,7 @@ artifacts retained by policy.
   "bmadWorkflow": "bmad-quick-dev",
   "goal": "Fix the reported bug",
   "repoIntakeRefs": ["intake/repo-intake.json"],
-  "constraints": ["Do not mutate Workspace Distro"],
+  "constraints": ["Do not mutate BMAD Workspace"],
   "grants": ["grants.json"],
   "acceptanceCriteria": ["Tests pass", "Worktree Review ready"],
   "capabilityContractRef": "capabilities.json",

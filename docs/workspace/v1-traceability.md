@@ -1,14 +1,14 @@
 ---
-title: "Workspace Distro V1 Traceability"
-description: Progress and completion tracking for the BMAD Workspace Distro V1 backlog
+title: "BMAD Workspace V1 Traceability"
+description: Progress and completion tracking for the BMAD Workspace V1 backlog
 ---
 
-# Workspace Distro V1 Traceability
+# BMAD Workspace V1 Traceability
 
 ## Purpose
 
 This artifact lets future implementation commits prove progress against the
-Workspace Distro V1 backlog. Reference this document by commit id when checking
+BMAD Workspace V1 backlog. Reference this document by commit id when checking
 whether V1 is still aligned with BMAD source artifacts.
 
 Source planning commit:
@@ -39,7 +39,7 @@ Source planning commit:
 | S8 Worktree Review | Complete | `5301a6a59ec892c533fcf3cbb162c73b4a7e7332` | Review writes clean summaries and dirty per-repo status plus patch artifacts. |
 | S9 Destroy safety | Complete | `d66731944a36c580b5af0ada9254056c8fd40cd4` | Destroy removes mission runtime and worktrees, preserves source repo HEAD, and retains review artifacts with `--keep-review`. |
 | S10 Grant Guard denial | Complete | `58a900bffc36f634f7ba352bec7e7c7affdc7270` | Grant Guard authorizes target worktree writes, denies ungranted base writes with violation artifacts, and blocks Base Improvement launch without grant. |
-| S11 Base Improvement grant | Complete | `b042d39e96ff8d63e2b40f52f95e8f5a4a8c86fe` | Base Improvement launch accepts explicit grant, creates a dedicated `codex/workspace-distro/*` worktree branch, enforces granted base paths, and writes explicit-only Promotion policy. |
+| S11 Base Improvement grant | Complete | `b042d39e96ff8d63e2b40f52f95e8f5a4a8c86fe` | Base Improvement launch accepts explicit grant, creates a dedicated `codex/workspace/*` worktree branch, enforces granted base paths, and writes explicit-only Promotion policy. |
 
 Update `Evidence Commit` with the commit that moves the story state. Each
 implementation commit should name the story id in its commit body or PR notes.
@@ -50,7 +50,7 @@ implementation commit should name the story id in its commit body or PR notes.
 | --- | --- | --- | --- | --- |
 | AT-001 | E2 | S2, S3 | Workspace help lists V1 commands; launch one temp Git repo. | `tools/installer/commands/workspace.js` |
 | AT-002 | E2 | S4 | Launch two temp Git repos. | Launch module |
-| AT-003 | E2 | S3 | Assert Workspace Distro diff clean. | Launch module |
+| AT-003 | E2 | S3 | Assert BMAD Workspace diff clean. | Launch module |
 | AT-010 | E2 | S5 | Intake writes repo HEAD and provenance. | Intake module |
 | AT-011 | E2 | S6 | Packet without intake exits nonzero. | Packet validator |
 | AT-012 | E2 | S6 | Packet with stale intake exits nonzero. | Packet validator |
@@ -89,7 +89,7 @@ V1 is complete when:
 
 ## Later Slice Gate
 
-Before adding `workspace run`, live adapters, or a new `bmad-workspace-distro`
+Before adding `workspace run`, live adapters, or a new `bmad-workspace`
 skill, require:
 
 - green lifecycle through `launch`, `intake`, `packet`, `review`, and `destroy`

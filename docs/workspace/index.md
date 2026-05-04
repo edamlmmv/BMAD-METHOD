@@ -1,11 +1,11 @@
 ---
-title: "BMAD Workspace Distro"
+title: "BMAD Workspace"
 description: BMAD-centric product and architecture artifacts for portable mission workspaces
 ---
 
-# BMAD Workspace Distro
+# BMAD Workspace
 
-The BMAD Workspace Distro is a portable base for launching disposable agentic
+The BMAD Workspace is a portable base for launching disposable agentic
 workspaces against chosen repositories while keeping BMAD as the source of truth.
 
 ## Artifacts
@@ -23,6 +23,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V2 Acceptance Tests](./v2-acceptance-tests.md) | Lists behavior tests for the V2 surface upgrade. |
 | [V2 Backlog](./v2-backlog.md) | Defines TDD-first epics and stories for V2. |
 | [V2 Traceability](./v2-traceability.md) | Maps V2 acceptance tests to stories, tests, and files. |
+| [V3 PRD](./v3-prd.md) | Defines the full Workspace rename release. |
+| [V3 Acceptance Tests](./v3-acceptance-tests.md) | Lists behavior tests for removing old Workspace naming. |
+| [V3 Backlog](./v3-backlog.md) | Defines TDD-first stories for V3 rename work. |
+| [V3 Traceability](./v3-traceability.md) | Maps V3 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 
@@ -30,6 +34,6 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 - Codex is the preferred executor.
 - OpenClaw, Hermes, Graphify, Context7, Git, MCP, GitHub, and similar tools are
   adapters behind BMAD-owned interfaces.
-- No normal Workspace Session mutates the Workspace Distro.
+- No normal Workspace Session mutates the BMAD Workspace.
 - Base self-improvement requires an explicit Base Mutation Grant and Worktree
   Review before Promotion.
