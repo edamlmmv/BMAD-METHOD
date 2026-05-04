@@ -138,6 +138,15 @@ function runTests() {
     const baseStatus = git(['status', '--short'], baseRepo.path);
     assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
 
+    section('Workspace Packet Freshness');
+
+    const missingPacket = runCli(['workspace', 'packet', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingPacketText = `${missingPacket.stdout}\n${missingPacket.stderr}`;
+    assert(missingPacket.status !== 0, 'packet without intake exits nonzero', missingPacketText);
+    assert(missingPacketText.includes('missing-intake'), 'packet without intake names missing-intake', missingPacketText);
+
     section('Workspace Intake');
 
     const intake = runCli(['workspace', 'intake', launchOutput.missionId, '--runtime-root', runtimeRoot], {
@@ -163,6 +172,13 @@ function runTests() {
     git(['add', 'README.md'], targetRepo.path);
     git(['commit', '-m', 'update target repo'], targetRepo.path);
     const newTargetHead = git(['rev-parse', 'HEAD'], targetRepo.path);
+
+    const stalePacket = runCli(['workspace', 'packet', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const stalePacketText = `${stalePacket.stdout}\n${stalePacket.stderr}`;
+    assert(stalePacket.status !== 0, 'packet with stale intake exits nonzero', stalePacketText);
+    assert(stalePacketText.includes('stale-intake'), 'packet with stale intake names stale-intake', stalePacketText);
 
     const reIntake = runCli(['workspace', 'intake', launchOutput.missionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
