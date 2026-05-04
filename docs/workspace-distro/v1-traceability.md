@@ -35,7 +35,7 @@ Source planning commit:
 | S4 Multi-repo launch | Planned | TBD | After S3. |
 | S5 Repo Intake | Complete | `0456fc556cd3a5f42b2e925c40c5aa260c38f3ee` | Intake writes repo evidence and provenance; re-intake records new target HEAD. |
 | S6 Packet freshness guard | Complete | `a11c93a2b349538715b7e3b1be23b075937ea123` | Packet command fails with explicit missing-intake and stale-intake errors. |
-| S7 BMAD Mission Packet builder | Planned | TBD | Requires S6. |
+| S7 BMAD Mission Packet builder | Complete | `20bc4d1888857f4ec9110175be4c2310ee59f88b` | Fresh packet writes BMAD Mission Packet, Capability Contract, and derived rendered prompt. |
 | S8 Worktree Review | Planned | TBD | Requires changed worktree fixture. |
 | S9 Destroy safety | Planned | TBD | Requires mission runtime fixture. |
 | S10 Grant Guard denial | Planned | TBD | Requires path boundary contract. |
