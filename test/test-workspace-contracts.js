@@ -899,70 +899,84 @@ function runTests() {
     const indexPath = path.join(workspaceDocsRoot, 'index.md');
     const architecturePath = path.join(workspaceDocsRoot, 'architecture.md');
     const commandContractPath = path.join(workspaceDocsRoot, 'command-contract.md');
-    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v16-release-readiness.md');
+    const historyRoot = path.join(workspaceDocsRoot, 'history');
+    const currentStatePath = path.join(workspaceDocsRoot, 'current-state.md');
+    const sessionLifecyclePath = path.join(workspaceDocsRoot, 'session-lifecycle.md');
+    const guardrailsPath = path.join(workspaceDocsRoot, 'guardrails.md');
+    const releaseChecklistPath = path.join(workspaceDocsRoot, 'release-checklist.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
     const yarnLockPath = path.join(repoRoot, 'yarn.lock');
     const workspaceCommandPath = path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js');
+    const buildDocsPath = path.join(repoRoot, 'tools', 'build-docs.mjs');
+
+    for (const docName of [
+      'index.md',
+      'current-state.md',
+      'session-lifecycle.md',
+      'guardrails.md',
+      'release-checklist.md',
+      'command-contract.md',
+      'operator-guide.md',
+      'architecture.md',
+      'prd.md',
+      'capability-contract.md',
+    ]) {
+      assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
+    }
 
     for (const docName of [
       'v13-prd.md',
       'v13-backlog.md',
       'v13-acceptance-tests.md',
       'v13-traceability.md',
-      'command-contract.md',
-      'v13-release-readiness.md',
-      'operator-guide.md',
       'v14-prd.md',
       'v14-backlog.md',
       'v14-acceptance-tests.md',
       'v14-traceability.md',
-      'v14-release-readiness.md',
       'v15-prd.md',
       'v15-backlog.md',
       'v15-acceptance-tests.md',
       'v15-traceability.md',
-      'v15-release-readiness.md',
       'v16-prd.md',
       'v16-backlog.md',
       'v16-acceptance-tests.md',
       'v16-traceability.md',
+    ]) {
+      assert(fs.existsSync(path.join(historyRoot, docName)), `Historical Workspace artifact exists: ${docName}`);
+      assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Historical artifact moved out of root: ${docName}`);
+    }
+
+    for (const docName of [
+      'v13-release-readiness.md',
+      'v14-release-readiness.md',
+      'v15-release-readiness.md',
       'v16-release-readiness.md',
     ]) {
-      assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Workspace artifact exists: ${docName}`);
+      assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Version checklist removed from root: ${docName}`);
+      assert(!fs.existsSync(path.join(historyRoot, docName)), `Version checklist consolidated: ${docName}`);
     }
 
     const index = fs.readFileSync(indexPath, 'utf8');
     for (const link of [
+      './current-state.md',
+      './session-lifecycle.md',
+      './guardrails.md',
+      './release-checklist.md',
       './command-contract.md',
-      './v13-prd.md',
-      './v13-acceptance-tests.md',
-      './v13-backlog.md',
-      './v13-traceability.md',
-      './v13-release-readiness.md',
       './operator-guide.md',
-      './v14-prd.md',
-      './v14-acceptance-tests.md',
-      './v14-backlog.md',
-      './v14-traceability.md',
-      './v14-release-readiness.md',
-      './v15-prd.md',
-      './v15-acceptance-tests.md',
-      './v15-backlog.md',
-      './v15-traceability.md',
-      './v15-release-readiness.md',
-      './v16-prd.md',
-      './v16-acceptance-tests.md',
-      './v16-backlog.md',
-      './v16-traceability.md',
-      './v16-release-readiness.md',
+      './architecture.md',
+      './capability-contract.md',
+      './history/index.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
     }
+    assert(!index.includes('./v16-prd.md'), 'workspace index keeps version docs out of current flow', index);
+    assert(index.includes('not current operator guidance'), 'workspace index labels historical artifacts', index);
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
-    assert(architecture.includes('The V16 system is'), 'architecture states V16 current system', architecture);
+    assert(architecture.includes('The current system is'), 'architecture states current system', architecture);
     assert(architecture.includes('## Evidence Index'), 'architecture documents Evidence Index', architecture);
     assert(architecture.includes('## Review Manifest'), 'architecture documents Review Manifest', architecture);
     assert(architecture.includes('## Workspace Diff'), 'architecture documents Workspace Diff', architecture);
@@ -998,7 +1012,7 @@ function runTests() {
       'every other command writes JSON',
       'Filesystem Effect',
       'Stable Error Families',
-      'V16 does not add `workspace run`',
+      'Current contract does not add `workspace run`',
       'Review Manifest Shape',
       'ARCHIVE_REVIEW_MANIFEST_INVALID',
       'REVIEW_MANIFEST_INVALID',
@@ -1018,7 +1032,7 @@ function runTests() {
       assert(commandContract.includes(text), `command contract includes ${text}`, commandContract);
     }
 
-    const releaseReadiness = fs.readFileSync(releaseReadinessPath, 'utf8');
+    const releaseReadiness = fs.readFileSync(releaseChecklistPath, 'utf8');
     for (const text of [
       'npm ci',
       'npm run test:workspace',
@@ -1040,8 +1054,24 @@ function runTests() {
       'yarn.lock',
       'hidden execution',
       'live adapter activation',
+      'V17',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
+    }
+
+    const currentState = fs.readFileSync(currentStatePath, 'utf8');
+    for (const text of ['Manual Executor Contract', 'Result Ledger', 'Review Manifest', 'archiveVersion: 2']) {
+      assert(currentState.includes(text), `current state includes ${text}`, currentState);
+    }
+
+    const sessionLifecycle = fs.readFileSync(sessionLifecyclePath, 'utf8');
+    for (const state of ['launched', 'intake-recorded', 'packet-ready', 'review-recorded', 'closeout-recorded', 'blocked']) {
+      assert(sessionLifecycle.includes(`\`${state}\``), `session lifecycle documents ${state}`, sessionLifecycle);
+    }
+
+    const guardrails = fs.readFileSync(guardrailsPath, 'utf8');
+    for (const text of ['workspace run', 'workspace compare', 'restore', 'replay', 'merge', 'promotion', 'live adapter']) {
+      assert(guardrails.includes(text), `guardrails document forbidden ${text}`, guardrails);
     }
 
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -1067,12 +1097,15 @@ function runTests() {
     }
     assert(!workspaceCommand.includes("'run'"), 'workspace command inventory omits run command', workspaceCommand);
     assert(!workspaceCommand.includes("'compare'"), 'workspace command inventory omits compare command', workspaceCommand);
+
+    const buildDocs = fs.readFileSync(buildDocsPath, 'utf8');
+    assert(buildDocs.includes('workspace/history/'), 'LLM docs exclude Workspace history records', buildDocs);
   }
 
   section('V2 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v2-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v2-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V2 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1084,7 +1117,7 @@ function runTests() {
   section('V3 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v3-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v3-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V3 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1096,7 +1129,7 @@ function runTests() {
   section('V4 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v4-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v4-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V4 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1109,7 +1142,7 @@ function runTests() {
   section('V5 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v5-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v5-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V5 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1121,7 +1154,7 @@ function runTests() {
   section('V6 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v6-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v6-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V6 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1133,7 +1166,7 @@ function runTests() {
   section('V7 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v7-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v7-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V7 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1145,7 +1178,7 @@ function runTests() {
   section('V8 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v8-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v8-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V8 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1157,7 +1190,7 @@ function runTests() {
   section('V9 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v9-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v9-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V9 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1169,7 +1202,7 @@ function runTests() {
   section('V10 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v10-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v10-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V10 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1181,7 +1214,7 @@ function runTests() {
   section('V12 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v12-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v12-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V12 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1193,7 +1226,7 @@ function runTests() {
   section('V13 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v13-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v13-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V13 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1205,7 +1238,7 @@ function runTests() {
   section('V14 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v14-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v14-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V14 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1217,7 +1250,7 @@ function runTests() {
   section('V15 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v15-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v15-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V15 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
@@ -1229,7 +1262,7 @@ function runTests() {
   section('V16 Traceability');
 
   {
-    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v16-traceability.md');
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'history', 'v16-traceability.md');
     assert(fs.existsSync(traceabilityPath), 'V16 traceability artifact exists');
 
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';

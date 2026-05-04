@@ -1,13 +1,13 @@
 ---
 title: "BMAD Workspace Command Contract"
-description: Stable V16 public contract for Workspace CLI commands
+description: Stable public contract for Workspace CLI commands
 ---
 
 # BMAD Workspace Command Contract
 
-V16 extends the frozen Workspace CLI contract with typed Review Manifest
-evidence while hardening read-only archive diff inspection. Docs, tests, and
-operators share one source of truth before any future runtime expansion.
+The current Workspace CLI contract is frozen around typed Review Manifest
+evidence and read-only archive diff inspection. Docs, tests, and operators share
+one source of truth before any future runtime expansion.
 
 ## Contract Rules
 
@@ -124,7 +124,7 @@ Archive V1 inputs remain comparable, but Evidence Index deltas are marked
 
 ## Non-Goals
 
-V16 does not add `workspace run`, `workspace compare`, automatic closeout,
+Current contract does not add `workspace run`, `workspace compare`, automatic closeout,
 automatic archive, automatic destroy, scheduler, watcher, daemon, background
 worker, restore, replay, import, sync, apply, merge, promotion, remote fetch,
 live adapter activation, hidden execution, semantic diff scoring, or live

@@ -9,7 +9,7 @@
   "sessionSetup": {
     "zoomOut": {
       "status": "complete",
-      "ref": "docs/workspace/v4-zoom-out.md"
+      "ref": "docs/workspace/history/v4-zoom-out.md"
     },
     "ubiquitousLanguage": {
       "status": "complete",
@@ -21,7 +21,7 @@
     },
     "tddPlan": {
       "status": "complete",
-      "ref": "docs/workspace/v4-backlog.md#tdd-order"
+      "ref": "docs/workspace/history/v4-backlog.md#tdd-order"
     }
   },
   "acceptanceCriteria": [
@@ -32,8 +32,8 @@
     "Worktree Review evidence exists before explicit Promotion."
   ],
   "traceability": {
-    "acceptanceRef": "docs/workspace/v4-acceptance-tests.md",
-    "storyRef": "docs/workspace/v4-backlog.md",
+    "acceptanceRef": "docs/workspace/history/v4-acceptance-tests.md",
+    "storyRef": "docs/workspace/history/v4-backlog.md",
     "testTarget": "npm run test:workspace"
   },
   "forbiddenActions": ["workspace run", "auto-promotion", "hidden execution", "live adapter activation"]

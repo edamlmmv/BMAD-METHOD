@@ -1,90 +1,49 @@
 ---
 title: "BMAD Workspace"
-description: BMAD-centric product and architecture artifacts for portable workspaces
+description: Current Workspace documentation map and historical delivery archive
 ---
 
 # BMAD Workspace
 
-The BMAD Workspace is a portable base for launching disposable agentic
-workspaces against chosen repositories while keeping BMAD as the source of truth.
+BMAD Workspace is a manual, evidence-first CLI for launching disposable
+Workspace Sessions against one or more repositories. BMAD artifacts remain the
+source of truth. Codex or a human executes outside the Workspace CLI, then the
+CLI records reviewable evidence.
 
-## Artifacts
+## Current Docs
 
-| Artifact | Purpose |
+| Need | Read |
 | --- | --- |
-| [Product Requirements](./prd.md) | Defines jobs, requirements, lifecycles, constraints, and success criteria. |
-| [Architecture](./architecture.md) | Defines modules, boundaries, interfaces, storage, and adapter policy. |
-| [Capability Contract](./capability-contract.md) | Sketches the BMAD-governed adapter registry. |
-| [ADR Candidates](./adr-candidates.md) | Captures architecture decisions to promote into ADRs later. |
-| [Command Contract](./command-contract.md) | Defines the public Workspace CLI command contract. |
-| [Operator Guide](./operator-guide.md) | Describes the manual Workspace Session operator flow and Evidence Index use. |
-| [V1 Acceptance Tests](./v1-acceptance-tests.md) | Lists behavior tests for the first executable slice. |
-| [V1 Implementation Backlog](./v1-implementation-backlog.md) | Defines TDD-first epics, stories, risks, and cut list. |
-| [V1 Traceability](./v1-traceability.md) | Tracks story progress, acceptance mapping, and completion gates. |
-| [V2 PRD](./v2-prd.md) | Defines the session language and self-improvement packet kit release. |
-| [V2 Acceptance Tests](./v2-acceptance-tests.md) | Lists behavior tests for the V2 surface upgrade. |
-| [V2 Backlog](./v2-backlog.md) | Defines TDD-first epics and stories for V2. |
-| [V2 Traceability](./v2-traceability.md) | Maps V2 acceptance tests to stories, tests, and files. |
-| [V3 PRD](./v3-prd.md) | Defines the full Workspace rename release. |
-| [V3 Acceptance Tests](./v3-acceptance-tests.md) | Lists behavior tests for removing old Workspace naming. |
-| [V3 Backlog](./v3-backlog.md) | Defines TDD-first stories for V3 rename work. |
-| [V3 Traceability](./v3-traceability.md) | Maps V3 acceptance tests to stories, tests, and files. |
-| [V4 PRD](./v4-prd.md) | Defines Session-first Setup Gate and Base Improvement Session requirements. |
-| [V4 Acceptance Tests](./v4-acceptance-tests.md) | Lists behavior tests for V4 setup and compatibility removal. |
-| [V4 Backlog](./v4-backlog.md) | Defines TDD-first stories for V4. |
-| [V4 Traceability](./v4-traceability.md) | Maps V4 acceptance tests to stories, tests, and files. |
-| [V5 PRD](./v5-prd.md) | Defines read-only status and setup provenance hardening. |
-| [V5 Acceptance Tests](./v5-acceptance-tests.md) | Lists behavior tests for V5 inspectability. |
-| [V5 Backlog](./v5-backlog.md) | Defines TDD-first stories for V5. |
-| [V5 Traceability](./v5-traceability.md) | Maps V5 acceptance tests to stories, tests, and files. |
-| [V6 PRD](./v6-prd.md) | Defines read-only Session inventory and Codex handoff. |
-| [V6 Acceptance Tests](./v6-acceptance-tests.md) | Lists behavior tests for V6 inventory and handoff. |
-| [V6 Backlog](./v6-backlog.md) | Defines TDD-first stories for V6. |
-| [V6 Traceability](./v6-traceability.md) | Maps V6 acceptance tests to stories, tests, and files. |
-| [V7 PRD](./v7-prd.md) | Defines portable Session archive and verification. |
-| [V7 Acceptance Tests](./v7-acceptance-tests.md) | Lists behavior tests for V7 evidence portability. |
-| [V7 Backlog](./v7-backlog.md) | Defines TDD-first stories for V7. |
-| [V7 Traceability](./v7-traceability.md) | Maps V7 acceptance tests to stories, tests, and files. |
-| [V8 PRD](./v8-prd.md) | Defines deterministic Workspace routing. |
-| [V8 Acceptance Tests](./v8-acceptance-tests.md) | Lists behavior tests for V8 routing. |
-| [V8 Backlog](./v8-backlog.md) | Defines TDD-first stories for V8. |
-| [V8 Traceability](./v8-traceability.md) | Maps V8 acceptance tests to stories, tests, and files. |
-| [V9 PRD](./v9-prd.md) | Defines manual Workspace result evidence. |
-| [V9 Acceptance Tests](./v9-acceptance-tests.md) | Lists behavior tests for V9 Result Ledger. |
-| [V9 Backlog](./v9-backlog.md) | Defines TDD-first stories for V9. |
-| [V9 Traceability](./v9-traceability.md) | Maps V9 acceptance tests to stories, tests, and files. |
-| [V10 PRD](./v10-prd.md) | Defines the Manual Executor Contract readiness artifact. |
-| [V10 Acceptance Tests](./v10-acceptance-tests.md) | Lists behavior tests for V10 Executor Contract. |
-| [V10 Backlog](./v10-backlog.md) | Defines TDD-first stories for V10. |
-| [V10 Traceability](./v10-traceability.md) | Maps V10 acceptance tests to stories, tests, and files. |
-| [V11 PRD](./v11-prd.md) | Defines Manual Closeout for Workspace Sessions. |
-| [V11 Acceptance Tests](./v11-acceptance-tests.md) | Lists behavior tests for V11 Manual Closeout. |
-| [V11 Backlog](./v11-backlog.md) | Defines TDD-first stories for V11. |
-| [V11 Traceability](./v11-traceability.md) | Maps V11 acceptance tests to stories, tests, and files. |
-| [V12 PRD](./v12-prd.md) | Defines lifecycle closure and contract hardening. |
-| [V12 Acceptance Tests](./v12-acceptance-tests.md) | Lists behavior tests for V12 lifecycle closure. |
-| [V12 Backlog](./v12-backlog.md) | Defines TDD-first stories for V12. |
-| [V12 Traceability](./v12-traceability.md) | Maps V12 acceptance tests to stories, tests, and files. |
-| [V13 PRD](./v13-prd.md) | Defines release readiness and contract freeze requirements. |
-| [V13 Acceptance Tests](./v13-acceptance-tests.md) | Lists behavior tests for V13 release readiness. |
-| [V13 Backlog](./v13-backlog.md) | Defines TDD-first stories for V13. |
-| [V13 Traceability](./v13-traceability.md) | Maps V13 acceptance tests to stories, tests, and files. |
-| [V13 Release Readiness](./v13-release-readiness.md) | Provides the maintainer checklist for V13 validation. |
-| [V14 PRD](./v14-prd.md) | Defines Evidence Index and operator trust requirements. |
-| [V14 Acceptance Tests](./v14-acceptance-tests.md) | Lists behavior tests for V14 evidence inspection. |
-| [V14 Backlog](./v14-backlog.md) | Defines TDD-first stories for V14. |
-| [V14 Traceability](./v14-traceability.md) | Maps V14 acceptance tests to stories, tests, and files. |
-| [V14 Release Readiness](./v14-release-readiness.md) | Provides the maintainer checklist for V14 validation. |
-| [V15 PRD](./v15-prd.md) | Defines read-only archive diff requirements. |
-| [V15 Acceptance Tests](./v15-acceptance-tests.md) | Lists behavior tests for V15 archive diff. |
-| [V15 Backlog](./v15-backlog.md) | Defines TDD-first stories for V15. |
-| [V15 Traceability](./v15-traceability.md) | Maps V15 acceptance tests to stories, tests, and files. |
-| [V15 Release Readiness](./v15-release-readiness.md) | Provides the maintainer checklist for V15 validation. |
-| [V16 PRD](./v16-prd.md) | Defines Review Manifest and diff trust hardening requirements. |
-| [V16 Acceptance Tests](./v16-acceptance-tests.md) | Lists behavior tests for V16 Review Manifest. |
-| [V16 Backlog](./v16-backlog.md) | Defines TDD-first stories for V16. |
-| [V16 Traceability](./v16-traceability.md) | Maps V16 acceptance tests to stories, tests, and files. |
-| [V16 Release Readiness](./v16-release-readiness.md) | Provides the maintainer checklist for V16 validation. |
+| Product scope and non-goals | [Product Requirements](./prd.md) |
+| Current architecture and artifact model | [Architecture](./architecture.md) |
+| Current command contract and output rules | [Command Contract](./command-contract.md) |
+| Manual operator sequence | [Operator Guide](./operator-guide.md) |
+| Current system summary | [Current State](./current-state.md) |
+| Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
+| Capability and grant model | [Capability Contract](./capability-contract.md) |
+| Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
+| Release validation checklist | [Release Checklist](./release-checklist.md) |
+| Deferred architecture decisions | [ADR Candidates](./adr-candidates.md) |
+
+## Canonical Artifact Map
+
+| Artifact | Canonical Doc |
+| --- | --- |
+| BMAD Work Packet | [Architecture](./architecture.md) |
+| Manual Executor Contract | [Command Contract](./command-contract.md) |
+| Result Ledger | [Command Contract](./command-contract.md) |
+| Manual Closeout | [Command Contract](./command-contract.md) |
+| Evidence Index | [Command Contract](./command-contract.md) |
+| Archive and verify-archive | [Operator Guide](./operator-guide.md) |
+| Archive Diff | [Command Contract](./command-contract.md) |
+| Worktree Review | [Session Lifecycle](./session-lifecycle.md) |
+| Review Manifest | [Command Contract](./command-contract.md) |
+
+## Historical Delivery Records
+
+Versioned PRDs, backlogs, acceptance tests, and traceability tables are retained
+as historical evidence under [History](./history/index.md). Historical delivery
+records are not current operator guidance.
 
 ## Doctrine
 
@@ -92,10 +51,6 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 - Codex is the preferred executor.
 - Review Manifest is typed review evidence, not approval or workflow authority.
 - Evidence Index is inspection evidence, not authority.
-- Workspace Diff is archive comparison evidence, not restore, replay, merge, or
-  promotion authority.
-- OpenClaw, Hermes, Graphify, Context7, Git, MCP, GitHub, and similar tools are
-  adapters behind BMAD-owned interfaces.
-- No normal Workspace Session mutates the BMAD Workspace.
-- Base Improvement Session work requires an explicit Base Mutation Grant and Worktree
-  Review before Promotion.
+- Workspace Diff compares archive evidence, not live sessions or worktrees.
+- Normal Workspace Sessions do not mutate the BMAD Workspace.
+- Base Improvement Sessions require explicit grants and Worktree Review.

@@ -9,7 +9,7 @@ description: Architecture for a BMAD-centric portable workspace
 
 BMAD is the kernel. Everything durable is justified by BMAD artifacts, gates,
 manual evidence, and review. Codex executes outside the Workspace CLI. Adapter
-providers supply capabilities behind BMAD-owned interfaces. The V16 system is a
+providers supply capabilities behind BMAD-owned interfaces. The current system is a
 manual Workspace Session CLI and filesystem contract backed by Git worktrees,
 release-readiness checks, typed Review Manifest evidence, read-only Evidence
 Index inspection, archive diff inspection, and evidence-only artifacts.
@@ -179,10 +179,10 @@ artifacts retained by policy.
     "source": "deterministic"
   },
   "sessionSetup": {
-    "zoomOut": { "status": "complete", "ref": "docs/workspace/v4-zoom-out.md" },
+    "zoomOut": { "status": "complete", "ref": "docs/workspace/history/v4-zoom-out.md" },
     "ubiquitousLanguage": { "status": "complete", "ref": "UBIQUITOUS_LANGUAGE.md" },
     "grillDecisions": { "status": "skipped", "skipReason": "Decision already captured." },
-    "tddPlan": { "status": "complete", "ref": "docs/workspace/v4-backlog.md#tdd-order" }
+    "tddPlan": { "status": "complete", "ref": "docs/workspace/history/v4-backlog.md#tdd-order" }
   },
   "reviewPlan": "Run BMAD Code Review after execution"
 }
