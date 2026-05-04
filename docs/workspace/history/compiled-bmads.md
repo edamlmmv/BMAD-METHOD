@@ -10,7 +10,8 @@ This archive replaces the scattered per-release BMAD planning files that previou
 ## Compilation Scope
 
 - Source artifacts compiled: 67
-- Release groups compiled: 17
+- Release groups compiled: 18
+- Compact entries compiled: 1
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -432,7 +433,26 @@ This archive replaces the scattered per-release BMAD planning files that previou
 - Requirement anchors: V18-FR-001, V18-FR-002, V18-FR-003, V18-FR-004, V18-FR-005, V18-FR-006
 - Traceability markers: Evidence
 
+### V20
+
+- Compiled artifacts: Compact Plan, Implementation, Contract Tests
+- Compact Plan: Strict reject of old Workspace packet, routing, executor, archive, and diff contracts
+- Implementation: Current Workspace validators and renderers now assume only the current contract
+- Contract Tests: Packet, archive, diff, status, handoff, docs, source skill, and guard scans cover removed compatibility paths
+- Overview: V20 removes old Workspace compatibility from current behavior. A current BMAD Work Packet must carry routing and an Executor Contract reference, unknown packet fields fail, old routing sources fail, missing executor contract state is invalid, archives must use the current archive format, and archive diff rejects old bundles before comparison.
+- Goals:
+  - Require current Work Packet routing and Executor Contract references before render, status, archive, handoff, result, or closeout flows.
+  - Remove synthetic routing and executor readiness fallback states from current code paths.
+  - Reject unsupported archive formats at verify and diff boundaries.
+  - Update current docs and source skill guidance so operators regenerate old Workspace artifacts instead of relying on compatibility.
+  - Add regression tests and guard scans for removed Workspace contract terms outside history.
+- Non-goals:
+  - No migration tool.
+  - No archive restore, replay, import, merge, promotion, scheduler, watcher, daemon, live adapter, or `workspace run`.
+  - No removal of compiled history records.
+- Acceptance anchors: strict-packet-current-contract, strict-routing-source, strict-executor-contract, strict-archive-version, strict-diff-archive-validation, removed-contract-guard
+- Traceability markers: Evidence, Test Target
+
 ## Old Artifact Removal
 
 The individual per-release history files were removed after this archive was generated. Future history additions should prefer a compact compiled entry unless a detailed artifact is explicitly needed for review.
-

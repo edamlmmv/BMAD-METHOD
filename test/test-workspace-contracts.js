@@ -1183,10 +1183,12 @@ function runTests() {
     }
 
     assert(historyArchive.includes('Source artifacts compiled: 67'), 'history archive records source artifact count');
-    assert(historyArchive.includes('Release groups compiled: 17'), 'history archive records release group count');
+    assert(historyArchive.includes('Release groups compiled: 18'), 'history archive records release group count');
+    assert(historyArchive.includes('Compact entries compiled: 1'), 'history archive records compact entry count');
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
+    assert(historyArchive.includes('Strict reject of old Workspace packet'), 'history records strict reject plan');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
