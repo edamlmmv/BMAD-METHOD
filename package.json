@@ -46,7 +46,7 @@
     "test:install": "node test/test-installation-components.js",
     "test:refs": "node test/test-file-refs-csv.js",
     "test:urls": "node test/test-parse-source-urls.js",
-    "test:workspace": "node test/test-workspace-distro-contracts.js",
+    "test:workspace": "node test/test-workspace-distro-contracts.js && node test/test-workspace-distro-cli.js",
     "validate:refs": "node tools/validate-file-refs.js --strict",
     "validate:skills": "node tools/validate-skills.js --strict"
   },
