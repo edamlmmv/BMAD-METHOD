@@ -882,6 +882,16 @@ function runTests() {
     assert(skillContent.includes('executionMode: manual'), 'source skill documents manual execution mode');
     assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
     assert(skillContent.includes('routing.routingSchemaVersion'), 'source skill documents routing schema');
+    for (const text of [
+      'Codex Operator Affordances',
+      '`/goal`',
+      'features.goals',
+      'features.multi_agent',
+      'features.codex_hooks',
+      'operator-assist-only',
+    ]) {
+      assert(skillContent.includes(text), `source skill documents ${text}`, skillContent);
+    }
     assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
 
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
@@ -943,6 +953,10 @@ function runTests() {
       'v16-backlog.md',
       'v16-acceptance-tests.md',
       'v16-traceability.md',
+      'v18-prd.md',
+      'v18-backlog.md',
+      'v18-acceptance-tests.md',
+      'v18-traceability.md',
     ]) {
       assert(fs.existsSync(path.join(historyRoot, docName)), `Historical Workspace artifact exists: ${docName}`);
       assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `Historical artifact moved out of root: ${docName}`);
@@ -1028,8 +1042,35 @@ function runTests() {
       'EXECUTOR_CONTRACT_INVALID',
       'ROUTE_WORKFLOW_UNKNOWN',
       'RESULT_SECRET_DETECTED',
+      'Codex Operator Affordances',
+      '`/goal`',
+      'features.goals',
+      'features.multi_agent',
+      'features.codex_hooks',
+      'affordances, not Workspace subcommands',
     ]) {
       assert(commandContract.includes(text), `command contract includes ${text}`, commandContract);
+    }
+
+    const historyIndex = fs.readFileSync(path.join(historyRoot, 'index.md'), 'utf8');
+    for (const text of ['V18', './v18-prd.md', './v18-backlog.md', './v18-acceptance-tests.md', './v18-traceability.md']) {
+      assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
+    }
+
+    const v18Prd = fs.readFileSync(path.join(historyRoot, 'v18-prd.md'), 'utf8');
+    for (const text of [
+      'Codex operator affordances',
+      '`/goal`',
+      'not a second goal engine',
+      'optional capability discovery',
+      'No Workspace slash-command execution engine',
+    ]) {
+      assert(v18Prd.includes(text), `v18 PRD includes ${text}`, v18Prd);
+    }
+
+    const v18Backlog = fs.readFileSync(path.join(historyRoot, 'v18-backlog.md'), 'utf8');
+    for (const text of ['S155', 'S161', 'operator-assist-only', 'TDD Order']) {
+      assert(v18Backlog.includes(text), `v18 backlog includes ${text}`, v18Backlog);
     }
 
     const releaseReadiness = fs.readFileSync(releaseChecklistPath, 'utf8');
@@ -1055,8 +1096,21 @@ function runTests() {
       'hidden execution',
       'live adapter activation',
       'V17',
+      'V18',
+      '`/goal` bridge',
+      'config capability discovery',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
+    }
+
+    const capabilityContract = fs.readFileSync(path.join(workspaceDocsRoot, 'capability-contract.md'), 'utf8');
+    for (const text of ['operator.codex.affordance', 'features.goals', 'features.multi_agent', 'features.codex_hooks']) {
+      assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
+    }
+
+    const operatorGuide = fs.readFileSync(path.join(workspaceDocsRoot, 'operator-guide.md'), 'utf8');
+    for (const text of ['Codex Goals and Slash Commands', '`/goal`', 'goal file passed to', 'manual evidence']) {
+      assert(operatorGuide.includes(text), `operator guide includes ${text}`, operatorGuide);
     }
 
     const currentState = fs.readFileSync(currentStatePath, 'utf8');
@@ -1070,7 +1124,17 @@ function runTests() {
     }
 
     const guardrails = fs.readFileSync(guardrailsPath, 'utf8');
-    for (const text of ['workspace run', 'workspace compare', 'restore', 'replay', 'merge', 'promotion', 'live adapter']) {
+    for (const text of [
+      'workspace run',
+      'workspace compare',
+      'restore',
+      'replay',
+      'merge',
+      'promotion',
+      'live adapter',
+      'slash-command or tool output treated as Workspace authority',
+      'Codex slash command',
+    ]) {
       assert(guardrails.includes(text), `guardrails document forbidden ${text}`, guardrails);
     }
 

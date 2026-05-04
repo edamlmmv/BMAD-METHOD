@@ -24,6 +24,7 @@ The current Workspace surface does not provide:
 - remote fetch or pull
 - semantic scoring or acceptance verdicts
 - hidden execution or hidden subprocess orchestration
+- slash-command or tool output treated as Workspace authority
 
 ## Evidence Boundaries
 
@@ -36,3 +37,4 @@ The current Workspace surface does not provide:
 | Closeout | Final decision evidence, not an action trigger. |
 | Archive | Portable evidence bundle, not restore package. |
 | Diff | Archive comparison evidence, not a patch or sync plan. |
+| Codex slash command | Operator aid, not a Workspace command or hidden action. |

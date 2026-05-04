@@ -61,3 +61,4 @@ Do not add or document any of these as current behavior:
 | V15 | Read-only archive diff over verified archive bundles. |
 | V16 | Review Manifest evidence and diff refusal hardening. |
 | V17 | Documentation IA cleanup and delivery hygiene without runtime changes. |
+| V18 | Codex operator affordance plan, `/goal` bridge, and config capability discovery guardrails. |

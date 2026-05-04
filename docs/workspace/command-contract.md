@@ -24,6 +24,21 @@ one source of truth before any future runtime expansion.
 - Session refs are POSIX relative paths unless explicitly documented as absolute
   granted roots.
 
+## Codex Operator Affordances
+
+Codex slash commands, tools, hooks, plugins, and future UI commands are operator
+affordances, not Workspace subcommands. Operators may use `/goal`, subagents,
+hooks, plugins, and other Codex features while executing a BMAD Work Packet, but
+Workspace only records resulting evidence through goal files, Result Ledger,
+Review Manifest, Closeout, Handoff, archives, or explicit future artifacts.
+
+Affordance metadata must stay generic: command name, required capability,
+inputs, expected evidence refs, and boundary. It must not hard-code provider
+workflows or imply hidden execution. `~/.codex/config.toml` can inform
+capability discovery when explicitly supplied by the operator, such as
+`features.goals`, `features.multi_agent`, or `features.codex_hooks`, but it is
+not Workspace authority and must not be required for deterministic tests.
+
 ## Commands
 
 | Command | Output | Filesystem Effect | Stable Contract |

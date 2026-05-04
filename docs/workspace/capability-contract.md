@@ -28,6 +28,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `evidence.docs` | Retrieve trusted current docs. | Context7, official docs |
 | `executor.codex` | Execute rendered prompts. | Codex |
 | `executor.codex.manual` | Declare manual Codex readiness without runtime execution. | Codex |
+| `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI |
 | `runtime.session` | Provide sessions, tasks, goals, Cron, or Heartbeat. | OpenClaw, Hermes |
 | `repo.git` | Create worktrees, diff, status, commit, rollback. | Git |
 | `host.mcp` | Expose bounded tool and context surfaces. | MCP servers |
@@ -78,6 +79,12 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 Capability Contract says what could be available. Grant Guard decides what is
 allowed for one session. A capability can exist but still be blocked by session
 grant, target repo, path, expiration, or base mutation policy.
+
+Codex operator affordances can be discovered from explicit operator context such
+as `~/.codex/config.toml`, but they remain advisory. For example,
+`features.goals`, `features.multi_agent`, and `features.codex_hooks` can tell
+the operator that `/goal`, subagents, or passive hooks may be available. They do
+not authorize Workspace writes or hidden execution.
 
 ## Executor Prompt Rule
 

@@ -85,6 +85,29 @@ with `bmad workspace result`. It does not invoke Codex, run shell commands,
 schedule work, activate live adapters, restore, replay, merge, promote, or write
 outside granted roots.
 
+## Codex Operator Affordances
+
+Codex slash commands, tools, hooks, plugins, and future UI commands are operator
+affordances only. Use them to keep the manual work legible, then record durable
+evidence with Workspace commands.
+
+`/goal` is useful when Codex `features.goals` is enabled. Use it to keep the
+active thread objective visible, then put the durable objective and acceptance
+criteria in the goal file passed to `bmad workspace launch`. If a Codex goal id,
+status, or completion decision matters, record it through `bmad workspace
+result` or `bmad workspace closeout`.
+
+Treat `~/.codex/config.toml` as capability context, not Workspace authority:
+`features.goals` may indicate `/goal`; `features.multi_agent` may indicate
+subagents or party-mode review; `features.codex_hooks` may indicate passive
+hook reminders; enabled plugins may indicate generic adapter capabilities. None
+of these authorize hidden execution, scheduler, watcher, restore, replay, merge,
+promotion, live adapter activation, or writes outside grants.
+
+Future slash commands should stay generic. Each command needs a name, required
+capability, inputs, expected evidence refs, and an operator-assist-only
+boundary before it belongs in the Workspace flow.
+
 ## Routing Contract
 
 V8 packets include deterministic BMAD workflow routing:

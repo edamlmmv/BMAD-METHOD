@@ -29,6 +29,7 @@ and [Operator Guide](../operator-guide.md) for current behavior.
 | V14 | [PRD](./v14-prd.md) | [Backlog](./v14-backlog.md) | [Acceptance](./v14-acceptance-tests.md) | [Traceability](./v14-traceability.md) |
 | V15 | [PRD](./v15-prd.md) | [Backlog](./v15-backlog.md) | [Acceptance](./v15-acceptance-tests.md) | [Traceability](./v15-traceability.md) |
 | V16 | [PRD](./v16-prd.md) | [Backlog](./v16-backlog.md) | [Acceptance](./v16-acceptance-tests.md) | [Traceability](./v16-traceability.md) |
+| V18 | [PRD](./v18-prd.md) | [Backlog](./v18-backlog.md) | [Acceptance](./v18-acceptance-tests.md) | [Traceability](./v18-traceability.md) |
 
 ## Release Checklist Consolidation
 

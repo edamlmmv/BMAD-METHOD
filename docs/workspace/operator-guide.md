@@ -29,6 +29,19 @@ bmad workspace verify-archive <archive-dir>
 bmad workspace diff --left <archive-dir> --right <archive-dir>
 ```
 
+## Codex Goals and Slash Commands
+
+When Codex goals are available, the operator may use `/goal` before or during a
+Workspace Session to keep the active Codex thread objective visible. Put the
+actual objective and acceptance criteria in the goal file passed to
+`bmad workspace launch`, then record any Codex goal id, status, or decision as
+manual evidence through Result Ledger or Closeout.
+
+Future slash commands should follow the same rule: use them as operator aids,
+record their useful outputs as BMAD evidence, and never treat them as hidden
+execution, approval, restore, replay, merge, promotion, scheduler, watcher, or
+live adapter activation.
+
 ## Evidence Index
 
 Use `evidence` when deciding what to inspect next. It reports artifact presence,
