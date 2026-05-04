@@ -32,7 +32,7 @@ Source planning commit:
 | S1 Contract validation | Complete | `6ad93e44a29b2c765d1677c9d8b92034624a58c7` | Contract validator and focused test added. |
 | S2 Workspace CLI help | Complete | `1547789032d4dba76bb98f569e9866a4e31462e8` | CLI help lists V1 workspace subcommands; launch behavior remains S3. |
 | S3 One-repo launch | Complete | `ada39dd0daa8b0dc2e5abb03cae317d41ff13c56` | Launch writes mission artifacts, creates Git worktree, and keeps base repo clean. |
-| S4 Multi-repo launch | Planned | TBD | After S3. |
+| S4 Multi-repo launch | Complete | `ff91dfed44564ec035ae3c841cb54fbc020ed015` | Multi-repo launch records both target repos, HEADs, and worktrees. |
 | S5 Repo Intake | Complete | `0456fc556cd3a5f42b2e925c40c5aa260c38f3ee` | Intake writes repo evidence and provenance; re-intake records new target HEAD. |
 | S6 Packet freshness guard | Complete | `a11c93a2b349538715b7e3b1be23b075937ea123` | Packet command fails with explicit missing-intake and stale-intake errors. |
 | S7 BMAD Mission Packet builder | Complete | `20bc4d1888857f4ec9110175be4c2310ee59f88b` | Fresh packet writes BMAD Mission Packet, Capability Contract, and derived rendered prompt. |
