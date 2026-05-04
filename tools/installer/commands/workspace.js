@@ -1,6 +1,6 @@
 const { launchMission } = require('../../workspace-distro/launch');
 const { runRepoIntake } = require('../../workspace-distro/intake');
-const { validatePacketReadiness } = require('../../workspace-distro/packet');
+const { buildMissionPacket } = require('../../workspace-distro/packet');
 
 const WORKSPACE_HELP = `BMAD Workspace Distro mission lifecycle.
 
@@ -69,7 +69,7 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
     });
   }
 
-  return validatePacketReadiness({
+  return buildMissionPacket({
     missionId,
     runtimeRoot: options.runtimeRoot,
   });

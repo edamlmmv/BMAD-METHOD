@@ -192,6 +192,46 @@ function runTests() {
       're-intake records new target HEAD',
       JSON.stringify(updatedRepoIntake, null, 2),
     );
+
+    const packet = runCli(['workspace', 'packet', launchOutput.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const packetText = `${packet.stdout}\n${packet.stderr}`;
+    assert(packet.status === 0, 'packet with fresh intake exits zero', packetText);
+    const packetOutput = JSON.parse(packet.stdout);
+    assert(fs.existsSync(packetOutput.packetPath), 'packet writes bmad-mission-packet.json', packetText);
+    assert(fs.existsSync(packetOutput.renderedPromptPath), 'packet writes rendered-prompt.md', packetText);
+    assert(fs.existsSync(packetOutput.capabilityContractPath), 'packet writes capabilities.json', packetText);
+
+    const missionPacket = readJson(packetOutput.packetPath);
+    assert(missionPacket.goal === 'Fix target repo bug.', 'packet records goal from goal file', JSON.stringify(missionPacket, null, 2));
+    assert(
+      missionPacket.repoIntakeRefs.includes('intake/repo-intake.json'),
+      'packet references repo intake',
+      JSON.stringify(missionPacket, null, 2),
+    );
+    assert(
+      missionPacket.constraints.includes('Do not mutate Workspace Distro'),
+      'packet records base isolation constraint',
+      JSON.stringify(missionPacket, null, 2),
+    );
+    assert(missionPacket.grants.includes('grants.json'), 'packet references grants', JSON.stringify(missionPacket, null, 2));
+    assert(missionPacket.acceptanceCriteria.length > 0, 'packet includes acceptance criteria', JSON.stringify(missionPacket, null, 2));
+    assert(
+      missionPacket.capabilityContractRef === 'capabilities.json',
+      'packet references Capability Contract',
+      JSON.stringify(missionPacket, null, 2),
+    );
+    assert(
+      missionPacket.renderedPromptRef === 'packets/rendered-prompt.md',
+      'packet references rendered prompt',
+      JSON.stringify(missionPacket, null, 2),
+    );
+
+    const renderedPrompt = fs.readFileSync(packetOutput.renderedPromptPath, 'utf8');
+    assert(renderedPrompt.includes('Source of truth: `packets/bmad-mission-packet.json`'), 'rendered prompt names packet source');
+    assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
+    assert(renderedPrompt.includes('Do not mutate Workspace Distro'), 'rendered prompt includes packet constraints');
   } catch (error) {
     assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {
