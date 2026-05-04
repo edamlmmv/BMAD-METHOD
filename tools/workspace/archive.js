@@ -257,6 +257,8 @@ function renderCloseout(status) {
 - sessionType: \`${status.sessionType}\`
 - state: \`${status.status}\`
 - setup: \`${status.setup?.state || 'missing'}\`
+- routeWorkflow: \`${status.routing?.selectedWorkflow || 'Not found'}\`
+- routeSource: \`${status.routing?.source || 'legacy-missing'}\`
 - review: \`${status.review?.state || 'missing'}\`
 - Base Improvement readiness: \`${readiness}\`
 
@@ -291,6 +293,9 @@ function nextRoute(status) {
   }
   if (codes.has('REVIEW_MISSING')) {
     return `Run \`bmad workspace review ${status.sessionId}\` before final review.`;
+  }
+  if (status.routing?.selectedWorkflow) {
+    return `Use stored BMAD Work Packet for \`${status.routing.selectedWorkflow}\`. ${status.routing.nextManualStep}`;
   }
   return 'Use stored handoff and BMAD Work Packet for human-guided continuation.';
 }

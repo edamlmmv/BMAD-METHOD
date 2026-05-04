@@ -81,6 +81,11 @@ function renderPacket(status, packet) {
 - packetPath: \`${status.artifacts.packet.path}\`
 - kind: \`${packet.kind || 'Not found'}\`
 - packetVersion: \`${packet.packetVersion || 'Not found'}\`
+- bmadWorkflow: \`${packet.bmadWorkflow || 'Not found'}\`
+- routeWorkflow: \`${status.routing?.selectedWorkflow || packet.bmadWorkflow || 'Not found'}\`
+- routeSource: \`${status.routing?.source || 'legacy-missing'}\`
+- routeConfidence: \`${status.routing?.confidence || 'weak'}\`
+- routeReasonCodes: ${formatList(status.routing?.reasonCodes || [])}
 - renderedPromptRef: ${packet.renderedPromptRef ? `\`${packet.renderedPromptRef}\`` : 'Not found'}
 - renderedPromptPath: ${renderedPromptPath ? `\`${renderedPromptPath}\`` : 'Not found'}
 - capabilityContractRef: ${packet.capabilityContractRef ? `\`${packet.capabilityContractRef}\`` : 'Not found'}`;
@@ -151,10 +156,11 @@ ${formatChecks(status.baseImprovementReadiness.checks)}`;
 
 function renderNextRoute(status, packet) {
   const route = recommendRoute(status, packet);
+  const source = status.routing?.source || 'deterministic status checks';
   return `## Next BMAD Route
 
 - recommendation: ${route}
-- source: deterministic status checks`;
+- source: ${source}`;
 }
 
 function recommendRoute(status, packet) {
@@ -173,7 +179,8 @@ function recommendRoute(status, packet) {
     return `\`bmad workspace review ${status.sessionId} --runtime-root ${runtimeRoot}\``;
   }
   if (status.status === 'ready' && packet?.renderedPromptRef) {
-    return `use rendered prompt at \`${path.join(status.sessionRoot, packet.renderedPromptRef)}\``;
+    const workflow = status.routing?.selectedWorkflow ? ` for \`${status.routing.selectedWorkflow}\`` : '';
+    return `use rendered prompt${workflow} at \`${path.join(status.sessionRoot, packet.renderedPromptRef)}\``;
   }
   return 'inspect status checks before continuing';
 }

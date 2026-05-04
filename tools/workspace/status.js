@@ -4,6 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
+const { createLegacyRouting } = require('./routing');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -62,6 +63,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     artifacts,
     intake: { state: 'missing', repos: [] },
     setup: { state: 'missing', entries: {} },
+    routing: null,
     review: { state: 'missing', clean: null, changedRepos: [] },
     checks,
   };
@@ -177,6 +179,7 @@ function readPacketStatus({ sessionRoot, status, checks }) {
     return;
   }
 
+  status.routing = packet.routing || createLegacyRouting(packet);
   status.setup = inspectSessionSetup(packet.sessionSetup, checks);
 }
 

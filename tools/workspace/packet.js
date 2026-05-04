@@ -2,8 +2,10 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { parse } = require('csv-parse/sync');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateCapabilityContract, validateWorkPacket } = require('./contracts');
+const { routeWorkspace } = require('./routing');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -28,6 +30,17 @@ function readJson(filePath) {
 
 function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeJsonAtomic(filePath, value) {
+  writeFileAtomic(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeFileAtomic(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${process.pid}.tmp`);
+  fs.writeFileSync(tempPath, value);
+  fs.renameSync(tempPath, filePath);
 }
 
 function assertSessionId(sessionId) {
@@ -78,11 +91,22 @@ function buildWorkPacket({
   setupRefs = {},
   setupSkips = [],
   setupBasePath = process.cwd(),
+  workflowOverride,
 }) {
   const readiness = validatePacketReadiness({ sessionId, runtimeRoot });
   const session = loadSession(sessionId, runtimeRoot);
   const { instance, instancePath, sessionRoot } = session;
+  const goal = readGoal(instance.goalPath);
   const sessionSetup = buildSessionSetup({ setupRefs, setupSkips, setupBasePath });
+  const repoIntakeRefs = [instance.repoIntakeRef];
+  const routing = routeWorkspace({
+    goal,
+    sessionSetup,
+    repoIntakeRefs,
+    artifactRefs: collectArtifactRefs(instance, sessionSetup),
+    catalogEntries: loadRouteableCatalogRows(),
+    workflowOverride,
+  });
 
   const packetRef = 'packets/bmad-work-packet.json';
   const renderedPromptRef = 'packets/rendered-prompt.md';
@@ -98,9 +122,9 @@ function buildWorkPacket({
     kind: 'bmad-work-packet',
     packetVersion: 4,
     sessionId,
-    bmadWorkflow: 'bmad-quick-dev',
-    goal: readGoal(instance.goalPath),
-    repoIntakeRefs: [instance.repoIntakeRef],
+    bmadWorkflow: routing.selectedWorkflow,
+    goal,
+    repoIntakeRefs,
     constraints: ['BMAD is kernel/truth', 'Do not mutate Workspace Base', 'Use Repo Intake evidence before executor prompt'],
     grants: [instance.grantsRef],
     acceptanceCriteria: [
@@ -110,16 +134,16 @@ function buildWorkPacket({
     ],
     capabilityContractRef,
     renderedPromptRef,
+    routing,
     sessionSetup,
     reviewPlan: 'Run BMAD Code Review after execution',
   };
 
   assertValid('BMAD Work Packet', validateWorkPacket(packet));
 
-  fs.mkdirSync(path.join(sessionRoot, 'packets'), { recursive: true });
-  writeJson(capabilityContractPath, capabilityContract);
-  writeJson(packetPath, packet);
-  fs.writeFileSync(renderedPromptPath, renderPrompt(packet));
+  writeJsonAtomic(capabilityContractPath, capabilityContract);
+  writeJsonAtomic(packetPath, packet);
+  writeFileAtomic(renderedPromptPath, renderPrompt(packet));
 
   const updatedInstance = {
     ...instance,
@@ -128,7 +152,7 @@ function buildWorkPacket({
     capabilityContractRef,
     renderedPromptRef,
   };
-  writeJson(instancePath, updatedInstance);
+  writeJsonAtomic(instancePath, updatedInstance);
 
   return {
     sessionId,
@@ -138,6 +162,27 @@ function buildWorkPacket({
     capabilityContractPath,
     repoIntakePath: readiness.repoIntakePath,
   };
+}
+
+function collectArtifactRefs(instance, sessionSetup) {
+  return {
+    goalPath: instance.goalPath,
+    repoPackRef: instance.repoPackRef,
+    grantsRef: instance.grantsRef,
+    setup: Object.values(sessionSetup)
+      .map((entry) => entry.ref || entry.resolvedRef || entry.skipReason || '')
+      .filter(Boolean)
+      .join(' '),
+  };
+}
+
+function loadRouteableCatalogRows() {
+  const catalogPath = path.join(__dirname, '..', '..', 'src', 'bmm-skills', 'module-help.csv');
+  const content = fs.readFileSync(catalogPath, 'utf8');
+  return parse(content, {
+    columns: true,
+    skip_empty_lines: true,
+  });
 }
 
 function buildSessionSetup({ setupRefs, setupSkips, setupBasePath = process.cwd() }) {
@@ -314,6 +359,12 @@ ${packet.goal}
 
 ## BMAD Workflow
 ${packet.bmadWorkflow}
+
+## Routing
+- source: ${packet.routing?.source || 'legacy-missing'}
+- confidence: ${packet.routing?.confidence || 'weak'}
+- reasonCodes: ${(packet.routing?.reasonCodes || []).join(', ') || 'ROUTING_LEGACY_MISSING'}
+- nextManualStep: ${packet.routing?.nextManualStep || 'Inspect legacy packet workflow.'}
 
 ## Evidence
 ${packet.repoIntakeRefs.map((reference) => `- ${reference}`).join('\n')}

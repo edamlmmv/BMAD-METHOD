@@ -1,3 +1,5 @@
+const { validateRoutingDecision } = require('./routing');
+
 const ENGINE_LIKE_GROUPS = new Set(['runtime.session']);
 const ENGINE_LIKE_INTERFACES = new Set(['scheduler', 'planner', 'ledger', 'memory-graph', 'review-engine', 'grant-engine']);
 
@@ -64,6 +66,12 @@ function validateWorkPacket(packet) {
   requireNonEmptyArray(packet, 'acceptanceCriteria', errors);
   requireNonEmptyString(packet, 'capabilityContractRef', errors);
   requireNonEmptyString(packet, 'renderedPromptRef', errors);
+  if ('routing' in packet) {
+    validateRoutingDecision(packet.routing, errors);
+    if (packet.routing?.selectedWorkflow && packet.bmadWorkflow !== packet.routing.selectedWorkflow) {
+      errors.push('packet.bmadWorkflow must equal packet.routing.selectedWorkflow');
+    }
+  }
   validateSessionSetup(packet.sessionSetup, errors);
 
   return result(errors);

@@ -45,6 +45,7 @@ module.exports = {
     ['--write-path <path>', 'Durable write path to validate through Grant Guard.'],
     ['--base-improvement', 'Launch a Base Improvement Session; requires explicit Base Mutation Grant.'],
     ['--output <path>', 'Output directory for Workspace archive.'],
+    ['--workflow <skill[:action]>', 'Explicit BMAD workflow route for Work Packet creation.'],
     ['--zoom-out-ref <ref>', 'Setup Gate artifact ref for zoom-out.'],
     ['--ubiquitous-language-ref <ref>', 'Setup Gate artifact ref for ubiquitous language.'],
     ['--grill-decisions-ref <ref>', 'Setup Gate artifact ref for grill decisions.'],
@@ -169,5 +170,6 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
       tddPlan: options.tddPlanRef,
     },
     setupSkips: options.skipSetup,
+    workflowOverride: options.workflow,
   });
 }

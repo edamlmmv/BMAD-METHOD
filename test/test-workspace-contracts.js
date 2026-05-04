@@ -11,6 +11,7 @@ const path = require('node:path');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
 const { buildSessionSetup } = require('../tools/workspace/packet');
+const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
 
 const colors = {
@@ -86,12 +87,97 @@ function validCapabilityContract() {
   };
 }
 
+function validRouting(workflow = 'bmad-quick-dev') {
+  return {
+    routingSchemaVersion: 1,
+    selectedWorkflow: workflow,
+    source: 'deterministic',
+    confidence: 'strong',
+    reasonCodes: ['GOAL_QUICK_DEV'],
+    alternatives: [],
+    inputRefs: {
+      repoIntakeRefs: ['intake/repo-intake.json'],
+      artifactRefs: {},
+    },
+    blockers: [],
+    nextManualStep: `Use ${workflow} for this Workspace Session.`,
+  };
+}
+
+function catalogRows() {
+  return [
+    row('bmad-document-project', 'DP', 'anytime', false),
+    row('bmad-generate-project-context', 'GPC', 'anytime', false),
+    row('bmad-quick-dev', 'QQ', 'anytime', false),
+    row('bmad-correct-course', 'CC', 'anytime', false),
+    row('bmad-agent-dev', 'DEV', 'anytime', false),
+    row('bmad-brainstorming', 'BP', '1-analysis', false),
+    row('bmad-market-research', 'MR', '1-analysis', false),
+    row('bmad-domain-research', 'DR', '1-analysis', false),
+    row('bmad-technical-research', 'TR', '1-analysis', false),
+    row('bmad-create-prd', 'CP', '2-planning', true),
+    row('bmad-create-ux-design', 'CU', '2-planning', false),
+    row('bmad-create-architecture', 'CA', '3-solutioning', true),
+    row('bmad-create-story', 'CS', '4-implementation', true, 'create'),
+    row('bmad-create-story', 'VS', '4-implementation', false, 'validate'),
+    row('bmad-dev-story', 'DS', '4-implementation', true),
+    row('bmad-code-review', 'CR', '4-implementation', false),
+    row('bmad-quick-dev', 'QQ', 'anytime', false),
+    { ...row('bmad-workspace', 'WS', 'anytime', false), module: 'Core' },
+    { ...row('_meta', '', '', false), skill: '_meta' },
+  ];
+}
+
+function row(skill, menuCode, phase, required, action = '') {
+  return {
+    module: 'BMad Method',
+    skill,
+    'display-name': skill,
+    'menu-code': menuCode,
+    description: skill,
+    action,
+    phase,
+    required: String(required),
+  };
+}
+
 function runTests() {
   section('BMAD Work Packet');
 
   {
     const result = validateWorkPacket(validWorkPacket());
     assert(result.ok === true, 'valid session packet is accepted', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.routing = validRouting();
+    const result = validateWorkPacket(packet);
+    assert(result.ok === true, 'packet accepts V8 routing metadata', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.routing = validRouting('bmad-create-prd');
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects workflow alias mismatch');
+    assert(
+      result.errors.some((error) => error.includes('routing.selectedWorkflow')),
+      'workflow alias mismatch names routing selected workflow',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.routing = { ...validRouting(), source: 'magic' };
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects invalid routing source');
+    assert(
+      result.errors.some((error) => error.includes('packet.routing.source')),
+      'routing source rejection names source',
+      result.errors.join('; '),
+    );
   }
 
   {
@@ -209,6 +295,97 @@ function runTests() {
     );
   }
 
+  section('Workspace Routing');
+
+  {
+    const catalog = createRouteableCatalog(catalogRows());
+    assert(
+      catalog.some((entry) => entry.skill === 'bmad-quick-dev'),
+      'routeable catalog includes workflows',
+    );
+    assert(!catalog.some((entry) => entry.skill === 'bmad-agent-dev'), 'routeable catalog excludes agent skills');
+    assert(!catalog.some((entry) => entry.skill === 'bmad-workspace'), 'routeable catalog excludes non-BMad Method rows');
+    assert(catalog.filter((entry) => entry.skill === 'bmad-quick-dev').length === 1, 'routeable catalog collapses duplicates');
+  }
+
+  {
+    const decision = routeWorkspace({ goal: 'Fix target repo bug.', catalogEntries: catalogRows(), workflowOverride: 'bmad-create-prd' });
+    assert(
+      decision.selectedWorkflow === 'bmad-create-prd',
+      'workflow override selects requested workflow',
+      JSON.stringify(decision, null, 2),
+    );
+    assert(decision.source === 'override', 'workflow override records override source', JSON.stringify(decision, null, 2));
+    assert(decision.confidence === 'explicit', 'workflow override records explicit confidence', JSON.stringify(decision, null, 2));
+  }
+
+  {
+    const decision = routeWorkspace({
+      goal: 'Create next story.',
+      catalogEntries: catalogRows(),
+      workflowOverride: 'bmad-create-story:create',
+    });
+    assert(
+      decision.selectedWorkflow === 'bmad-create-story',
+      'workflow action override selects requested workflow',
+      JSON.stringify(decision, null, 2),
+    );
+    assert(decision.selectedAction === 'create', 'workflow action override records requested action', JSON.stringify(decision, null, 2));
+  }
+
+  for (const [goal, expectedWorkflow] of [
+    ['Create PRD for the workspace router.', 'bmad-create-prd'],
+    ['Design system architecture for routing.', 'bmad-create-architecture'],
+    ['Create UX design for session list.', 'bmad-create-ux-design'],
+    ['Create next implementation story.', 'bmad-create-story'],
+    ['Fix target repo bug.', 'bmad-quick-dev'],
+    ['Run code review for the implementation.', 'bmad-code-review'],
+    ['Run market research for competitors.', 'bmad-market-research'],
+    ['Run technical research for feasibility.', 'bmad-technical-research'],
+    ['Run domain research for terminology.', 'bmad-domain-research'],
+    ['Document project structure.', 'bmad-document-project'],
+    ['Generate project context.', 'bmad-generate-project-context'],
+    ['Correct course after major change.', 'bmad-correct-course'],
+  ]) {
+    const decision = routeWorkspace({ goal, catalogEntries: catalogRows() });
+    assert(decision.selectedWorkflow === expectedWorkflow, `router maps goal to ${expectedWorkflow}`, JSON.stringify(decision, null, 2));
+  }
+
+  {
+    const decision = routeWorkspace({ goal: 'Fix target repo bug.', catalogEntries: catalogRows(), blockers: ['MISSING_INTAKE'] });
+    assert(decision.confidence === 'blocked', 'router carries blockers in confidence', JSON.stringify(decision, null, 2));
+    assert(
+      decision.blockers.some((blocker) => blocker.code === 'MISSING_INTAKE'),
+      'router records blocker codes',
+      JSON.stringify(decision, null, 2),
+    );
+  }
+
+  for (const [goal, expectedCode] of [
+    ['', 'ROUTE_DECISION_REQUIRED'],
+    ['Create PRD and architecture.', 'ROUTE_DECISION_REQUIRED'],
+  ]) {
+    try {
+      routeWorkspace({ goal, catalogEntries: catalogRows() });
+      assert(false, `router rejects ambiguous goal ${goal || '<empty>'}`);
+    } catch (error) {
+      assert(error.message.includes(expectedCode), `router names ${expectedCode}`, error.message);
+    }
+  }
+
+  for (const workflowOverride of ['bmad-missing-workflow', 'bmad-agent-dev']) {
+    try {
+      routeWorkspace({ goal: 'Fix target repo bug.', catalogEntries: catalogRows(), workflowOverride });
+      assert(false, `router rejects ${workflowOverride}`);
+    } catch (error) {
+      assert(
+        error.message.includes('ROUTE_WORKFLOW_UNKNOWN'),
+        `router rejects unknown or excluded override ${workflowOverride}`,
+        error.message,
+      );
+    }
+  }
+
   section('Capability Contract');
 
   {
@@ -316,6 +493,8 @@ function runTests() {
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
     assert(skillContent.includes('bmad workspace verify-archive'), 'source skill documents workspace verify-archive');
+    assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
+    assert(skillContent.includes('routing.routingSchemaVersion'), 'source skill documents routing schema');
     assert(!skillContent.includes('--mission-id'), 'source skill omits legacy mission option');
 
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
@@ -394,6 +573,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT7-001', 'S55', 'tools/workspace/archive.js', 'verify-archive']) {
       assert(traceability.includes(text), `V7 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V8 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v8-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V8 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT8-001', 'S72', 'tools/workspace/routing.js', 'ROUTE_WORKFLOW_UNKNOWN']) {
+      assert(traceability.includes(text), `V8 traceability maps ${text}`, traceability);
     }
   }
 

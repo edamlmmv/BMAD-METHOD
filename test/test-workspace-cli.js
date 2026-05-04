@@ -172,6 +172,8 @@ function runTests() {
   assert(output.includes('Workspace Session'), 'workspace help uses session language', output);
   assert(output.includes('--session-id <id>'), 'workspace help lists --session-id', output);
   assert(!output.includes('--mission-id'), 'workspace help omits legacy --mission-id', output);
+  assert(output.includes('--workflow <skill[:action]>'), 'workspace help lists --workflow', output);
+  assert(!output.includes('workspace run'), 'workspace help omits workspace run', output);
   for (const option of ['--zoom-out-ref', '--ubiquitous-language-ref', '--grill-decisions-ref', '--tdd-plan-ref', '--skip-setup']) {
     assert(output.includes(option), `workspace help lists ${option}`, output);
   }
@@ -833,6 +835,41 @@ function runTests() {
       missingSetupRefText,
     );
 
+    const invalidWorkflowPacket = runCli(
+      [
+        'workspace',
+        'packet',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--workflow',
+        'bmad-agent-dev',
+        '--zoom-out-ref',
+        'docs/workspace/v4-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidWorkflowPacketText = `${invalidWorkflowPacket.stdout}\n${invalidWorkflowPacket.stderr}`;
+    assert(invalidWorkflowPacket.status !== 0, 'packet rejects non-routeable workflow override', invalidWorkflowPacketText);
+    assert(
+      invalidWorkflowPacketText.includes('ROUTE_WORKFLOW_UNKNOWN'),
+      'invalid workflow override names ROUTE_WORKFLOW_UNKNOWN',
+      invalidWorkflowPacketText,
+    );
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with invalid workflow override does not write partial packet',
+      invalidWorkflowPacketText,
+    );
+
     const packet = runCli(
       [
         'workspace',
@@ -866,6 +903,22 @@ function runTests() {
     assert(sessionPacket.packetVersion === 4, 'packet records packetVersion 4', JSON.stringify(sessionPacket, null, 2));
     assert(sessionPacket.sessionId === launchOutput.sessionId, 'packet records sessionId', JSON.stringify(sessionPacket, null, 2));
     assertSessionOutput(sessionPacket, 'BMAD Work Packet');
+    assert(sessionPacket.routing.routingSchemaVersion === 1, 'packet records V8 routing schema', JSON.stringify(sessionPacket, null, 2));
+    assert(
+      sessionPacket.routing.selectedWorkflow === 'bmad-quick-dev',
+      'packet routes quick dev deterministically',
+      JSON.stringify(sessionPacket, null, 2),
+    );
+    assert(
+      sessionPacket.routing.source === 'deterministic',
+      'packet records deterministic route source',
+      JSON.stringify(sessionPacket, null, 2),
+    );
+    assert(
+      sessionPacket.bmadWorkflow === sessionPacket.routing.selectedWorkflow,
+      'packet workflow alias matches routing selected workflow',
+      JSON.stringify(sessionPacket, null, 2),
+    );
     assert(sessionPacket.goal === 'Fix target repo bug.', 'packet records goal from goal file', JSON.stringify(sessionPacket, null, 2));
     assert(
       sessionPacket.sessionSetup.zoomOut.ref === 'docs/workspace/v4-zoom-out.md',
@@ -904,6 +957,98 @@ function runTests() {
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-work-packet.json`'), 'rendered prompt names packet source');
     assert(renderedPrompt.includes('Fix target repo bug.'), 'rendered prompt includes packet goal');
     assert(renderedPrompt.includes('Do not mutate Workspace Base'), 'rendered prompt includes packet constraints');
+    assert(renderedPrompt.includes('GOAL_QUICK_DEV'), 'rendered prompt includes routing reason code');
+
+    const originalPacketContent = fs.readFileSync(packetOutput.packetPath, 'utf8');
+    const legacyPacket = JSON.parse(originalPacketContent);
+    delete legacyPacket.routing;
+    fs.writeFileSync(packetOutput.packetPath, `${JSON.stringify(legacyPacket, null, 2)}\n`);
+    const legacyStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const legacyStatusText = `${legacyStatus.stdout}\n${legacyStatus.stderr}`;
+    assert(legacyStatus.status === 0, 'status accepts legacy packet without routing', legacyStatusText);
+    const legacyStatusOutput = JSON.parse(legacyStatus.stdout);
+    assert(legacyStatusOutput.routing.source === 'legacy-missing', 'status marks legacy missing routing', legacyStatusText);
+    const legacyHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const legacyHandoffText = `${legacyHandoff.stdout}\n${legacyHandoff.stderr}`;
+    assert(legacyHandoff.status === 0, 'handoff accepts legacy packet without routing', legacyHandoffText);
+    assert(legacyHandoff.stdout.includes('routeSource: `legacy-missing`'), 'handoff marks legacy missing routing', legacyHandoffText);
+    fs.writeFileSync(packetOutput.packetPath, originalPacketContent);
+
+    const packetFingerprint = fingerprintTree(path.join(launchOutput.sessionRoot, 'packets'));
+    const unknownWorkflowAfterPacket = runCli(
+      [
+        'workspace',
+        'packet',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--workflow',
+        'bmad-missing-workflow',
+        '--zoom-out-ref',
+        'docs/workspace/v4-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const unknownWorkflowAfterPacketText = `${unknownWorkflowAfterPacket.stdout}\n${unknownWorkflowAfterPacket.stderr}`;
+    assert(unknownWorkflowAfterPacket.status !== 0, 'packet rejects unknown workflow override', unknownWorkflowAfterPacketText);
+    assert(
+      unknownWorkflowAfterPacketText.includes('ROUTE_WORKFLOW_UNKNOWN'),
+      'unknown workflow override names ROUTE_WORKFLOW_UNKNOWN',
+      unknownWorkflowAfterPacketText,
+    );
+    assert(
+      packetFingerprint === fingerprintTree(path.join(launchOutput.sessionRoot, 'packets')),
+      'packet route failure preserves existing packet artifacts',
+      unknownWorkflowAfterPacketText,
+    );
+
+    const overridePacket = runCli(
+      [
+        'workspace',
+        'packet',
+        launchOutput.sessionId,
+        '--runtime-root',
+        runtimeRoot,
+        '--workflow',
+        'bmad-create-prd',
+        '--zoom-out-ref',
+        'docs/workspace/v4-zoom-out.md',
+        '--ubiquitous-language-ref',
+        'UBIQUITOUS_LANGUAGE.md',
+        '--grill-decisions-ref',
+        'docs/workspace/v4-grill-decisions.md',
+        '--tdd-plan-ref',
+        'docs/workspace/v4-backlog.md#tdd-order',
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const overridePacketText = `${overridePacket.stdout}\n${overridePacket.stderr}`;
+    assert(overridePacket.status === 0, 'packet accepts explicit workflow override', overridePacketText);
+    const overrideSessionPacket = readJson(JSON.parse(overridePacket.stdout).packetPath);
+    assert(
+      overrideSessionPacket.routing.selectedWorkflow === 'bmad-create-prd',
+      'explicit workflow override records selected workflow',
+      JSON.stringify(overrideSessionPacket, null, 2),
+    );
+    assert(
+      overrideSessionPacket.routing.source === 'override',
+      'explicit workflow override records source',
+      JSON.stringify(overrideSessionPacket, null, 2),
+    );
 
     fs.appendFileSync(path.join(baseRepo.path, 'docs', 'workspace', 'v4-zoom-out.md'), 'Checksum drift.\n');
     const checksumStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
@@ -980,6 +1125,11 @@ function runTests() {
       'external setup ref records unverified provenance',
       JSON.stringify(externalSessionPacket, null, 2),
     );
+    assert(
+      externalSessionPacket.routing.selectedWorkflow === 'bmad-quick-dev',
+      'external setup packet keeps deterministic route',
+      JSON.stringify(externalSessionPacket, null, 2),
+    );
     const externalStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
       env: { NO_PROXY: '*', HTTPS_PROXY: 'http://127.0.0.1:1', HTTP_PROXY: 'http://127.0.0.1:1' },
@@ -1016,6 +1166,8 @@ function runTests() {
     assert(packetHandoff.stdout.includes(launchOutput.sessionId), 'handoff includes sessionId', packetHandoffText);
     assert(packetHandoff.stdout.includes('packets/bmad-work-packet.json'), 'handoff includes Work Packet ref', packetHandoffText);
     assert(packetHandoff.stdout.includes('packets/rendered-prompt.md'), 'handoff includes rendered prompt ref', packetHandoffText);
+    assert(packetHandoff.stdout.includes('routeWorkflow: `bmad-quick-dev`'), 'handoff includes routed workflow', packetHandoffText);
+    assert(packetHandoff.stdout.includes('routeSource: `deterministic`'), 'handoff includes route source', packetHandoffText);
     assert(packetHandoff.stdout.includes('external:zoom-out-thread-note'), 'handoff includes external setup ref', packetHandoffText);
     assert(packetHandoff.stdout.includes('external-unverified'), 'handoff includes external setup warning', packetHandoffText);
     assert(packetHandoff.stdout.includes('SETUP_REF_EXTERNAL_UNVERIFIED'), 'handoff includes status checks', packetHandoffText);
@@ -1166,6 +1318,12 @@ function runTests() {
       archivedPacket.sessionSetup.ubiquitousLanguage.sha256 === sha256File(path.join(baseRepo.path, 'UBIQUITOUS_LANGUAGE.md')),
       'archive preserves local setup checksum metadata',
       JSON.stringify(archivedPacket, null, 2),
+    );
+    const archivedStatus = readJson(path.join(archiveRoot, 'status.json'));
+    assert(
+      archivedStatus.routing.selectedWorkflow === 'bmad-quick-dev',
+      'archive status preserves routed workflow',
+      JSON.stringify(archivedStatus, null, 2),
     );
 
     const archiveCollision = runCli(

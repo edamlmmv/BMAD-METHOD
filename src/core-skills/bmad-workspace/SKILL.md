@@ -40,6 +40,7 @@ Base.
 bmad workspace launch --repo <target-repo> --goal <goal-file> --runtime-root <runtime-root>
 bmad workspace intake <session-id> --runtime-root <runtime-root>
 bmad workspace packet <session-id> --runtime-root <runtime-root> \
+  --workflow <skill[:action]> \
   --zoom-out-ref <ref> \
   --ubiquitous-language-ref <ref> \
   --grill-decisions-ref <ref> \
@@ -55,6 +56,22 @@ bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 
 Treat `packets/bmad-work-packet.json` as the BMAD Work Packet. The rendered
 prompt is derived from that packet and is not the source of truth.
+
+## Routing Contract
+
+V8 packets include deterministic BMAD workflow routing:
+
+- New packets record `routing.routingSchemaVersion: 1`.
+- `bmadWorkflow` is a compatibility alias for `routing.selectedWorkflow`.
+- `--workflow <skill[:action]>` explicitly selects a route from the BMad Method
+  workflow catalog.
+- Unknown, agent-only, or non-routeable workflow overrides fail before packet
+  artifacts are written.
+- Empty or ambiguous deterministic goals fail closed and require explicit
+  `--workflow`.
+
+Routing prepares the next manual BMAD workflow only. It does not run, schedule,
+watch, restore, replay, merge, promote, or call live adapters.
 
 ## Setup Gate
 
