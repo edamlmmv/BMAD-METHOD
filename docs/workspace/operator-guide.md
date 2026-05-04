@@ -26,6 +26,7 @@ bmad workspace review <session-id> --runtime-root <root>
 bmad workspace closeout <session-id> --runtime-root <root> --input <closeout-json> --closeout-id <id>
 bmad workspace archive <session-id> --runtime-root <root> --output <archive-dir>
 bmad workspace verify-archive <archive-dir>
+bmad workspace diff --left <archive-dir> --right <archive-dir>
 ```
 
 ## Evidence Index
@@ -33,6 +34,13 @@ bmad workspace verify-archive <archive-dir>
 Use `evidence` when deciding what to inspect next. It reports artifact presence,
 validation state, checksums, file sizes, source commands, and next manual
 actions. Treat the output as evidence only, not permission to execute.
+
+## Archive Diff
+
+Use `diff` after archives verify cleanly and before manual review. It compares
+archive file inventories, status, packet, closeout, and Evidence Index data as
+JSON. Treat the output as comparison evidence only, not a restore, replay, sync,
+merge, promotion, or execution plan.
 
 ## Failure Handling
 
@@ -44,3 +52,5 @@ actions. Treat the output as evidence only, not permission to execute.
   and rerun `status` or `evidence`.
 - Archive checksum mismatch: inspect the archive bundle and rerun
   `verify-archive`.
+- Diff source or archive invalid: verify both archive bundles, then rerun
+  `diff`.

@@ -154,6 +154,23 @@ function rewriteArchiveChecksums(archiveRoot) {
   fs.writeFileSync(path.join(archiveRoot, 'checksums.sha256'), renderArchiveChecksums(manifest.files));
 }
 
+function addArchiveFile(archiveRoot, relativePath, content) {
+  const filePath = path.join(archiveRoot, relativePath);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+  const manifestPath = path.join(archiveRoot, 'manifest.json');
+  const manifest = readJson(manifestPath);
+  manifest.files = manifest.files.filter((file) => file.path !== relativePath);
+  manifest.files.push({
+    path: relativePath,
+    sha256: sha256File(filePath),
+    bytes: fs.statSync(filePath).size,
+  });
+  manifest.files.sort((left, right) => left.path.localeCompare(right.path));
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  fs.writeFileSync(path.join(archiveRoot, 'checksums.sha256'), renderArchiveChecksums(manifest.files));
+}
+
 function renderArchiveChecksums(files) {
   return `${files.map((file) => `${file.sha256}  ${file.path}`).join('\n')}\n`;
 }
@@ -195,6 +212,8 @@ function runTests() {
   }
   assert(output.includes('--output <path>'), 'workspace help lists --output', output);
   assert(output.includes('--input <path>'), 'workspace help lists --input', output);
+  assert(output.includes('--left <archive-dir>'), 'workspace help lists --left', output);
+  assert(output.includes('--right <archive-dir>'), 'workspace help lists --right', output);
   assert(output.includes('--result-id <id>'), 'workspace help lists --result-id', output);
   assert(output.includes('--closeout-id <id>'), 'workspace help lists --closeout-id', output);
   for (const subcommand of [
@@ -205,6 +224,7 @@ function runTests() {
     'status',
     'handoff',
     'evidence',
+    'diff',
     'result',
     'closeout',
     'archive',
@@ -225,6 +245,7 @@ function runTests() {
     'status',
     'handoff',
     'evidence',
+    'diff',
     'result',
     'closeout',
     'archive',
@@ -2473,6 +2494,102 @@ function runTests() {
     assert(verifyArchiveV1.status === 0, 'verify-archive accepts archiveVersion 1', verifyArchiveV1Text);
     assert(JSON.parse(verifyArchiveV1.stdout).archiveVersion === 1, 'verify-archive reports archiveVersion 1', verifyArchiveV1Text);
 
+    section('Workspace Diff');
+
+    const diffMissingSources = runCli(['workspace', 'diff', '--left', archiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const diffMissingSourcesText = `${diffMissingSources.stdout}\n${diffMissingSources.stderr}`;
+    assert(diffMissingSources.status !== 0, 'diff without both sources exits nonzero', diffMissingSourcesText);
+    assert(diffMissingSourcesText.includes('DIFF_SOURCE_REQUIRED'), 'diff missing source names stable error', diffMissingSourcesText);
+
+    const diffMissingArchive = runCli(
+      ['workspace', 'diff', '--left', archiveRoot, '--right', path.join(tempRoot, 'missing-diff-archive')],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const diffMissingArchiveText = `${diffMissingArchive.stdout}\n${diffMissingArchive.stderr}`;
+    assert(diffMissingArchive.status !== 0, 'diff missing archive exits nonzero', diffMissingArchiveText);
+    assert(diffMissingArchiveText.includes('DIFF_SOURCE_NOT_FOUND'), 'diff missing archive names stable error', diffMissingArchiveText);
+
+    const identicalArchiveRoot = path.join(tempRoot, 'identical-diff-archive');
+    copyTree(archiveRoot, identicalArchiveRoot);
+    const beforeIdenticalLeft = fingerprintTree(archiveRoot);
+    const beforeIdenticalRight = fingerprintTree(identicalArchiveRoot);
+    const identicalDiff = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', identicalArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const afterIdenticalLeft = fingerprintTree(archiveRoot);
+    const afterIdenticalRight = fingerprintTree(identicalArchiveRoot);
+    const identicalDiffText = `${identicalDiff.stdout}\n${identicalDiff.stderr}`;
+    assert(identicalDiff.status === 0, 'diff identical archives exits zero', identicalDiffText);
+    assert(beforeIdenticalLeft === afterIdenticalLeft, 'diff leaves left archive unchanged', identicalDiffText);
+    assert(beforeIdenticalRight === afterIdenticalRight, 'diff leaves right archive unchanged', identicalDiffText);
+    const identicalDiffOutput = JSON.parse(identicalDiff.stdout);
+    assert(identicalDiffOutput.schemaVersion === 1, 'diff output records schemaVersion 1', identicalDiffText);
+    assert(identicalDiffOutput.diffVersion === 1, 'diff output records diffVersion 1', identicalDiffText);
+    assert(identicalDiffOutput.summary.changed === false, 'diff identical archives reports no changes', identicalDiffText);
+    assert(identicalDiffOutput.fileDeltas.changed.length === 0, 'diff identical archives has no changed files', identicalDiffText);
+    assert(identicalDiffOutput.evidenceDeltas.state === 'compared', 'diff V2 evidence is compared', identicalDiffText);
+
+    const changedArchiveRoot = path.join(tempRoot, 'changed-diff-archive');
+    copyTree(archiveRoot, changedArchiveRoot);
+    const changedStatusPath = path.join(changedArchiveRoot, 'status.json');
+    const changedStatus = readJson(changedStatusPath);
+    changedStatus.status = 'changed-for-diff';
+    fs.writeFileSync(changedStatusPath, `${JSON.stringify(changedStatus, null, 2)}\n`);
+    rewriteArchiveChecksums(changedArchiveRoot);
+    const changedDiff = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', changedArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const changedDiffText = `${changedDiff.stdout}\n${changedDiff.stderr}`;
+    assert(changedDiff.status === 0, 'diff changed archive exits zero', changedDiffText);
+    const changedDiffOutput = JSON.parse(changedDiff.stdout);
+    assert(changedDiffOutput.summary.changed === true, 'diff changed archive reports changes', changedDiffText);
+    assert(
+      changedDiffOutput.fileDeltas.changed.some((item) => item.path === 'status.json'),
+      'diff reports changed file path',
+      changedDiffText,
+    );
+    assert(
+      changedDiffOutput.statusDeltas.changed.some((item) => item.path === 'status'),
+      'diff reports changed status value',
+      changedDiffText,
+    );
+
+    const addedRemovedLeftRoot = path.join(tempRoot, 'added-removed-left-archive');
+    const addedRemovedRightRoot = path.join(tempRoot, 'added-removed-right-archive');
+    copyTree(archiveRoot, addedRemovedLeftRoot);
+    copyTree(archiveRoot, addedRemovedRightRoot);
+    addArchiveFile(addedRemovedLeftRoot, 'left-only.txt', 'left only\n');
+    addArchiveFile(addedRemovedRightRoot, 'right-only.txt', 'right only\n');
+    const addedRemovedDiff = runCli(['workspace', 'diff', '--left', addedRemovedLeftRoot, '--right', addedRemovedRightRoot], {
+      cwd: baseRepo.path,
+    });
+    const addedRemovedDiffText = `${addedRemovedDiff.stdout}\n${addedRemovedDiff.stderr}`;
+    assert(addedRemovedDiff.status === 0, 'diff added and removed files exits zero', addedRemovedDiffText);
+    const addedRemovedDiffOutput = JSON.parse(addedRemovedDiff.stdout);
+    assert(
+      addedRemovedDiffOutput.fileDeltas.added.some((item) => item.path === 'right-only.txt'),
+      'diff reports added file path',
+      addedRemovedDiffText,
+    );
+    assert(
+      addedRemovedDiffOutput.fileDeltas.removed.some((item) => item.path === 'left-only.txt'),
+      'diff reports removed file path',
+      addedRemovedDiffText,
+    );
+
+    const v1V2Diff = runCli(['workspace', 'diff', '--left', archiveV1Root, '--right', archiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const v1V2DiffText = `${v1V2Diff.stdout}\n${v1V2Diff.stderr}`;
+    assert(v1V2Diff.status === 0, 'diff archive V1 to V2 exits zero', v1V2DiffText);
+    const v1V2DiffOutput = JSON.parse(v1V2Diff.stdout);
+    assert(v1V2DiffOutput.evidenceDeltas.state === 'incomparable', 'diff V1 evidence is incomparable', v1V2DiffText);
+    assert(v1V2DiffOutput.summary.incomparable.includes('evidenceDeltas'), 'diff summary records incomparable evidence', v1V2DiffText);
+
     const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');
     copyTree(archiveRoot, invalidExecutorArchiveRoot);
     const invalidArchivedExecutorPath = path.join(invalidExecutorArchiveRoot, 'session-artifacts', 'packets', 'executor-contract.json');
@@ -2536,6 +2653,13 @@ function runTests() {
       'verify-archive invalid evidence index names stable error',
       invalidEvidenceArchiveText,
     );
+
+    const invalidEvidenceDiff = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', invalidEvidenceArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidEvidenceDiffText = `${invalidEvidenceDiff.stdout}\n${invalidEvidenceDiff.stderr}`;
+    assert(invalidEvidenceDiff.status !== 0, 'diff invalid archive exits nonzero', invalidEvidenceDiffText);
+    assert(invalidEvidenceDiffText.includes('DIFF_ARCHIVE_INVALID'), 'diff invalid archive names stable error', invalidEvidenceDiffText);
 
     const archivedStatusPath = path.join(archiveRoot, 'status.json');
     const originalArchivedStatus = fs.readFileSync(archivedStatusPath, 'utf8');

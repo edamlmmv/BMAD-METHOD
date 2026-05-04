@@ -1,11 +1,11 @@
 ---
 title: "BMAD Workspace Command Contract"
-description: Stable V14 public contract for Workspace CLI commands
+description: Stable V15 public contract for Workspace CLI commands
 ---
 
 # BMAD Workspace Command Contract
 
-V14 extends the frozen Workspace CLI contract with read-only Evidence Index
+V15 extends the frozen Workspace CLI contract with read-only archive diff
 inspection. Docs, tests, and operators share one source of truth before any
 future runtime expansion.
 
@@ -17,6 +17,8 @@ future runtime expansion.
   execute, merge, promote, restore, replay, or call live adapters.
 - Evidence commands record JSON data only. They never execute command strings or
   turn stored evidence into authority.
+- Diff compares archive evidence bundles only. It never applies, syncs, restores,
+  replays, imports, merges, promotes, fetches, or watches.
 - Session refs are POSIX relative paths unless explicitly documented as absolute
   granted roots.
 
@@ -31,6 +33,7 @@ future runtime expansion.
 | `list` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
 | `handoff` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
 | `evidence` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
+| `diff` | JSON | Read-only. | Compares two verified Workspace archive bundles. |
 | `result` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
 | `review` | JSON | Writes review summary, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
 | `closeout` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
@@ -58,6 +61,8 @@ future runtime expansion.
   `ARCHIVE_CHECKSUM_MISMATCH`, `ARCHIVE_UNSAFE_PATH`,
   `ARCHIVE_RESULT_INVALID`, `ARCHIVE_CLOSEOUT_INVALID`,
   `ARCHIVE_EXECUTOR_CONTRACT_INVALID`, `ARCHIVE_EVIDENCE_INDEX_INVALID`.
+- Diff: `DIFF_SOURCE_REQUIRED`, `DIFF_SOURCE_NOT_FOUND`,
+  `DIFF_SOURCE_UNSUPPORTED`, `DIFF_ARCHIVE_INVALID`, `DIFF_UNSAFE_PATH`.
 
 ## Evidence Index Shape
 
@@ -80,8 +85,23 @@ archives, destroys, merges, promotes, schedules, watches, or activates adapters.
 New V14 archives use `archiveVersion: 2` and include `evidence-index.json`.
 `verify-archive` validates the Evidence Index shape and checksum for V2 bundles.
 
+## Diff Shape
+
+`diff` returns:
+
+- `schemaVersion: 1`
+- `diffVersion: 1`
+- `left` and `right` archive descriptors
+- `summary` with change counts and incomparable sections
+- `fileDeltas` grouped as added, removed, changed, and unchanged
+- `statusDeltas`, `evidenceDeltas`, `packetDeltas`, and `closeoutDeltas`
+
+Archive V1 inputs remain comparable, but Evidence Index deltas are marked
+`incomparable` because V1 bundles do not require `evidence-index.json`.
+
 ## Non-Goals
 
-V14 does not add `workspace run`, automatic closeout, automatic archive,
-automatic destroy, scheduler, watcher, daemon, background worker, restore,
-replay, import, merge, promotion, live adapter activation, or hidden execution.
+V15 does not add `workspace run`, `workspace compare`, automatic closeout,
+automatic archive, automatic destroy, scheduler, watcher, daemon, background
+worker, restore, replay, import, sync, apply, merge, promotion, remote fetch,
+live adapter activation, or hidden execution.

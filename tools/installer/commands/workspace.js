@@ -11,6 +11,7 @@ const { archiveSession, verifyArchive } = require('../../workspace/archive');
 const { recordSessionResult } = require('../../workspace/result');
 const { recordSessionCloseout } = require('../../workspace/closeout');
 const { readEvidenceIndex } = require('../../workspace/evidence');
+const { diffWorkspaceArchives } = require('../../workspace/diff');
 const { nextManualActionForError } = require('../../workspace/next-action');
 
 const WORKSPACE_HELP = `BMAD Workspace Session lifecycle.
@@ -23,6 +24,7 @@ Workspace subcommands:
   status   inspect Workspace Session state without writing or fetching
   handoff  emit copy-ready Codex continuation context
   evidence emit read-only evidence index with artifact checksums and next actions
+  diff     compare two Workspace archive evidence bundles without writing
   result   record a manual execution result artifact without executing commands
   closeout record a manual Session closeout artifact without executing commands
   archive  create a portable Session evidence bundle
@@ -53,6 +55,8 @@ module.exports = {
     ['--base-improvement', 'Launch a Base Improvement Session; requires explicit Base Mutation Grant.'],
     ['--output <path>', 'Output directory for Workspace archive.'],
     ['--input <path>', 'Manual Workspace result JSON input.'],
+    ['--left <archive-dir>', 'Left Workspace archive directory for read-only diff.'],
+    ['--right <archive-dir>', 'Right Workspace archive directory for read-only diff.'],
     ['--result-id <id>', 'Deterministic Workspace result id.'],
     ['--closeout-id <id>', 'Deterministic Workspace closeout id.'],
     ['--workflow <skill[:action]>', 'Explicit BMAD workflow route for Work Packet creation.'],
@@ -77,6 +81,7 @@ module.exports = {
         'status',
         'handoff',
         'evidence',
+        'diff',
         'result',
         'closeout',
         'archive',
@@ -160,6 +165,13 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
     return readEvidenceIndex({
       sessionId,
       runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'diff') {
+    return diffWorkspaceArchives({
+      leftPath: options.left,
+      rightPath: options.right,
     });
   }
 

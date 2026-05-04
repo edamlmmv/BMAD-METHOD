@@ -103,6 +103,17 @@ function nextManualActionForCode(code, context = {}) {
     case 'ARCHIVE_MANIFEST_MISSING': {
       return 'Provide an existing archive directory to bmad workspace verify-archive.';
     }
+    case 'DIFF_SOURCE_REQUIRED': {
+      return 'Provide --left <archive-dir> and --right <archive-dir> to bmad workspace diff.';
+    }
+    case 'DIFF_SOURCE_NOT_FOUND':
+    case 'DIFF_SOURCE_UNSUPPORTED': {
+      return 'Provide existing Workspace archive directories to bmad workspace diff.';
+    }
+    case 'DIFF_ARCHIVE_INVALID':
+    case 'DIFF_UNSAFE_PATH': {
+      return 'Inspect the archive bundles with bmad workspace verify-archive before diffing.';
+    }
     case 'SESSION_NOT_FOUND':
     case 'SESSION_INVALID': {
       return 'Verify the session id and --runtime-root, then rerun bmad workspace status.';

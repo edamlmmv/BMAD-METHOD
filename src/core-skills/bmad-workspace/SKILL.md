@@ -1,6 +1,6 @@
 ---
 name: bmad-workspace
-description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, inspecting Evidence Index output, recording manual results, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
+description: 'Operate BMAD Workspace Sessions from Codex. Use when launching sessions, running Repo Intake, creating BMAD Work Packets, inspecting Evidence Index output, diffing archives, recording manual results, reviewing worktrees, destroying runtime state, or preparing grant-governed base improvements.'
 ---
 
 # BMAD Workspace
@@ -21,8 +21,8 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `evidence`, `result`, `closeout`, `archive`,
-`verify-archive`, `review`, `destroy`, and `authorize`.
+`list`, `status`, `handoff`, `evidence`, `diff`, `result`, `closeout`,
+`archive`, `verify-archive`, `review`, `destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -54,6 +54,7 @@ bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace closeout <session-id> --runtime-root <runtime-root> --input <closeout-json> --closeout-id <id>
 bmad workspace archive <session-id> --runtime-root <runtime-root> --output <archive-dir>
 bmad workspace verify-archive <archive-dir>
+bmad workspace diff --left <archive-dir> --right <archive-dir>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 ```
 
@@ -264,6 +265,23 @@ checksums, archived result shape, archived closeout shape, and V14 Evidence
 Index shape for archive V2 bundles. It accepts archive V1 bundles for backward
 compatibility. It does not fetch, repair, probe repos, restore, import,
 execute, schedule, merge, or change durable state.
+
+## Diff
+
+Use diff to compare two verified Workspace archive evidence bundles without
+changing them:
+
+```bash
+bmad workspace diff --left <archive-dir> --right <archive-dir>
+```
+
+Diff emits JSON with `schemaVersion: 1`, `diffVersion: 1`, source descriptors,
+summary counts, file deltas, status deltas, Evidence Index deltas, packet
+deltas, and closeout deltas. Archive V1 inputs remain usable; Evidence Index
+deltas are marked `incomparable` when an archive lacks V2 evidence.
+
+Diff is read-only. It does not fetch, repair, restore, replay, import, sync,
+apply, merge, promote, schedule, watch, execute, or activate adapters.
 
 ## Base Improvement Session
 

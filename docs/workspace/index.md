@@ -75,12 +75,19 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V14 Backlog](./v14-backlog.md) | Defines TDD-first stories for V14. |
 | [V14 Traceability](./v14-traceability.md) | Maps V14 acceptance tests to stories, tests, and files. |
 | [V14 Release Readiness](./v14-release-readiness.md) | Provides the maintainer checklist for V14 validation. |
+| [V15 PRD](./v15-prd.md) | Defines read-only archive diff requirements. |
+| [V15 Acceptance Tests](./v15-acceptance-tests.md) | Lists behavior tests for V15 archive diff. |
+| [V15 Backlog](./v15-backlog.md) | Defines TDD-first stories for V15. |
+| [V15 Traceability](./v15-traceability.md) | Maps V15 acceptance tests to stories, tests, and files. |
+| [V15 Release Readiness](./v15-release-readiness.md) | Provides the maintainer checklist for V15 validation. |
 
 ## Doctrine
 
 - BMAD is the kernel and truth source.
 - Codex is the preferred executor.
 - Evidence Index is inspection evidence, not authority.
+- Workspace Diff is archive comparison evidence, not restore, replay, merge, or
+  promotion authority.
 - OpenClaw, Hermes, Graphify, Context7, Git, MCP, GitHub, and similar tools are
   adapters behind BMAD-owned interfaces.
 - No normal Workspace Session mutates the BMAD Workspace.

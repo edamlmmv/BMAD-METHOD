@@ -26,6 +26,7 @@ const WORKSPACE_COMMANDS = [
   'status',
   'handoff',
   'evidence',
+  'diff',
   'result',
   'closeout',
   'archive',
@@ -786,6 +787,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
     assert(skillContent.includes('bmad workspace evidence'), 'source skill documents workspace evidence');
+    assert(skillContent.includes('bmad workspace diff'), 'source skill documents workspace diff');
     assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
     assert(skillContent.includes('bmad workspace closeout'), 'source skill documents workspace closeout');
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
@@ -799,17 +801,18 @@ function runTests() {
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
     assert(moduleHelp.includes('Core,bmad-workspace,'), 'module-help registers bmad-workspace skill');
     assert(moduleHelp.includes('Core,bmad-workspace,BMAD Workspace,WS,'), 'module-help registers WS menu code');
+    assert(moduleHelp.includes('archive diff'), 'module-help documents archive diff');
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
   }
 
-  section('V14 Release Readiness Contract');
+  section('V15 Release Readiness Contract');
 
   {
     const workspaceDocsRoot = path.join(repoRoot, 'docs', 'workspace');
     const indexPath = path.join(workspaceDocsRoot, 'index.md');
     const architecturePath = path.join(workspaceDocsRoot, 'architecture.md');
     const commandContractPath = path.join(workspaceDocsRoot, 'command-contract.md');
-    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v14-release-readiness.md');
+    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v15-release-readiness.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
@@ -829,6 +832,11 @@ function runTests() {
       'v14-acceptance-tests.md',
       'v14-traceability.md',
       'v14-release-readiness.md',
+      'v15-prd.md',
+      'v15-backlog.md',
+      'v15-acceptance-tests.md',
+      'v15-traceability.md',
+      'v15-release-readiness.md',
     ]) {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Workspace artifact exists: ${docName}`);
     }
@@ -847,13 +855,19 @@ function runTests() {
       './v14-backlog.md',
       './v14-traceability.md',
       './v14-release-readiness.md',
+      './v15-prd.md',
+      './v15-acceptance-tests.md',
+      './v15-backlog.md',
+      './v15-traceability.md',
+      './v15-release-readiness.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
     }
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
-    assert(architecture.includes('The V14 system is'), 'architecture states V14 current system', architecture);
+    assert(architecture.includes('The V15 system is'), 'architecture states V15 current system', architecture);
     assert(architecture.includes('## Evidence Index'), 'architecture documents Evidence Index', architecture);
+    assert(architecture.includes('## Workspace Diff'), 'architecture documents Workspace Diff', architecture);
     assert(architecture.includes('## Derived Lifecycle'), 'architecture documents derived lifecycle', architecture);
     assert(!architecture.includes('The V4 system is'), 'architecture omits stale V4 current-system framing', architecture);
     assert(
@@ -886,7 +900,11 @@ function runTests() {
       'every other command writes JSON',
       'Filesystem Effect',
       'Stable Error Families',
-      'V14 does not add `workspace run`',
+      'V15 does not add `workspace run`',
+      'Diff Shape',
+      'diffVersion: 1',
+      'DIFF_ARCHIVE_INVALID',
+      'DIFF_SOURCE_REQUIRED',
       'Evidence Index Shape',
       'archiveVersion: 2',
       'ARCHIVE_CHECKSUM_MISMATCH',
@@ -907,8 +925,12 @@ function runTests() {
       'npm run validate:skills',
       'npm run quality',
       'bmad workspace',
+      'diff',
+      '--left',
+      '--right',
       'evidence-index.json',
       'archiveVersion: 2',
+      'DIFF_ARCHIVE_INVALID',
       'verify-archive',
       'package-lock.json',
       'yarn.lock',
@@ -940,6 +962,7 @@ function runTests() {
       assert(workspaceCommand.includes(`'${command}'`), `workspace command inventory includes ${command}`, workspaceCommand);
     }
     assert(!workspaceCommand.includes("'run'"), 'workspace command inventory omits run command', workspaceCommand);
+    assert(!workspaceCommand.includes("'compare'"), 'workspace command inventory omits compare command', workspaceCommand);
   }
 
   section('V2 Traceability');
@@ -1084,6 +1107,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT14-001', 'S134', 'tools/workspace/evidence.js', 'ARCHIVE_EVIDENCE_INDEX_INVALID']) {
       assert(traceability.includes(text), `V14 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V15 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v15-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V15 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT15-001', 'S142', 'tools/workspace/diff.js', 'DIFF_ARCHIVE_INVALID']) {
+      assert(traceability.includes(text), `V15 traceability maps ${text}`, traceability);
     }
   }
 

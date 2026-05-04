@@ -9,10 +9,10 @@ description: Architecture for a BMAD-centric portable workspace
 
 BMAD is the kernel. Everything durable is justified by BMAD artifacts, gates,
 manual evidence, and review. Codex executes outside the Workspace CLI. Adapter
-providers supply capabilities behind BMAD-owned interfaces. The V14 system is a
+providers supply capabilities behind BMAD-owned interfaces. The V15 system is a
 manual Workspace Session CLI and filesystem contract backed by Git worktrees,
-release-readiness checks, read-only Evidence Index inspection, and
-evidence-only artifacts.
+release-readiness checks, read-only Evidence Index inspection, archive diff
+inspection, and evidence-only artifacts.
 
 ## Zoom-Out Map
 
@@ -31,6 +31,7 @@ Workspace Session
   -> emits Worktree Review
   -> accepts Manual Closeout evidence
   -> emits read-only Evidence Index for operator trust
+  -> compares archives with read-only Workspace Diff
   -> can be archived, verified, destroyed, or retained for review
 ```
 
@@ -48,6 +49,7 @@ Workspace Session
 | Worktree Review | `review` | Produce per-repo status, patches, changed files, and review summary. |
 | Manual Closeout | `closeout` | Record final manual session decision and next manual review path. |
 | Evidence Index | `evidence` | Report artifacts, checksums, validation state, and next manual actions without writes. |
+| Workspace Diff | `diff` | Compare verified archive evidence bundles without writes. |
 | Archive | `archive`, `verify-archive` | Preserve and verify portable evidence bundles without restore or replay. |
 | Status and Handoff | `status`, `list`, `handoff` | Inspect session state and emit continuation context without writes. |
 | Grant Guard | `authorize` | Enforce path, repo, capability, persistence, and base-write rules. |
@@ -105,6 +107,7 @@ bmad workspace status <session-id> --runtime-root <root>
 bmad workspace list --runtime-root <root>
 bmad workspace handoff <session-id> --runtime-root <root>
 bmad workspace evidence <session-id> --runtime-root <root>
+bmad workspace diff --left <archive-dir> --right <archive-dir>
 bmad workspace result <session-id> --runtime-root <root> --input <result-json> --result-id <id>
 bmad workspace review <session-id> --runtime-root <root>
 bmad workspace closeout <session-id> --runtime-root <root> --input <closeout-json> --closeout-id <id>
@@ -131,6 +134,9 @@ derived lifecycle state without persisting workflow authority.
 `evidence` emits a read-only Evidence Index. It reports artifact presence,
 checksums, validation state, and next manual actions. It does not write session
 artifacts.
+
+`diff` verifies two archive evidence bundles and emits JSON deltas. It is
+archive-only in V15 and does not read live Session paths.
 
 `result` records manual execution evidence. It never executes command strings.
 
@@ -252,6 +258,21 @@ Evidence Index is a derived view over stored artifacts. It records:
 The index is not a durable authority, execution plan, restore input, replay
 input, approval, scheduler input, or adapter instruction.
 
+## Workspace Diff
+
+Workspace Diff is a derived comparison over two verified archive evidence
+bundles. It records:
+
+- `schemaVersion: 1` and `diffVersion: 1`
+- source descriptors for the left and right archives
+- file deltas by safe relative path, SHA-256, and bytes
+- status, packet, closeout, and Evidence Index deltas after volatile field
+  normalization
+- incomparable markers when an archive V1 bundle has no Evidence Index
+
+The diff is not a restore plan, replay input, import input, merge instruction,
+promotion approval, scheduler input, watcher input, or adapter instruction.
+
 ## Sequence
 
 ```mermaid
@@ -276,9 +297,9 @@ flowchart TD
   Evidence --> Status
 ```
 
-## V14 Boundary
+## V15 Boundary
 
-V14 adds read-only Evidence Index inspection and archive V2 evidence bundles.
-It does not add `workspace run`, schedulers, watchers, daemons, restore/replay,
-merge/promotion, live adapters, hidden state machines, or automatic action from
-evidence.
+V15 adds read-only archive diff over verified evidence bundles. It does not add
+`workspace run`, `workspace compare`, schedulers, watchers, daemons,
+restore/replay, import, sync, apply, merge/promotion, live adapters, hidden
+state machines, or automatic action from evidence.
