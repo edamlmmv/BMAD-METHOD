@@ -271,6 +271,41 @@ function runTests() {
     assert(fs.existsSync(changedSummary.repos[0].patchPath), 'changed review writes diff.patch', JSON.stringify(changedSummary, null, 2));
     const reviewPatch = fs.readFileSync(changedSummary.repos[0].patchPath, 'utf8');
     assert(reviewPatch.includes('Worktree review change.'), 'changed review patch includes worktree diff');
+
+    section('Workspace Destroy');
+
+    const cleanDestroyLaunch = runCli(
+      ['workspace', 'launch', '--repo', targetRepo.path, '--goal', goalPath, '--runtime-root', runtimeRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const cleanDestroyLaunchText = `${cleanDestroyLaunch.stdout}\n${cleanDestroyLaunch.stderr}`;
+    assert(cleanDestroyLaunch.status === 0, 'destroy fixture launch exits zero', cleanDestroyLaunchText);
+    const cleanDestroyMission = JSON.parse(cleanDestroyLaunch.stdout);
+    const destroy = runCli(['workspace', 'destroy', cleanDestroyMission.missionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const destroyText = `${destroy.stdout}\n${destroy.stderr}`;
+    assert(destroy.status === 0, 'destroy exits zero', destroyText);
+    const destroyOutput = JSON.parse(destroy.stdout);
+    assert(destroyOutput.removed === true, 'destroy reports removal', destroyText);
+    assert(!fs.existsSync(cleanDestroyMission.missionRoot), 'destroy removes mission root', destroyText);
+    assert(git(['rev-parse', 'HEAD'], targetRepo.path) === newTargetHead, 'destroy preserves source repo HEAD');
+
+    const keepReviewDestroy = runCli(['workspace', 'destroy', launchOutput.missionId, '--runtime-root', runtimeRoot, '--keep-review'], {
+      cwd: baseRepo.path,
+    });
+    const keepReviewDestroyText = `${keepReviewDestroy.stdout}\n${keepReviewDestroy.stderr}`;
+    assert(keepReviewDestroy.status === 0, 'destroy --keep-review exits zero', keepReviewDestroyText);
+    const keepReviewOutput = JSON.parse(keepReviewDestroy.stdout);
+    assert(!fs.existsSync(launchOutput.missionRoot), 'destroy --keep-review removes mission root', keepReviewDestroyText);
+    assert(fs.existsSync(keepReviewOutput.retainedReviewPath), 'destroy --keep-review retains review artifacts', keepReviewDestroyText);
+    assert(
+      fs.existsSync(path.join(keepReviewOutput.retainedReviewPath, 'repo-1', 'diff.patch')),
+      'destroy --keep-review retains per-repo patch',
+      keepReviewDestroyText,
+    );
   } catch (error) {
     assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {

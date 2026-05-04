@@ -2,6 +2,7 @@ const { launchMission } = require('../../workspace-distro/launch');
 const { runRepoIntake } = require('../../workspace-distro/intake');
 const { buildMissionPacket } = require('../../workspace-distro/packet');
 const { runWorktreeReview } = require('../../workspace-distro/review');
+const { destroyMission } = require('../../workspace-distro/destroy');
 
 const WORKSPACE_HELP = `BMAD Workspace Distro mission lifecycle.
 
@@ -28,6 +29,7 @@ module.exports = {
     ['--goal <path>', 'Goal file path for Mission Workspace launch.'],
     ['--runtime-root <path>', 'Mission runtime root. Defaults to OS temp storage.'],
     ['--mission-id <id>', 'Deterministic mission id for tests and scripted runs.'],
+    ['--keep-review', 'Retain review artifacts after destroying runtime state.'],
   ],
   action: (workspaceCommand, missionId, options) => {
     if (!workspaceCommand) {
@@ -35,7 +37,7 @@ module.exports = {
       process.exit(0);
     }
 
-    if (!['launch', 'intake', 'packet', 'review'].includes(workspaceCommand)) {
+    if (!['launch', 'intake', 'packet', 'review', 'destroy'].includes(workspaceCommand)) {
       process.stderr.write(`Workspace command not implemented in V1 yet: ${workspaceCommand}\n`);
       process.exit(1);
     }
@@ -74,6 +76,14 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
     return runWorktreeReview({
       missionId,
       runtimeRoot: options.runtimeRoot,
+    });
+  }
+
+  if (workspaceCommand === 'destroy') {
+    return destroyMission({
+      missionId,
+      runtimeRoot: options.runtimeRoot,
+      keepReview: options.keepReview,
     });
   }
 
