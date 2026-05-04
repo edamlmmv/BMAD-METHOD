@@ -29,7 +29,7 @@ Source planning commit:
 
 | Story | Current State | Evidence Commit | Notes |
 | --- | --- | --- | --- |
-| S1 Contract validation | Planned | TBD | Start here. |
+| S1 Contract validation | Complete | `6ad93e44a29b2c765d1677c9d8b92034624a58c7` | Contract validator and focused test added. |
 | S2 Workspace CLI help | Planned | TBD | Depends on S1. |
 | S3 One-repo launch | Planned | TBD | First vertical mission proof. |
 | S4 Multi-repo launch | Planned | TBD | After S3. |
@@ -97,4 +97,3 @@ skill, require:
 - Worktree Review proven with changed and clean repos
 - explicit BMAD artifact updating the backlog
 - upstream-gap proof for any new engine-like behavior
-
