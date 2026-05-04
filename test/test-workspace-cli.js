@@ -127,6 +127,21 @@ function fingerprintTree(root) {
   return JSON.stringify(entries);
 }
 
+function copyTree(sourceRoot, destinationRoot) {
+  fs.mkdirSync(destinationRoot, { recursive: true });
+  for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
+    const sourcePath = path.join(sourceRoot, entry.name);
+    const destinationPath = path.join(destinationRoot, entry.name);
+    if (entry.isDirectory()) {
+      copyTree(sourcePath, destinationPath);
+      continue;
+    }
+    if (entry.isFile()) {
+      fs.copyFileSync(sourcePath, destinationPath);
+    }
+  }
+}
+
 function assertSessionOutput(output, testPrefix) {
   assert(
     typeof output.sessionId === 'string' && output.sessionId.length > 0,
@@ -160,7 +175,20 @@ function runTests() {
   for (const option of ['--zoom-out-ref', '--ubiquitous-language-ref', '--grill-decisions-ref', '--tdd-plan-ref', '--skip-setup']) {
     assert(output.includes(option), `workspace help lists ${option}`, output);
   }
-  for (const subcommand of ['launch', 'intake', 'packet', 'list', 'status', 'handoff', 'review', 'destroy', 'authorize']) {
+  assert(output.includes('--output <path>'), 'workspace help lists --output', output);
+  for (const subcommand of [
+    'launch',
+    'intake',
+    'packet',
+    'list',
+    'status',
+    'handoff',
+    'archive',
+    'verify-archive',
+    'review',
+    'destroy',
+    'authorize',
+  ]) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
   }
 
@@ -252,6 +280,58 @@ function runTests() {
       emptyListText,
     );
 
+    section('Workspace Archive Verification Failures');
+
+    const missingArchive = runCli(['workspace', 'verify-archive', path.join(tempRoot, 'missing-archive')], {
+      cwd: baseRepo.path,
+    });
+    const missingArchiveText = `${missingArchive.stdout}\n${missingArchive.stderr}`;
+    assert(missingArchive.status !== 0, 'verify-archive missing dir exits nonzero', missingArchiveText);
+    assert(missingArchiveText.includes('ARCHIVE_NOT_FOUND'), 'verify-archive missing dir names ARCHIVE_NOT_FOUND', missingArchiveText);
+
+    const malformedArchiveRoot = path.join(tempRoot, 'malformed-archive');
+    fs.mkdirSync(malformedArchiveRoot, { recursive: true });
+    const malformedArchive = runCli(['workspace', 'verify-archive', malformedArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const malformedArchiveText = `${malformedArchive.stdout}\n${malformedArchive.stderr}`;
+    assert(malformedArchive.status !== 0, 'verify-archive without manifest exits nonzero', malformedArchiveText);
+    assert(
+      malformedArchiveText.includes('ARCHIVE_MANIFEST_MISSING'),
+      'verify-archive missing manifest names ARCHIVE_MANIFEST_MISSING',
+      malformedArchiveText,
+    );
+
+    fs.writeFileSync(path.join(malformedArchiveRoot, 'manifest.json'), '{not-json\n');
+    const invalidManifest = runCli(['workspace', 'verify-archive', malformedArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidManifestText = `${invalidManifest.stdout}\n${invalidManifest.stderr}`;
+    assert(invalidManifest.status !== 0, 'verify-archive invalid manifest exits nonzero', invalidManifestText);
+    assert(
+      invalidManifestText.includes('ARCHIVE_MANIFEST_INVALID'),
+      'verify-archive invalid manifest names ARCHIVE_MANIFEST_INVALID',
+      invalidManifestText,
+    );
+
+    section('Workspace Archive Missing Session');
+
+    const missingSessionArchiveRoot = path.join(tempRoot, 'missing-session-archive');
+    const missingSessionArchive = runCli(
+      ['workspace', 'archive', 'missing-session', '--runtime-root', runtimeRoot, '--output', missingSessionArchiveRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const missingSessionArchiveText = `${missingSessionArchive.stdout}\n${missingSessionArchive.stderr}`;
+    assert(missingSessionArchive.status !== 0, 'archive missing session exits nonzero', missingSessionArchiveText);
+    assert(
+      missingSessionArchiveText.includes('SESSION_NOT_FOUND'),
+      'archive missing session names SESSION_NOT_FOUND',
+      missingSessionArchiveText,
+    );
+    assert(!fs.existsSync(missingSessionArchiveRoot), 'archive missing session writes no output dir', missingSessionArchiveText);
+
     const brokenSessionRoot = path.join(runtimeRoot, 'sessions', 'broken-session');
     fs.mkdirSync(brokenSessionRoot, { recursive: true });
     const symlinkSessionRoot = path.join(runtimeRoot, 'sessions', 'session-symlink');
@@ -336,6 +416,18 @@ function runTests() {
     assert(invalidHandoff.status !== 0, 'handoff for invalid session exits nonzero', invalidHandoffText);
     assert(invalidHandoff.stdout === '', 'invalid handoff emits no partial Markdown', invalidHandoffText);
     assert(invalidHandoffText.includes('SESSION_INVALID'), 'invalid handoff names SESSION_INVALID', invalidHandoffText);
+
+    const invalidArchiveRoot = path.join(tempRoot, 'invalid-session-archive');
+    const invalidArchive = runCli(
+      ['workspace', 'archive', sessionLaunchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', invalidArchiveRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const invalidArchiveText = `${invalidArchive.stdout}\n${invalidArchive.stderr}`;
+    assert(invalidArchive.status !== 0, 'archive invalid session exits nonzero', invalidArchiveText);
+    assert(invalidArchiveText.includes('SESSION_INVALID'), 'archive invalid session names SESSION_INVALID', invalidArchiveText);
+    assert(!fs.existsSync(invalidArchiveRoot), 'archive invalid session writes no output dir', invalidArchiveText);
 
     const missingHandoff = runCli(['workspace', 'handoff', 'missing-session', '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -594,6 +686,19 @@ function runTests() {
     assert(readyBaseHandoff.stdout.includes('ready-for-human-review'), 'Base Improvement handoff reports readiness', readyBaseHandoffText);
     assert(readyBaseHandoff.stdout.includes('Base Improvement'), 'Base Improvement handoff names session type', readyBaseHandoffText);
     assert(!readyBaseHandoff.stdout.includes('promote'), 'Base Improvement handoff avoids promotion wording', readyBaseHandoffText);
+
+    const baseArchiveRoot = path.join(tempRoot, 'base-improvement-archive');
+    const baseArchive = runCli(
+      ['workspace', 'archive', baseImprovementOutput.sessionId, '--runtime-root', runtimeRoot, '--output', baseArchiveRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const baseArchiveText = `${baseArchive.stdout}\n${baseArchive.stderr}`;
+    assert(baseArchive.status === 0, 'Base Improvement archive exits zero', baseArchiveText);
+    const baseCloseout = fs.readFileSync(path.join(baseArchiveRoot, 'closeout.md'), 'utf8');
+    assert(baseCloseout.includes('ready-for-human-review'), 'Base Improvement archive closeout records readiness', baseCloseout);
+    assert(!baseCloseout.includes('promote'), 'Base Improvement archive closeout avoids promotion wording', baseCloseout);
 
     const deniedBaseWrite = runCli(
       [
@@ -982,6 +1087,138 @@ function runTests() {
     assert(fs.existsSync(changedSummary.repos[0].patchPath), 'changed review writes diff.patch', JSON.stringify(changedSummary, null, 2));
     const reviewPatch = fs.readFileSync(changedSummary.repos[0].patchPath, 'utf8');
     assert(reviewPatch.includes('Worktree review change.'), 'changed review patch includes worktree diff');
+
+    section('Workspace Archive');
+
+    const archiveRoot = path.join(tempRoot, 'session-archive');
+    const beforeArchiveRuntime = fingerprintTree(runtimeRoot);
+    const beforeArchiveTarget = fingerprintTree(targetRepo.path);
+    const archive = runCli(['workspace', 'archive', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', archiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const archiveText = `${archive.stdout}\n${archive.stderr}`;
+    const afterArchiveRuntime = fingerprintTree(runtimeRoot);
+    const afterArchiveTarget = fingerprintTree(targetRepo.path);
+    assert(archive.status === 0, 'archive reviewed session exits zero', archiveText);
+    assert(beforeArchiveRuntime === afterArchiveRuntime, 'archive does not mutate runtime root', archiveText);
+    assert(beforeArchiveTarget === afterArchiveTarget, 'archive does not mutate target repo', archiveText);
+    const archiveOutput = JSON.parse(archive.stdout);
+    assert(archiveOutput.sessionId === launchOutput.sessionId, 'archive output records sessionId', archiveText);
+    assert(archiveOutput.archiveRoot === archiveRoot, 'archive output records exact output root', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'manifest.json')), 'archive writes manifest.json', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'checksums.sha256')), 'archive writes checksums.sha256', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'status.json')), 'archive writes status.json', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'handoff.md')), 'archive writes handoff.md', archiveText);
+    assert(fs.existsSync(path.join(archiveRoot, 'closeout.md')), 'archive writes closeout.md', archiveText);
+    assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'packets', 'bmad-work-packet.json')),
+      'archive copies Work Packet',
+      archiveText,
+    );
+    assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'summary.json')),
+      'archive copies review summary',
+      archiveText,
+    );
+    assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'repo-1', 'diff.patch')),
+      'archive copies review patch',
+      archiveText,
+    );
+    assert(!fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'worktrees')), 'archive does not copy worktrees', archiveText);
+    assert(
+      !fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'docs', 'workspace', 'v4-zoom-out.md')),
+      'archive does not copy setup evidence files',
+      archiveText,
+    );
+
+    const manifest = readJson(path.join(archiveRoot, 'manifest.json'));
+    assert(manifest.schemaVersion === 1, 'archive manifest records schemaVersion 1', JSON.stringify(manifest, null, 2));
+    assert(manifest.archiveVersion === 1, 'archive manifest records archiveVersion 1', JSON.stringify(manifest, null, 2));
+    assert(manifest.sessionId === launchOutput.sessionId, 'archive manifest records sessionId', JSON.stringify(manifest, null, 2));
+    assert(manifest.statusRef === 'status.json', 'archive manifest records status ref', JSON.stringify(manifest, null, 2));
+    assert(manifest.handoffRef === 'handoff.md', 'archive manifest records handoff ref', JSON.stringify(manifest, null, 2));
+    assert(manifest.closeoutRef === 'closeout.md', 'archive manifest records closeout ref', JSON.stringify(manifest, null, 2));
+    const manifestPaths = manifest.files.map((file) => file.path);
+    assert(
+      JSON.stringify(manifestPaths) === JSON.stringify([...manifestPaths].sort()),
+      'archive manifest file list is sorted',
+      JSON.stringify(manifest, null, 2),
+    );
+    assert(
+      manifest.files.every((file) => file.sha256?.length === 64 && Number.isInteger(file.bytes)),
+      'archive manifest records sha256 and byte sizes',
+      JSON.stringify(manifest, null, 2),
+    );
+    assert(
+      manifestPaths.every((filePath) => !path.isAbsolute(filePath) && !filePath.includes('..') && !filePath.includes('\\')),
+      'archive manifest uses safe POSIX relative paths',
+      JSON.stringify(manifest, null, 2),
+    );
+
+    const archivedPacket = readJson(path.join(archiveRoot, 'session-artifacts', 'packets', 'bmad-work-packet.json'));
+    assert(
+      archivedPacket.sessionSetup.zoomOut.ref === 'external:zoom-out-thread-note',
+      'archive preserves setup ref provenance',
+      JSON.stringify(archivedPacket, null, 2),
+    );
+    assert(
+      archivedPacket.sessionSetup.ubiquitousLanguage.sha256 === sha256File(path.join(baseRepo.path, 'UBIQUITOUS_LANGUAGE.md')),
+      'archive preserves local setup checksum metadata',
+      JSON.stringify(archivedPacket, null, 2),
+    );
+
+    const archiveCollision = runCli(
+      ['workspace', 'archive', launchOutput.sessionId, '--runtime-root', runtimeRoot, '--output', archiveRoot],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const archiveCollisionText = `${archiveCollision.stdout}\n${archiveCollision.stderr}`;
+    assert(archiveCollision.status !== 0, 'archive output collision exits nonzero', archiveCollisionText);
+    assert(
+      archiveCollisionText.includes('ARCHIVE_OUTPUT_EXISTS'),
+      'archive output collision names ARCHIVE_OUTPUT_EXISTS',
+      archiveCollisionText,
+    );
+
+    const beforeVerifyArchive = fingerprintTree(archiveRoot);
+    const verifyArchive = runCli(['workspace', 'verify-archive', archiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const verifyArchiveText = `${verifyArchive.stdout}\n${verifyArchive.stderr}`;
+    const afterVerifyArchive = fingerprintTree(archiveRoot);
+    assert(verifyArchive.status === 0, 'verify-archive clean archive exits zero', verifyArchiveText);
+    assert(beforeVerifyArchive === afterVerifyArchive, 'verify-archive is read-only', verifyArchiveText);
+    const verifyOutput = JSON.parse(verifyArchive.stdout);
+    assert(verifyOutput.ok === true, 'verify-archive reports ok true', verifyArchiveText);
+
+    const archivedStatusPath = path.join(archiveRoot, 'status.json');
+    const originalArchivedStatus = fs.readFileSync(archivedStatusPath, 'utf8');
+    fs.appendFileSync(archivedStatusPath, 'tamper\n');
+    const tamperedArchive = runCli(['workspace', 'verify-archive', archiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const tamperedArchiveText = `${tamperedArchive.stdout}\n${tamperedArchive.stderr}`;
+    assert(tamperedArchive.status !== 0, 'verify-archive tampered file exits nonzero', tamperedArchiveText);
+    assert(
+      tamperedArchiveText.includes('ARCHIVE_CHECKSUM_MISMATCH'),
+      'verify-archive tampered file names ARCHIVE_CHECKSUM_MISMATCH',
+      tamperedArchiveText,
+    );
+    fs.writeFileSync(archivedStatusPath, originalArchivedStatus);
+
+    const unsafeArchiveRoot = path.join(tempRoot, 'unsafe-archive');
+    copyTree(archiveRoot, unsafeArchiveRoot);
+    const unsafeManifest = readJson(path.join(unsafeArchiveRoot, 'manifest.json'));
+    unsafeManifest.files[0].path = '../escape.txt';
+    fs.writeFileSync(path.join(unsafeArchiveRoot, 'manifest.json'), `${JSON.stringify(unsafeManifest, null, 2)}\n`);
+    const unsafeArchive = runCli(['workspace', 'verify-archive', unsafeArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const unsafeArchiveText = `${unsafeArchive.stdout}\n${unsafeArchive.stderr}`;
+    assert(unsafeArchive.status !== 0, 'verify-archive unsafe path exits nonzero', unsafeArchiveText);
+    assert(unsafeArchiveText.includes('ARCHIVE_UNSAFE_PATH'), 'verify-archive unsafe path names ARCHIVE_UNSAFE_PATH', unsafeArchiveText);
 
     section('Workspace Destroy');
 

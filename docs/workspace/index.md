@@ -39,6 +39,10 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V6 Acceptance Tests](./v6-acceptance-tests.md) | Lists behavior tests for V6 inventory and handoff. |
 | [V6 Backlog](./v6-backlog.md) | Defines TDD-first stories for V6. |
 | [V6 Traceability](./v6-traceability.md) | Maps V6 acceptance tests to stories, tests, and files. |
+| [V7 PRD](./v7-prd.md) | Defines portable Session archive and verification. |
+| [V7 Acceptance Tests](./v7-acceptance-tests.md) | Lists behavior tests for V7 evidence portability. |
+| [V7 Backlog](./v7-backlog.md) | Defines TDD-first stories for V7. |
+| [V7 Traceability](./v7-traceability.md) | Maps V7 acceptance tests to stories, tests, and files. |
 
 ## Doctrine
 

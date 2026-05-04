@@ -21,7 +21,8 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `review`, `destroy`, and `authorize`.
+`list`, `status`, `handoff`, `archive`, `verify-archive`, `review`,
+`destroy`, and `authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -47,6 +48,8 @@ bmad workspace list --runtime-root <runtime-root>
 bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace handoff <session-id> --runtime-root <runtime-root>
 bmad workspace review <session-id> --runtime-root <runtime-root>
+bmad workspace archive <session-id> --runtime-root <runtime-root> --output <archive-dir>
+bmad workspace verify-archive <archive-dir>
 bmad workspace destroy <session-id> --runtime-root <runtime-root> --keep-review
 ```
 
@@ -114,6 +117,35 @@ BMAD route, and read-only boundary.
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
 
+## Archive
+
+Use archive to capture a portable evidence bundle for a Workspace Session:
+
+```bash
+bmad workspace archive <session-id> --runtime-root <runtime-root> --output <archive-dir>
+```
+
+Archive creates the exact requested output directory and fails if it already
+exists. It writes only that output directory. It copies known Session artifacts,
+status, handoff, closeout notes, and checksums. It does not copy target repo
+contents, Workspace Base contents, local setup evidence files, secrets, or whole
+runtime directories.
+
+The archive is an evidence bundle. It is not a restore package, import package,
+replay input, execution plan, scheduler input, or durable state action.
+
+## Verify Archive
+
+Use verify-archive to inspect archive integrity without changing it:
+
+```bash
+bmad workspace verify-archive <archive-dir>
+```
+
+Verify checks `manifest.json`, required files, safe relative paths, and SHA-256
+checksums. It does not fetch, repair, probe repos, restore, import, execute,
+schedule, merge, or change durable state.
+
 ## Base Improvement Session
 
 Use this path only when the user explicitly grants BMAD Workspace mutation.
@@ -147,4 +179,5 @@ run, expand grants, or promote changes.
 - Check Git status before and after session operations.
 - Do not create schedulers, daemons, memory graphs, live adapters,
   auto-promotion, or hidden execution.
+- Treat archives as evidence bundles only; never as restore or execution inputs.
 - Keep unrelated dirty files untouched.
