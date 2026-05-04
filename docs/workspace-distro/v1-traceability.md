@@ -30,7 +30,7 @@ Source planning commit:
 | Story | Current State | Evidence Commit | Notes |
 | --- | --- | --- | --- |
 | S1 Contract validation | Complete | `6ad93e44a29b2c765d1677c9d8b92034624a58c7` | Contract validator and focused test added. |
-| S2 Workspace CLI help | Planned | TBD | Depends on S1. |
+| S2 Workspace CLI help | Complete | `154778903c5eab6207bf1d10948f3cbf84746ce5` | CLI help lists V1 workspace subcommands; launch behavior remains S3. |
 | S3 One-repo launch | Planned | TBD | First vertical mission proof. |
 | S4 Multi-repo launch | Planned | TBD | After S3. |
 | S5 Repo Intake | Planned | TBD | Requires launch artifacts. |
@@ -48,7 +48,7 @@ implementation commit should name the story id in its commit body or PR notes.
 
 | Acceptance Test | Epic | Story | TDD Test Target | First Code Surface |
 | --- | --- | --- | --- | --- |
-| AT-001 | E2 | S3 | Launch one temp Git repo. | `tools/installer/commands/workspace.js` |
+| AT-001 | E2 | S2, S3 | Workspace help lists V1 commands; launch one temp Git repo. | `tools/installer/commands/workspace.js` |
 | AT-002 | E2 | S4 | Launch two temp Git repos. | Launch module |
 | AT-003 | E2 | S3 | Assert Workspace Distro diff clean. | Launch module |
 | AT-010 | E2 | S5 | Intake writes repo HEAD and provenance. | Intake module |
