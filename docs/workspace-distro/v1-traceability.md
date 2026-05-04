@@ -34,7 +34,7 @@ Source planning commit:
 | S3 One-repo launch | Complete | `ada39dd0daa8b0dc2e5abb03cae317d41ff13c56` | Launch writes mission artifacts, creates Git worktree, and keeps base repo clean. |
 | S4 Multi-repo launch | Planned | TBD | After S3. |
 | S5 Repo Intake | Complete | `0456fc556cd3a5f42b2e925c40c5aa260c38f3ee` | Intake writes repo evidence and provenance; re-intake records new target HEAD. |
-| S6 Packet freshness guard | Planned | TBD | Requires intake. |
+| S6 Packet freshness guard | Complete | `a11c93a2b349538715b7e3b1be23b075937ea123` | Packet command fails with explicit missing-intake and stale-intake errors. |
 | S7 BMAD Mission Packet builder | Planned | TBD | Requires S6. |
 | S8 Worktree Review | Planned | TBD | Requires changed worktree fixture. |
 | S9 Destroy safety | Planned | TBD | Requires mission runtime fixture. |
