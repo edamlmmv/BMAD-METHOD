@@ -126,6 +126,7 @@ function createArtifactMap(sessionRoot, instance = {}) {
     executorContract: artifactStatus(sessionRoot, instance.executorContractRef || 'packets/executor-contract.json'),
     results: artifactStatus(sessionRoot, 'results'),
     review: artifactStatus(sessionRoot, instance.reviewRef || 'review/summary.json'),
+    reviewManifest: artifactStatus(sessionRoot, instance.reviewManifestRef || 'review/review-manifest.json'),
     closeout: artifactStatus(sessionRoot, 'closeout'),
   };
 }

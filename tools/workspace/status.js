@@ -9,6 +9,7 @@ const { enrichChecks } = require('./next-action');
 const { createLegacyRouting } = require('./routing');
 const { readResultLedger } = require('./result');
 const { readCloseoutLedger } = require('./closeout');
+const { REVIEW_MANIFEST_REF, readReviewManifestStatus } = require('./review-manifest');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -52,6 +53,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     packet: artifactStatus(sessionRoot, 'packets/bmad-work-packet.json'),
     executorContract: artifactStatus(sessionRoot, 'packets/executor-contract.json'),
     review: artifactStatus(sessionRoot, 'review/summary.json'),
+    reviewManifest: artifactStatus(sessionRoot, REVIEW_MANIFEST_REF),
   };
 
   const instance = readRequiredJson(instancePath, 'INSTANCE_INVALID_JSON');
@@ -72,7 +74,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     routing: null,
     executorContract: { state: 'missing', present: false, valid: false },
     results: { state: 'none', count: 0, latest: null, entries: [] },
-    review: { state: 'missing', clean: null, changedRepos: [] },
+    review: { state: 'missing', clean: null, changedRepos: [], manifest: { state: 'missing', present: false, valid: false } },
     closeout: { state: 'none', count: 0, latest: null, entries: [] },
     derivedLifecycle: 'launched',
     checks,
@@ -283,7 +285,9 @@ function readReviewStatus({ sessionRoot, status, checks }) {
     path: reviewPath,
     clean: review.clean === true,
     changedRepos: (review.repos || []).filter((repo) => repo.clean === false).map((repo) => repo.repoId),
+    manifest: readReviewManifestStatus({ sessionRoot, sessionId: status.sessionId, checks, warnWhenMissing: true }),
   };
+  status.artifacts.reviewManifest = artifactStatus(sessionRoot, REVIEW_MANIFEST_REF);
 }
 
 function readBaseImprovementReadiness({ instance, grants, sessionRoot, status, checks }) {

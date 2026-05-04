@@ -55,6 +55,11 @@ function nextManualActionForCode(code, context = {}) {
     case 'CLOSEOUT_REVIEW_MISSING': {
       return `Run bmad workspace review ${sessionId}${runtime}.`;
     }
+    case 'REVIEW_MANIFEST_MISSING':
+    case 'REVIEW_MANIFEST_INVALID':
+    case 'REVIEW_MANIFEST_INVALID_JSON': {
+      return `Run bmad workspace review ${sessionId}${runtime} to rebuild Review Manifest evidence.`;
+    }
     case 'EXECUTOR_CONTRACT_MISSING':
     case 'EXECUTOR_CONTRACT_INVALID':
     case 'EXECUTOR_CONTRACT_INVALID_JSON':
@@ -96,6 +101,7 @@ function nextManualActionForCode(code, context = {}) {
     }
     case 'ARCHIVE_CHECKSUM_MISMATCH':
     case 'ARCHIVE_EVIDENCE_INDEX_INVALID':
+    case 'ARCHIVE_REVIEW_MANIFEST_INVALID':
     case 'ARCHIVE_MANIFEST_INVALID': {
       return 'Inspect the archive bundle and rerun bmad workspace verify-archive.';
     }

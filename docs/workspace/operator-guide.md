@@ -35,6 +35,14 @@ Use `evidence` when deciding what to inspect next. It reports artifact presence,
 validation state, checksums, file sizes, source commands, and next manual
 actions. Treat the output as evidence only, not permission to execute.
 
+## Review Manifest
+
+Use `review` after manual work to create both Worktree Review artifacts and
+`review/review-manifest.json`. The manifest records review source refs, typed
+checks, findings, decision state, and forbidden execution or promotion actions.
+Treat it as review evidence only, not approval, scoring, merge authority, or a
+workflow state machine.
+
 ## Archive Diff
 
 Use `diff` after archives verify cleanly and before manual review. It compares
@@ -48,6 +56,8 @@ merge, promotion, or execution plan.
 - Missing packet: complete Setup Gate evidence and run `packet`.
 - Stale intake or checksum drift: refresh evidence, then rebuild the packet.
 - Missing review: run `review` before completed closeout.
+- Missing or invalid Review Manifest: rerun `review` to rebuild typed review
+  evidence.
 - Invalid or secret-positive result or closeout: remove unsafe content manually
   and rerun `status` or `evidence`.
 - Archive checksum mismatch: inspect the archive bundle and rerun

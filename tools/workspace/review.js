@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { REVIEW_MANIFEST_REF, buildReviewManifest } = require('./review-manifest');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -54,6 +55,7 @@ function runWorktreeReview({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
 
   const repos = repoPack.repos.map((repo) => reviewRepo(repo, reviewRoot));
   const summaryPath = path.join(reviewRoot, 'summary.json');
+  const manifestPath = path.join(sessionRoot, REVIEW_MANIFEST_REF);
   const summary = {
     schemaVersion: '0.1',
     sessionId,
@@ -63,16 +65,20 @@ function runWorktreeReview({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
   };
 
   writeJson(summaryPath, summary);
+  const manifest = buildReviewManifest({ sessionId, sessionRoot, summary, createdAt: generatedAt });
+  writeJson(manifestPath, manifest);
   writeJson(instancePath, {
     ...instance,
     lifecycle: [...new Set([...(instance.lifecycle || []), 'review'])],
     reviewRef: path.relative(sessionRoot, summaryPath),
+    reviewManifestRef: REVIEW_MANIFEST_REF,
   });
 
   return {
     sessionId,
     sessionRoot,
     summaryPath,
+    manifestPath,
   };
 }
 

@@ -213,10 +213,26 @@ bmad workspace handoff <session-id> --runtime-root <runtime-root>
 
 Handoff emits raw Markdown with fixed sections for identity, status, blockers,
 BMAD Work Packet, Executor Contract, Setup Gate, Result Ledger, Worktree Review,
-Closeout, Base Improvement readiness, next BMAD route, and read-only boundary.
+Review Manifest, Closeout, Base Improvement readiness, next BMAD route, and
+read-only boundary.
 
 Handoff requires an explicit session id. It does not create, repair, resume,
 fetch, schedule, watch, execute, apply changes, or change durable state.
+
+## Review Manifest
+
+Use review to create Worktree Review artifacts and typed Review Manifest
+evidence:
+
+```bash
+bmad workspace review <session-id> --runtime-root <runtime-root>
+```
+
+Review Manifest lives at `review/review-manifest.json`. It records source refs,
+allowed review artifact capabilities, forbidden actions, checks, findings, and
+a manual decision state. It is evidence only. It does not approve, score,
+restore, replay, merge, promote, schedule, watch, fetch, execute, or activate
+adapters.
 
 ## Evidence Index
 
@@ -244,8 +260,8 @@ bmad workspace archive <session-id> --runtime-root <runtime-root> --output <arch
 
 Archive creates the exact requested output directory and fails if it already
 exists. It writes only that output directory. It copies known Session artifacts,
-valid result artifacts, valid closeout artifacts, status, handoff, closeout
-notes, Evidence Index, and checksums. It does
+valid result artifacts, valid closeout artifacts, Review Manifest, status,
+handoff, closeout notes, Evidence Index, and checksums. It does
 not copy target repo contents, Workspace Base contents, local setup evidence
 files, secrets, or whole runtime directories.
 
@@ -261,10 +277,10 @@ bmad workspace verify-archive <archive-dir>
 ```
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
-checksums, archived result shape, archived closeout shape, and V14 Evidence
-Index shape for archive V2 bundles. It accepts archive V1 bundles for backward
-compatibility. It does not fetch, repair, probe repos, restore, import,
-execute, schedule, merge, or change durable state.
+checksums, archived result shape, archived closeout shape, Review Manifest
+shape, and V14 Evidence Index shape for archive V2 bundles. It accepts archive
+V1 bundles for backward compatibility. It does not fetch, repair, probe repos,
+restore, import, execute, schedule, merge, or change durable state.
 
 ## Diff
 

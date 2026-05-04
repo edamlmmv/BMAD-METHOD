@@ -6,6 +6,7 @@ const { readEvidenceIndex, validateEvidenceIndex } = require('./evidence');
 const { readSessionStatus } = require('./status');
 const { renderSessionHandoff } = require('./handoff');
 const { validateExecutorContract } = require('./executor-contract');
+const { REVIEW_MANIFEST_REF, validateReviewManifest } = require('./review-manifest');
 const { scanForSecrets, validateResultArtifact } = require('./result');
 const { validateCloseoutArtifact } = require('./closeout');
 
@@ -137,6 +138,7 @@ function verifyArchive({ archivePath }) {
 
   validateArchivedEvidenceIndex(archiveRoot, manifest);
   validateArchivedExecutorContract(archiveRoot, manifest);
+  validateArchivedReviewManifest(archiveRoot, manifest);
   validateChecksumFile(archiveRoot, manifest.files);
 
   return {
@@ -183,6 +185,7 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
     executorContract: copyIfPresent(sessionRoot, archiveRoot, status.executorContract?.ref),
     results: copyResultArtifacts({ sessionRoot, archiveRoot, status }),
     review: copyIfPresent(sessionRoot, archiveRoot, 'review/summary.json'),
+    reviewManifest: copyIfPresent(sessionRoot, archiveRoot, REVIEW_MANIFEST_REF),
     closeouts: copyCloseoutArtifacts({ sessionRoot, archiveRoot, status }),
   };
 
@@ -387,6 +390,7 @@ function validateManifestShape(manifest) {
   if (!Array.isArray(manifest.files)) {
     throw new TypeError('ARCHIVE_MANIFEST_INVALID: files must be an array');
   }
+  const seenPaths = new Set();
   if (manifest.archiveVersion >= 2 && (typeof manifest.evidenceIndexRef !== 'string' || manifest.evidenceIndexRef.trim() === '')) {
     throw new Error('ARCHIVE_MANIFEST_INVALID: evidenceIndexRef must be a non-empty string for archiveVersion 2');
   }
@@ -394,6 +398,10 @@ function validateManifestShape(manifest) {
     if (!file || typeof file !== 'object' || typeof file.path !== 'string' || typeof file.sha256 !== 'string') {
       throw new Error('ARCHIVE_MANIFEST_INVALID: each file needs path and sha256');
     }
+    if (seenPaths.has(file.path)) {
+      throw new Error(`ARCHIVE_MANIFEST_INVALID: duplicate file path ${file.path}`);
+    }
+    seenPaths.add(file.path);
     if (!/^[a-f0-9]{64}$/.test(file.sha256) || !Number.isInteger(file.bytes)) {
       throw new Error(`ARCHIVE_MANIFEST_INVALID: invalid checksum metadata for ${file.path}`);
     }
@@ -481,6 +489,25 @@ function validateArchivedExecutorContract(archiveRoot, manifest) {
   }
 }
 
+function validateArchivedReviewManifest(archiveRoot, manifest) {
+  const reviewManifestArtifact = manifest.artifacts?.reviewManifest;
+  if (!reviewManifestArtifact?.present) {
+    return;
+  }
+
+  let reviewManifest;
+  try {
+    reviewManifest = JSON.parse(fs.readFileSync(path.join(archiveRoot, reviewManifestArtifact.archiveRef), 'utf8'));
+  } catch (error) {
+    throw new Error(`ARCHIVE_REVIEW_MANIFEST_INVALID: ${reviewManifestArtifact.archiveRef}: ${error.message}`);
+  }
+
+  const validation = validateReviewManifest(reviewManifest, { expectedSessionId: manifest.sessionId });
+  if (!validation.ok) {
+    throw new Error(`ARCHIVE_REVIEW_MANIFEST_INVALID: ${reviewManifestArtifact.archiveRef}: ${validation.errors.join('; ')}`);
+  }
+}
+
 function validateArchivedResultFile(filePath, archiveRef) {
   if (!archiveRef.startsWith('session-artifacts/results/') || !archiveRef.endsWith('.json')) {
     return;
@@ -526,6 +553,7 @@ function validateArchivedCloseoutFile(filePath, archiveRef, archiveRoot) {
     closeout.packetRef,
     closeout.executorContractRef,
     closeout.reviewRef,
+    closeout.reviewManifestRef,
     ...(closeout.resultRefs || []),
     ...(closeout.evidenceRefs || []),
   ]) {

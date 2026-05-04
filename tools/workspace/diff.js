@@ -40,6 +40,9 @@ function readArchiveSource(sourcePath, side) {
   if (sourcePath.includes('\0')) {
     throw new Error(`DIFF_UNSAFE_PATH: --${side} contains a null byte`);
   }
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(sourcePath)) {
+    throw new Error(`DIFF_SOURCE_UNSUPPORTED: --${side} must be a local Workspace archive directory`);
+  }
 
   const archiveRoot = path.resolve(sourcePath);
   if (!fs.existsSync(archiveRoot)) {
@@ -48,6 +51,14 @@ function readArchiveSource(sourcePath, side) {
   const archiveStat = fs.lstatSync(archiveRoot);
   if (!archiveStat.isDirectory() || archiveStat.isSymbolicLink()) {
     throw new Error(`DIFF_SOURCE_UNSUPPORTED: ${archiveRoot} is not a plain archive directory`);
+  }
+  if (!fs.existsSync(path.join(archiveRoot, 'manifest.json'))) {
+    if (fs.existsSync(path.join(archiveRoot, 'instance.json')) || fs.existsSync(path.join(archiveRoot, 'repo-pack.json'))) {
+      throw new Error(`DIFF_SOURCE_UNSUPPORTED: ${archiveRoot} looks like a live Workspace Session, not an archive`);
+    }
+    if (fs.existsSync(path.join(archiveRoot, '.git'))) {
+      throw new Error(`DIFF_SOURCE_UNSUPPORTED: ${archiveRoot} looks like a Git worktree, not an archive`);
+    }
   }
 
   let verification;

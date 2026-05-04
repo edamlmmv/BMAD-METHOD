@@ -2036,9 +2036,25 @@ function runTests() {
     const cleanReviewOutput = JSON.parse(cleanReview.stdout);
     assertSessionOutput(cleanReviewOutput, 'clean review output');
     assert(fs.existsSync(cleanReviewOutput.summaryPath), 'clean review writes summary.json', cleanReviewText);
+    assert(fs.existsSync(cleanReviewOutput.manifestPath), 'clean review writes review-manifest.json', cleanReviewText);
     const cleanSummary = readJson(cleanReviewOutput.summaryPath);
+    const cleanManifest = readJson(cleanReviewOutput.manifestPath);
     assert(cleanSummary.clean === true, 'clean review reports clean worktree', JSON.stringify(cleanSummary, null, 2));
     assert(cleanSummary.repos[0].patchPath === null, 'clean review has no patch path', JSON.stringify(cleanSummary, null, 2));
+    assert(cleanManifest.kind === 'bmad-workspace-review-manifest', 'review manifest records kind', JSON.stringify(cleanManifest, null, 2));
+    assert(cleanManifest.schemaVersion === 1, 'review manifest records schemaVersion 1', JSON.stringify(cleanManifest, null, 2));
+    assert(cleanManifest.sessionId === launchOutput.sessionId, 'review manifest records sessionId', JSON.stringify(cleanManifest, null, 2));
+    assert(
+      cleanManifest.sourceRefs.reviewSummary === 'review/summary.json',
+      'review manifest records review summary ref',
+      JSON.stringify(cleanManifest, null, 2),
+    );
+    assert(
+      cleanManifest.capabilities.forbidden.includes('restore'),
+      'review manifest forbids restore',
+      JSON.stringify(cleanManifest, null, 2),
+    );
+    assert(cleanManifest.decision.status === 'ready', 'clean review manifest is ready', JSON.stringify(cleanManifest, null, 2));
 
     const reviewedStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -2047,7 +2063,19 @@ function runTests() {
     assert(reviewedStatus.status === 0, 'status after review exits zero', reviewedStatusText);
     const reviewedStatusOutput = JSON.parse(reviewedStatus.stdout);
     assert(reviewedStatusOutput.review.state === 'present', 'status after review reports review present', reviewedStatusText);
+    assert(reviewedStatusOutput.review.manifest.state === 'valid', 'status after review reports review manifest valid', reviewedStatusText);
     assert(reviewedStatusOutput.status === 'ready', 'status after review reports ready', reviewedStatusText);
+
+    const reviewedEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const reviewedEvidenceText = `${reviewedEvidence.stdout}\n${reviewedEvidence.stderr}`;
+    assert(reviewedEvidence.status === 0, 'evidence after review exits zero', reviewedEvidenceText);
+    assert(
+      JSON.parse(reviewedEvidence.stdout).artifacts.some((item) => item.kind === 'review-manifest' && item.validationState === 'valid'),
+      'evidence after review records review manifest',
+      reviewedEvidenceText,
+    );
 
     section('Workspace Closeout');
 
@@ -2095,6 +2123,11 @@ function runTests() {
       JSON.stringify(closeoutArtifact, null, 2),
     );
     assert(closeoutArtifact.reviewRef === 'review/summary.json', 'closeout records review ref', JSON.stringify(closeoutArtifact, null, 2));
+    assert(
+      closeoutArtifact.reviewManifestRef === 'review/review-manifest.json',
+      'closeout records review manifest ref',
+      JSON.stringify(closeoutArtifact, null, 2),
+    );
     assert(
       closeoutArtifact.resultRefs.includes('results/result-001.json'),
       'closeout records result ref',
@@ -2288,6 +2321,17 @@ function runTests() {
     assert(fs.existsSync(changedSummary.repos[0].patchPath), 'changed review writes diff.patch', JSON.stringify(changedSummary, null, 2));
     const reviewPatch = fs.readFileSync(changedSummary.repos[0].patchPath, 'utf8');
     assert(reviewPatch.includes('Worktree review change.'), 'changed review patch includes worktree diff');
+    const changedManifest = readJson(changedReviewOutput.manifestPath);
+    assert(
+      changedManifest.decision.status === 'needs_human_review',
+      'changed review manifest needs human review',
+      JSON.stringify(changedManifest, null, 2),
+    );
+    assert(
+      changedManifest.findings.some((finding) => finding.id === 'worktree-changes-present'),
+      'changed review manifest records finding',
+      JSON.stringify(changedManifest, null, 2),
+    );
 
     section('Workspace Archive');
 
@@ -2328,6 +2372,11 @@ function runTests() {
       archiveText,
     );
     assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'review-manifest.json')),
+      'archive copies review manifest',
+      archiveText,
+    );
+    assert(
       fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'repo-1', 'diff.patch')),
       'archive copies review patch',
       archiveText,
@@ -2364,6 +2413,11 @@ function runTests() {
     assert(
       manifest.artifacts.executorContract.present === true,
       'archive manifest records executor contract artifact',
+      JSON.stringify(manifest, null, 2),
+    );
+    assert(
+      manifest.artifacts.reviewManifest.present === true,
+      'archive manifest records review manifest artifact',
       JSON.stringify(manifest, null, 2),
     );
     assert(
@@ -2410,6 +2464,11 @@ function runTests() {
     assert(
       archivedEvidence.artifacts.some((item) => item.kind === 'work-packet' && item.sha256),
       'archive evidence preserves packet checksum',
+      JSON.stringify(archivedEvidence, null, 2),
+    );
+    assert(
+      archivedEvidence.artifacts.some((item) => item.kind === 'review-manifest' && item.sha256),
+      'archive evidence preserves review manifest checksum',
       JSON.stringify(archivedEvidence, null, 2),
     );
     assert(
@@ -2512,6 +2571,20 @@ function runTests() {
     const diffMissingArchiveText = `${diffMissingArchive.stdout}\n${diffMissingArchive.stderr}`;
     assert(diffMissingArchive.status !== 0, 'diff missing archive exits nonzero', diffMissingArchiveText);
     assert(diffMissingArchiveText.includes('DIFF_SOURCE_NOT_FOUND'), 'diff missing archive names stable error', diffMissingArchiveText);
+
+    const diffLiveSession = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', launchOutput.sessionRoot], {
+      cwd: baseRepo.path,
+    });
+    const diffLiveSessionText = `${diffLiveSession.stdout}\n${diffLiveSession.stderr}`;
+    assert(diffLiveSession.status !== 0, 'diff live session path exits nonzero', diffLiveSessionText);
+    assert(diffLiveSessionText.includes('DIFF_SOURCE_UNSUPPORTED'), 'diff live session path names stable error', diffLiveSessionText);
+
+    const diffUrlSource = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', 'https://example.com/archive'], {
+      cwd: baseRepo.path,
+    });
+    const diffUrlSourceText = `${diffUrlSource.stdout}\n${diffUrlSource.stderr}`;
+    assert(diffUrlSource.status !== 0, 'diff URL source exits nonzero', diffUrlSourceText);
+    assert(diffUrlSourceText.includes('DIFF_SOURCE_UNSUPPORTED'), 'diff URL source names stable error', diffUrlSourceText);
 
     const identicalArchiveRoot = path.join(tempRoot, 'identical-diff-archive');
     copyTree(archiveRoot, identicalArchiveRoot);
@@ -2654,12 +2727,54 @@ function runTests() {
       invalidEvidenceArchiveText,
     );
 
+    const invalidReviewManifestArchiveRoot = path.join(tempRoot, 'invalid-review-manifest-archive');
+    copyTree(archiveRoot, invalidReviewManifestArchiveRoot);
+    const invalidArchivedReviewManifestPath = path.join(
+      invalidReviewManifestArchiveRoot,
+      'session-artifacts',
+      'review',
+      'review-manifest.json',
+    );
+    fs.writeFileSync(invalidArchivedReviewManifestPath, `${JSON.stringify({ kind: 'not-review-manifest' }, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidReviewManifestArchiveRoot);
+    const invalidReviewManifestArchive = runCli(['workspace', 'verify-archive', invalidReviewManifestArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const invalidReviewManifestArchiveText = `${invalidReviewManifestArchive.stdout}\n${invalidReviewManifestArchive.stderr}`;
+    assert(
+      invalidReviewManifestArchive.status !== 0,
+      'verify-archive invalid review manifest exits nonzero',
+      invalidReviewManifestArchiveText,
+    );
+    assert(
+      invalidReviewManifestArchiveText.includes('ARCHIVE_REVIEW_MANIFEST_INVALID'),
+      'verify-archive invalid review manifest names stable error',
+      invalidReviewManifestArchiveText,
+    );
+
     const invalidEvidenceDiff = runCli(['workspace', 'diff', '--left', archiveRoot, '--right', invalidEvidenceArchiveRoot], {
       cwd: baseRepo.path,
     });
     const invalidEvidenceDiffText = `${invalidEvidenceDiff.stdout}\n${invalidEvidenceDiff.stderr}`;
     assert(invalidEvidenceDiff.status !== 0, 'diff invalid archive exits nonzero', invalidEvidenceDiffText);
     assert(invalidEvidenceDiffText.includes('DIFF_ARCHIVE_INVALID'), 'diff invalid archive names stable error', invalidEvidenceDiffText);
+
+    const duplicatePathArchiveRoot = path.join(tempRoot, 'duplicate-path-archive');
+    copyTree(archiveRoot, duplicatePathArchiveRoot);
+    const duplicateManifestPath = path.join(duplicatePathArchiveRoot, 'manifest.json');
+    const duplicateManifest = readJson(duplicateManifestPath);
+    duplicateManifest.files.push({ ...duplicateManifest.files[0] });
+    fs.writeFileSync(duplicateManifestPath, `${JSON.stringify(duplicateManifest, null, 2)}\n`);
+    const duplicatePathArchive = runCli(['workspace', 'verify-archive', duplicatePathArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const duplicatePathArchiveText = `${duplicatePathArchive.stdout}\n${duplicatePathArchive.stderr}`;
+    assert(duplicatePathArchive.status !== 0, 'verify-archive duplicate manifest path exits nonzero', duplicatePathArchiveText);
+    assert(
+      duplicatePathArchiveText.includes('ARCHIVE_MANIFEST_INVALID'),
+      'verify-archive duplicate manifest path names stable error',
+      duplicatePathArchiveText,
+    );
 
     const archivedStatusPath = path.join(archiveRoot, 'status.json');
     const originalArchivedStatus = fs.readFileSync(archivedStatusPath, 'utf8');

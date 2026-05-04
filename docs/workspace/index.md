@@ -80,11 +80,17 @@ workspaces against chosen repositories while keeping BMAD as the source of truth
 | [V15 Backlog](./v15-backlog.md) | Defines TDD-first stories for V15. |
 | [V15 Traceability](./v15-traceability.md) | Maps V15 acceptance tests to stories, tests, and files. |
 | [V15 Release Readiness](./v15-release-readiness.md) | Provides the maintainer checklist for V15 validation. |
+| [V16 PRD](./v16-prd.md) | Defines Review Manifest and diff trust hardening requirements. |
+| [V16 Acceptance Tests](./v16-acceptance-tests.md) | Lists behavior tests for V16 Review Manifest. |
+| [V16 Backlog](./v16-backlog.md) | Defines TDD-first stories for V16. |
+| [V16 Traceability](./v16-traceability.md) | Maps V16 acceptance tests to stories, tests, and files. |
+| [V16 Release Readiness](./v16-release-readiness.md) | Provides the maintainer checklist for V16 validation. |
 
 ## Doctrine
 
 - BMAD is the kernel and truth source.
 - Codex is the preferred executor.
+- Review Manifest is typed review evidence, not approval or workflow authority.
 - Evidence Index is inspection evidence, not authority.
 - Workspace Diff is archive comparison evidence, not restore, replay, merge, or
   promotion authority.

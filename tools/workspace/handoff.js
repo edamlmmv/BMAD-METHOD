@@ -183,6 +183,8 @@ function renderReview(status, review) {
 
 - summaryRef: \`${status.artifacts.review.ref}\`
 - summaryPath: \`${status.artifacts.review.path}\`
+- manifestRef: ${status.review.manifest?.ref ? `\`${status.review.manifest.ref}\`` : 'Not found'}
+- manifestState: \`${status.review.manifest?.state || 'missing'}\`
 - clean: \`${review.clean === true}\`
 - changedRepos: ${formatList(status.review.changedRepos)}
 ${repos.length > 0 ? repos.join('\n') : '- repos: None recorded'}`;

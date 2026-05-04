@@ -13,6 +13,7 @@ const { validateCapabilityContract, validateWorkPacket } = require('../tools/wor
 const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
 const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
 const { buildSessionSetup } = require('../tools/workspace/packet');
+const { REVIEW_MANIFEST_FORBIDDEN_ACTIONS, validateReviewManifest } = require('../tools/workspace/review-manifest');
 const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
 const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
@@ -178,10 +179,51 @@ function validCloseoutArtifact() {
     executorContractRef: 'packets/executor-contract.json',
     resultRefs: ['results/result-001.json'],
     reviewRef: 'review/summary.json',
+    reviewManifestRef: 'review/review-manifest.json',
     outcome: 'completed',
     nextAction: 'manual-target-review',
     summary: 'Manual work finished and review evidence is ready.',
     evidenceRefs: ['results/result-001.json', 'review/summary.json'],
+  };
+}
+
+function validReviewManifest() {
+  return {
+    kind: 'bmad-workspace-review-manifest',
+    schemaVersion: 1,
+    sessionId: 'session-2026-05-04-example',
+    reviewId: 'review-20260504000000',
+    createdAt: '2026-05-04T00:00:00.000Z',
+    createdBy: 'manual',
+    sourceRefs: {
+      packet: 'packets/bmad-work-packet.json',
+      executorContract: 'packets/executor-contract.json',
+      capabilityContract: 'capabilities.json',
+      resultLedger: 'results',
+      reviewSummary: 'review/summary.json',
+      reviewManifest: 'review/review-manifest.json',
+      closeout: null,
+      evidenceIndex: null,
+      archive: null,
+      archiveDiff: null,
+    },
+    capabilities: {
+      allowed: ['read-session-artifact', 'write-review-artifact'],
+      forbidden: [...REVIEW_MANIFEST_FORBIDDEN_ACTIONS],
+    },
+    checks: [
+      {
+        id: 'review-summary-present',
+        status: 'pass',
+        evidenceRefs: ['review/summary.json'],
+        message: 'Worktree Review summary is present.',
+      },
+    ],
+    findings: [],
+    decision: {
+      status: 'ready',
+      reason: 'Review Manifest has no failing checks or open findings.',
+    },
   };
 }
 
@@ -571,6 +613,49 @@ function runTests() {
     assert(!JSON.stringify(findings).includes(token), 'closeout secret scanner does not expose token');
   }
 
+  section('Workspace Review Manifest');
+
+  {
+    const result = validateReviewManifest(validReviewManifest(), { expectedSessionId: 'session-2026-05-04-example' });
+    assert(result.ok === true, 'valid review manifest is accepted', result.errors.join('; '));
+  }
+
+  {
+    const manifest = validReviewManifest();
+    manifest.kind = 'not-review-manifest';
+    const result = validateReviewManifest(manifest);
+    assert(result.ok === false, 'review manifest rejects invalid kind');
+    assert(
+      result.errors.some((error) => error.includes('reviewManifest.kind')),
+      'review manifest kind rejection names kind',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const manifest = validReviewManifest();
+    manifest.sourceRefs.packet = '../escape.json';
+    const result = validateReviewManifest(manifest);
+    assert(result.ok === false, 'review manifest rejects unsafe refs');
+    assert(
+      result.errors.some((error) => error.includes('sourceRefs.packet')),
+      'review manifest unsafe ref rejection names source ref',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const manifest = validReviewManifest();
+    manifest.capabilities.forbidden = manifest.capabilities.forbidden.filter((action) => action !== 'restore');
+    const result = validateReviewManifest(manifest);
+    assert(result.ok === false, 'review manifest requires forbidden action constants');
+    assert(
+      result.errors.some((error) => error.includes('restore')),
+      'review manifest forbidden action rejection names missing constant',
+      result.errors.join('; '),
+    );
+  }
+
   section('Workspace Routing');
 
   {
@@ -793,6 +878,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace archive'), 'source skill documents workspace archive');
     assert(skillContent.includes('bmad workspace verify-archive'), 'source skill documents workspace verify-archive');
     assert(skillContent.includes('Executor Contract'), 'source skill documents Executor Contract');
+    assert(skillContent.includes('Review Manifest'), 'source skill documents Review Manifest');
     assert(skillContent.includes('executionMode: manual'), 'source skill documents manual execution mode');
     assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
     assert(skillContent.includes('routing.routingSchemaVersion'), 'source skill documents routing schema');
@@ -802,17 +888,18 @@ function runTests() {
     assert(moduleHelp.includes('Core,bmad-workspace,'), 'module-help registers bmad-workspace skill');
     assert(moduleHelp.includes('Core,bmad-workspace,BMAD Workspace,WS,'), 'module-help registers WS menu code');
     assert(moduleHelp.includes('archive diff'), 'module-help documents archive diff');
+    assert(moduleHelp.includes('Review Manifest'), 'module-help documents Review Manifest');
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
   }
 
-  section('V15 Release Readiness Contract');
+  section('V16 Release Readiness Contract');
 
   {
     const workspaceDocsRoot = path.join(repoRoot, 'docs', 'workspace');
     const indexPath = path.join(workspaceDocsRoot, 'index.md');
     const architecturePath = path.join(workspaceDocsRoot, 'architecture.md');
     const commandContractPath = path.join(workspaceDocsRoot, 'command-contract.md');
-    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v15-release-readiness.md');
+    const releaseReadinessPath = path.join(workspaceDocsRoot, 'v16-release-readiness.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
@@ -837,6 +924,11 @@ function runTests() {
       'v15-acceptance-tests.md',
       'v15-traceability.md',
       'v15-release-readiness.md',
+      'v16-prd.md',
+      'v16-backlog.md',
+      'v16-acceptance-tests.md',
+      'v16-traceability.md',
+      'v16-release-readiness.md',
     ]) {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Workspace artifact exists: ${docName}`);
     }
@@ -860,13 +952,19 @@ function runTests() {
       './v15-backlog.md',
       './v15-traceability.md',
       './v15-release-readiness.md',
+      './v16-prd.md',
+      './v16-acceptance-tests.md',
+      './v16-backlog.md',
+      './v16-traceability.md',
+      './v16-release-readiness.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
     }
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
-    assert(architecture.includes('The V15 system is'), 'architecture states V15 current system', architecture);
+    assert(architecture.includes('The V16 system is'), 'architecture states V16 current system', architecture);
     assert(architecture.includes('## Evidence Index'), 'architecture documents Evidence Index', architecture);
+    assert(architecture.includes('## Review Manifest'), 'architecture documents Review Manifest', architecture);
     assert(architecture.includes('## Workspace Diff'), 'architecture documents Workspace Diff', architecture);
     assert(architecture.includes('## Derived Lifecycle'), 'architecture documents derived lifecycle', architecture);
     assert(!architecture.includes('The V4 system is'), 'architecture omits stale V4 current-system framing', architecture);
@@ -900,7 +998,10 @@ function runTests() {
       'every other command writes JSON',
       'Filesystem Effect',
       'Stable Error Families',
-      'V15 does not add `workspace run`',
+      'V16 does not add `workspace run`',
+      'Review Manifest Shape',
+      'ARCHIVE_REVIEW_MANIFEST_INVALID',
+      'REVIEW_MANIFEST_INVALID',
       'Diff Shape',
       'diffVersion: 1',
       'DIFF_ARCHIVE_INVALID',
@@ -925,6 +1026,9 @@ function runTests() {
       'npm run validate:skills',
       'npm run quality',
       'bmad workspace',
+      'review-manifest.json',
+      'ARCHIVE_REVIEW_MANIFEST_INVALID',
+      'DIFF_SOURCE_UNSUPPORTED',
       'diff',
       '--left',
       '--right',
@@ -1119,6 +1223,18 @@ function runTests() {
     const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
     for (const text of ['AT15-001', 'S142', 'tools/workspace/diff.js', 'DIFF_ARCHIVE_INVALID']) {
       assert(traceability.includes(text), `V15 traceability maps ${text}`, traceability);
+    }
+  }
+
+  section('V16 Traceability');
+
+  {
+    const traceabilityPath = path.join(__dirname, '..', 'docs', 'workspace', 'v16-traceability.md');
+    assert(fs.existsSync(traceabilityPath), 'V16 traceability artifact exists');
+
+    const traceability = fs.existsSync(traceabilityPath) ? fs.readFileSync(traceabilityPath, 'utf8') : '';
+    for (const text of ['AT16-001', 'S148', 'tools/workspace/review-manifest.js', 'ARCHIVE_REVIEW_MANIFEST_INVALID']) {
+      assert(traceability.includes(text), `V16 traceability maps ${text}`, traceability);
     }
   }
 

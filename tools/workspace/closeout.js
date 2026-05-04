@@ -101,6 +101,7 @@ function buildCloseoutArtifact({ input, sessionId, closeoutId, createdAt, packet
       .map((entry) => entry.ref)
       .sort(),
     reviewRef: status.review?.state === 'present' ? status.review.ref : null,
+    reviewManifestRef: status.review?.manifest?.valid ? status.review.manifest.ref : null,
     outcome: input.outcome,
     nextAction: input.nextAction,
     summary: input.summary,
@@ -221,6 +222,7 @@ function validateCloseoutArtifact(closeout, options = {}) {
   validateSessionRef(closeout.packetRef, errors, 'closeout.packetRef');
   validateNullableSessionRef(closeout.executorContractRef, errors, 'closeout.executorContractRef');
   validateNullableSessionRef(closeout.reviewRef, errors, 'closeout.reviewRef');
+  validateNullableSessionRef(closeout.reviewManifestRef, errors, 'closeout.reviewManifestRef');
   if (!CLOSEOUT_ID_PATTERN.test(closeout.closeoutId || '')) {
     errors.push('closeout.closeoutId may only contain letters, numbers, dots, underscores, and dashes');
   }
@@ -318,7 +320,7 @@ function validateRefArray(refs, errors, label, options = {}) {
 }
 
 function validateNullableSessionRef(ref, errors, label) {
-  if (ref === null) {
+  if (ref === null || ref === undefined) {
     return;
   }
   validateSessionRef(ref, errors, label);

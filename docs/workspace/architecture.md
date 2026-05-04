@@ -9,10 +9,10 @@ description: Architecture for a BMAD-centric portable workspace
 
 BMAD is the kernel. Everything durable is justified by BMAD artifacts, gates,
 manual evidence, and review. Codex executes outside the Workspace CLI. Adapter
-providers supply capabilities behind BMAD-owned interfaces. The V15 system is a
+providers supply capabilities behind BMAD-owned interfaces. The V16 system is a
 manual Workspace Session CLI and filesystem contract backed by Git worktrees,
-release-readiness checks, read-only Evidence Index inspection, archive diff
-inspection, and evidence-only artifacts.
+release-readiness checks, typed Review Manifest evidence, read-only Evidence
+Index inspection, archive diff inspection, and evidence-only artifacts.
 
 ## Zoom-Out Map
 
@@ -29,6 +29,7 @@ Workspace Session
   -> renders prompt for Codex Executor
   -> accepts manual Result Ledger evidence
   -> emits Worktree Review
+  -> writes typed Review Manifest evidence
   -> accepts Manual Closeout evidence
   -> emits read-only Evidence Index for operator trust
   -> compares archives with read-only Workspace Diff
@@ -47,6 +48,7 @@ Workspace Session
 | Manual Executor Contract | `packets/executor-contract.json` | Declare allowed write roots and manual execution steps for Codex or a human operator. |
 | Result Ledger | `result` | Record manual execution evidence as inert JSON data. |
 | Worktree Review | `review` | Produce per-repo status, patches, changed files, and review summary. |
+| Review Manifest | `review/review-manifest.json` | Record typed checks, findings, source refs, and review capability boundaries. |
 | Manual Closeout | `closeout` | Record final manual session decision and next manual review path. |
 | Evidence Index | `evidence` | Report artifacts, checksums, validation state, and next manual actions without writes. |
 | Workspace Diff | `diff` | Compare verified archive evidence bundles without writes. |
@@ -89,6 +91,7 @@ workspace/
       <result-id>.json
     review/
       summary.json
+      review-manifest.json
       status.json
       diff.patch
     closeout/
@@ -140,7 +143,8 @@ archive-only in V15 and does not read live Session paths.
 
 `result` records manual execution evidence. It never executes command strings.
 
-`review` emits per-repo Git status, patch, changed files, and review summary.
+`review` emits per-repo Git status, patch, changed files, review summary, and
+typed Review Manifest evidence.
 
 `closeout` records a final manual decision. It never archives, destroys, merges,
 promotes, restores, replays, schedules, watches, or activates adapters.
@@ -258,6 +262,23 @@ Evidence Index is a derived view over stored artifacts. It records:
 The index is not a durable authority, execution plan, restore input, replay
 input, approval, scheduler input, or adapter instruction.
 
+## Review Manifest
+
+Review Manifest is a typed evidence map written by `bmad workspace review`.
+It records:
+
+- `kind: bmad-workspace-review-manifest` and `schemaVersion: 1`
+- source refs for Work Packet, Executor Contract, Capability Contract, Result
+  Ledger, Worktree Review summary, Closeout, archive, and archive diff when
+  present
+- allowed review artifact capabilities
+- forbidden actions including execution, restore, replay, merge, promotion,
+  scheduling, watching, fetching, live adapter activation, and hidden subprocess
+- checks, findings, and a manual decision state
+
+Review Manifest is not approval, scoring, promotion, merge authority, scheduler
+input, watcher input, replay input, restore input, or adapter instruction.
+
 ## Workspace Diff
 
 Workspace Diff is a derived comparison over two verified archive evidence
@@ -286,7 +307,8 @@ flowchart TD
   Handoff --> Evidence["Evidence Index"]
   ManualWork --> Result["Result Ledger evidence"]
   Result --> Review["Worktree Review"]
-  Review --> Closeout["Manual Closeout"]
+  Review --> Manifest["Review Manifest"]
+  Manifest --> Closeout["Manual Closeout"]
   Closeout --> Archive["Archive evidence"]
   Archive --> Verify["Verify archive"]
   Closeout --> Destroy["Destroy or retain session"]
@@ -297,9 +319,10 @@ flowchart TD
   Evidence --> Status
 ```
 
-## V15 Boundary
+## V16 Boundary
 
-V15 adds read-only archive diff over verified evidence bundles. It does not add
-`workspace run`, `workspace compare`, schedulers, watchers, daemons,
+V16 adds typed Review Manifest evidence and diff refusal hardening. It does not
+add `workspace run`, `workspace compare`, schedulers, watchers, daemons,
 restore/replay, import, sync, apply, merge/promotion, live adapters, hidden
-state machines, or automatic action from evidence.
+state machines, semantic scoring, live Session comparison, or automatic action
+from evidence.

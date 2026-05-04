@@ -1,13 +1,13 @@
 ---
 title: "BMAD Workspace Command Contract"
-description: Stable V15 public contract for Workspace CLI commands
+description: Stable V16 public contract for Workspace CLI commands
 ---
 
 # BMAD Workspace Command Contract
 
-V15 extends the frozen Workspace CLI contract with read-only archive diff
-inspection. Docs, tests, and operators share one source of truth before any
-future runtime expansion.
+V16 extends the frozen Workspace CLI contract with typed Review Manifest
+evidence while hardening read-only archive diff inspection. Docs, tests, and
+operators share one source of truth before any future runtime expansion.
 
 ## Contract Rules
 
@@ -17,6 +17,8 @@ future runtime expansion.
   execute, merge, promote, restore, replay, or call live adapters.
 - Evidence commands record JSON data only. They never execute command strings or
   turn stored evidence into authority.
+- Review Manifest records what Worktree Review inspected. It is evidence, not
+  approval, promotion, or workflow authority.
 - Diff compares archive evidence bundles only. It never applies, syncs, restores,
   replays, imports, merges, promotes, fetches, or watches.
 - Session refs are POSIX relative paths unless explicitly documented as absolute
@@ -35,7 +37,7 @@ future runtime expansion.
 | `evidence` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
 | `diff` | JSON | Read-only. | Compares two verified Workspace archive bundles. |
 | `result` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
-| `review` | JSON | Writes review summary, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
+| `review` | JSON | Writes review summary, Review Manifest, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
 | `closeout` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
 | `archive` | JSON | Creates the exact output directory. | Copies evidence artifacts only, never worktrees or setup source files. |
 | `verify-archive` | JSON | Read-only. | Validates archive manifest, checksums, refs, results, closeouts, and executor contract. |
@@ -56,11 +58,14 @@ future runtime expansion.
 - Closeout: `CLOSEOUT_PACKET_MISSING`, `CLOSEOUT_REVIEW_MISSING`,
   `CLOSEOUT_ID_UNSAFE`, `CLOSEOUT_EXISTS`, `CLOSEOUT_INVALID`,
   `CLOSEOUT_SECRET_DETECTED`.
+- Review Manifest: `REVIEW_MANIFEST_MISSING`,
+  `REVIEW_MANIFEST_INVALID_JSON`, `REVIEW_MANIFEST_INVALID`.
 - Archive: `ARCHIVE_NOT_FOUND`, `ARCHIVE_MANIFEST_MISSING`,
   `ARCHIVE_MANIFEST_INVALID`, `ARCHIVE_OUTPUT_EXISTS`,
   `ARCHIVE_CHECKSUM_MISMATCH`, `ARCHIVE_UNSAFE_PATH`,
   `ARCHIVE_RESULT_INVALID`, `ARCHIVE_CLOSEOUT_INVALID`,
-  `ARCHIVE_EXECUTOR_CONTRACT_INVALID`, `ARCHIVE_EVIDENCE_INDEX_INVALID`.
+  `ARCHIVE_EXECUTOR_CONTRACT_INVALID`, `ARCHIVE_EVIDENCE_INDEX_INVALID`,
+  `ARCHIVE_REVIEW_MANIFEST_INVALID`.
 - Diff: `DIFF_SOURCE_REQUIRED`, `DIFF_SOURCE_NOT_FOUND`,
   `DIFF_SOURCE_UNSUPPORTED`, `DIFF_ARCHIVE_INVALID`, `DIFF_UNSAFE_PATH`.
 
@@ -78,6 +83,24 @@ future runtime expansion.
 
 `evidence` never creates, repairs, fetches, executes, restores, replays,
 archives, destroys, merges, promotes, schedules, watches, or activates adapters.
+
+## Review Manifest Shape
+
+`review/review-manifest.json` records:
+
+- `kind: bmad-workspace-review-manifest`
+- `schemaVersion: 1`
+- `sessionId`, `reviewId`, `createdAt`, and `createdBy`
+- `sourceRefs` for packet, executor contract, capability contract, result
+  ledger, review summary, closeout, archive, and archive diff when present
+- `capabilities.allowed` and `capabilities.forbidden`
+- `checks[]` entries with `id`, `status`, `evidenceRefs`, and `message`
+- `findings[]` entries with severity, owner, status, and evidence refs
+- `decision.status: ready | blocked | needs_human_review`
+
+Review Manifest is an evidence map only. It never executes, restores, replays,
+imports, merges, promotes, fetches, schedules, watches, activates adapters, or
+turns review findings into approval.
 
 ## Archive Versions
 
@@ -101,7 +124,8 @@ Archive V1 inputs remain comparable, but Evidence Index deltas are marked
 
 ## Non-Goals
 
-V15 does not add `workspace run`, `workspace compare`, automatic closeout,
+V16 does not add `workspace run`, `workspace compare`, automatic closeout,
 automatic archive, automatic destroy, scheduler, watcher, daemon, background
 worker, restore, replay, import, sync, apply, merge, promotion, remote fetch,
-live adapter activation, or hidden execution.
+live adapter activation, hidden execution, semantic diff scoring, or live
+Session comparison.

@@ -83,6 +83,7 @@ function collectEvidenceArtifacts({ status, checks }) {
   }
 
   add({ stage: 'review', kind: 'review-summary', ref: 'review/summary.json', sourceCommand: 'bmad workspace review' });
+  add({ stage: 'review', kind: 'review-manifest', ref: 'review/review-manifest.json', sourceCommand: 'bmad workspace review' });
   const review = readOptionalJson(path.join(status.sessionRoot, 'review/summary.json'));
   for (const repo of review?.repos || []) {
     add({
