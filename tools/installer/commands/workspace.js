@@ -31,6 +31,7 @@ module.exports = {
     ['--goal <path>', 'Goal file path for Mission Workspace launch.'],
     ['--runtime-root <path>', 'Mission runtime root. Defaults to OS temp storage.'],
     ['--mission-id <id>', 'Deterministic mission id for tests and scripted runs.'],
+    ['--grant <path>', 'Base Mutation Grant file for Base Improvement Mission launch.'],
     ['--keep-review', 'Retain review artifacts after destroying runtime state.'],
     ['--write-path <path>', 'Durable write path to validate through Grant Guard.'],
     ['--base-improvement', 'Launch a Base Improvement Mission; requires explicit Base Mutation Grant.'],
@@ -67,6 +68,7 @@ function runWorkspaceCommand(workspaceCommand, missionId, options) {
       missionId: options.missionId,
       workspaceDistroPath: process.cwd(),
       baseImprovement: options.baseImprovement,
+      grantPath: options.grant,
     });
   }
 

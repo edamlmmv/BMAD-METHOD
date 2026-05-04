@@ -114,6 +114,7 @@ function runTests() {
   fs.writeFileSync(goalPath, 'Fix target repo bug.\n');
 
   let launchOutput;
+  let baseImprovementOutput;
   try {
     const launch = runCli(['workspace', 'launch', '--repo', targetRepo.path, '--goal', goalPath, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -182,6 +183,87 @@ function runTests() {
       'Base Improvement launch without grant names missing grant',
       baseImprovementText,
     );
+
+    const baseGrantPath = path.join(tempRoot, 'base-mutation-grant.json');
+    fs.writeFileSync(
+      baseGrantPath,
+      `${JSON.stringify(
+        {
+          schemaVersion: '0.1',
+          baseMutationGrant: true,
+          allowedBasePaths: ['docs/workspace-distro'],
+          bmadArtifactRef: 'docs/workspace-distro/v1-implementation-backlog.md',
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const grantedBaseLaunch = runCli(
+      ['workspace', 'launch', '--goal', goalPath, '--runtime-root', runtimeRoot, '--base-improvement', '--grant', baseGrantPath],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const grantedBaseText = `${grantedBaseLaunch.stdout}\n${grantedBaseLaunch.stderr}`;
+    assert(grantedBaseLaunch.status === 0, 'Base Improvement launch with grant exits zero', grantedBaseText);
+    baseImprovementOutput = JSON.parse(grantedBaseLaunch.stdout);
+    const baseInstance = readJson(path.join(baseImprovementOutput.missionRoot, 'instance.json'));
+    assert(
+      baseInstance.missionType === 'base-improvement',
+      'Base Improvement instance records mission type',
+      JSON.stringify(baseInstance, null, 2),
+    );
+    assert(
+      fs.existsSync(path.join(baseImprovementOutput.missionRoot, 'promotion-policy.json')),
+      'Base Improvement writes promotion policy',
+    );
+    const promotionPolicy = readJson(path.join(baseImprovementOutput.missionRoot, 'promotion-policy.json'));
+    assert(promotionPolicy.explicitOnly === true, 'Promotion policy is explicit-only', JSON.stringify(promotionPolicy, null, 2));
+
+    const baseRepoPack = readJson(baseImprovementOutput.repoPackPath);
+    const baseWorktreePath = baseRepoPack.repos[0].worktreePath;
+    assert(fs.existsSync(baseWorktreePath), 'Base Improvement creates Workspace Distro worktree', JSON.stringify(baseRepoPack, null, 2));
+    assert(
+      git(['branch', '--show-current'], baseWorktreePath).startsWith('codex/workspace-distro/'),
+      'Base Improvement uses dedicated codex branch',
+      JSON.stringify(baseRepoPack, null, 2),
+    );
+
+    const grantedBaseWrite = runCli(
+      [
+        'workspace',
+        'authorize',
+        baseImprovementOutput.missionId,
+        '--write-path',
+        path.join(baseWorktreePath, 'docs', 'workspace-distro', 's11.md'),
+        '--runtime-root',
+        runtimeRoot,
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const grantedBaseWriteText = `${grantedBaseWrite.stdout}\n${grantedBaseWrite.stderr}`;
+    assert(grantedBaseWrite.status === 0, 'Grant Guard allows granted base path write', grantedBaseWriteText);
+
+    const deniedBaseWrite = runCli(
+      [
+        'workspace',
+        'authorize',
+        baseImprovementOutput.missionId,
+        '--write-path',
+        path.join(baseWorktreePath, 'README.md'),
+        '--runtime-root',
+        runtimeRoot,
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const deniedBaseWriteText = `${deniedBaseWrite.stdout}\n${deniedBaseWrite.stderr}`;
+    assert(deniedBaseWrite.status !== 0, 'Grant Guard denies out-of-grant base path write', deniedBaseWriteText);
+    assert(deniedBaseWriteText.includes('base-path-not-granted'), 'Out-of-grant denial names base-path-not-granted', deniedBaseWriteText);
 
     section('Workspace Packet Freshness');
 
@@ -354,20 +436,27 @@ function runTests() {
   } catch (error) {
     assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {
-    if (launchOutput?.repoPackPath && fs.existsSync(launchOutput.repoPackPath)) {
-      const repoPack = readJson(launchOutput.repoPackPath);
-      for (const repo of repoPack.repos || []) {
-        if (fs.existsSync(repo.worktreePath)) {
-          git(['-C', repo.sourcePath, 'worktree', 'remove', '--force', repo.worktreePath], tempRoot);
-        }
-      }
-    }
+    removeMissionWorktrees(launchOutput);
+    removeMissionWorktrees(baseImprovementOutput);
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 
   console.log(`\n${colors.cyan}Results: ${passed} passed, ${failed} failed${colors.reset}`);
   if (failed > 0) {
     process.exit(1);
+  }
+}
+
+function removeMissionWorktrees(missionOutput) {
+  if (!missionOutput?.repoPackPath || !fs.existsSync(missionOutput.repoPackPath)) {
+    return;
+  }
+
+  const repoPack = readJson(missionOutput.repoPackPath);
+  for (const repo of repoPack.repos || []) {
+    if (fs.existsSync(repo.worktreePath)) {
+      git(['worktree', 'remove', '--force', repo.worktreePath], repo.sourcePath);
+    }
   }
 }
 

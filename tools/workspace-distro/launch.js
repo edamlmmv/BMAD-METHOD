@@ -27,6 +27,10 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
 function safeSegment(value) {
   return value.replaceAll(/[^a-zA-Z0-9._-]/g, '-').replaceAll(/-+/g, '-');
 }
@@ -70,11 +74,8 @@ function launchMission({
   missionId = createMissionId(),
   workspaceDistroPath = process.cwd(),
   baseImprovement = false,
+  grantPath,
 }) {
-  if (!Array.isArray(repoPaths) || repoPaths.length === 0) {
-    throw new Error('launch requires at least one --repo path');
-  }
-
   const resolvedGoalPath = path.resolve(goalPath || '');
   if (!goalPath || !fs.existsSync(resolvedGoalPath)) {
     throw new Error('launch requires --goal pointing to an existing file');
@@ -83,7 +84,17 @@ function launchMission({
   assertMissionId(missionId);
 
   if (baseImprovement) {
-    throw new Error('base-improvement-requires-base-mutation-grant');
+    return launchBaseImprovementMission({
+      goalPath: resolvedGoalPath,
+      runtimeRoot,
+      missionId,
+      workspaceDistroPath,
+      grantPath,
+    });
+  }
+
+  if (!Array.isArray(repoPaths) || repoPaths.length === 0) {
+    throw new Error('launch requires at least one --repo path');
   }
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
@@ -167,6 +178,150 @@ function launchMission({
     fs.rmSync(missionRoot, { recursive: true, force: true });
     throw error;
   }
+}
+
+function launchBaseImprovementMission({ goalPath, runtimeRoot, missionId, workspaceDistroPath, grantPath }) {
+  const grant = readBaseMutationGrant(grantPath);
+  const resolvedRuntimeRoot = path.resolve(runtimeRoot);
+  const missionRoot = path.join(resolvedRuntimeRoot, 'missions', missionId);
+  const worktreesRoot = path.join(missionRoot, 'worktrees');
+  if (fs.existsSync(missionRoot)) {
+    throw new Error(`mission already exists: ${missionRoot}`);
+  }
+
+  fs.mkdirSync(worktreesRoot, { recursive: true });
+
+  const workspaceRepo = resolveGitRepo(workspaceDistroPath);
+  const branchName = `codex/workspace-distro/${missionId}`;
+  const worktreePath = path.join(worktreesRoot, 'base-workspace-distro');
+  let worktreeCreated = false;
+
+  try {
+    git(['worktree', 'add', '-b', branchName, worktreePath, workspaceRepo.head], workspaceRepo.sourcePath);
+    worktreeCreated = true;
+
+    const instancePath = path.join(missionRoot, 'instance.json');
+    const repoPackPath = path.join(missionRoot, 'repo-pack.json');
+    const grantsPath = path.join(missionRoot, 'grants.json');
+    const promotionPolicyPath = path.join(missionRoot, 'promotion-policy.json');
+    const createdAt = new Date().toISOString();
+
+    const instance = {
+      schemaVersion: '0.1',
+      id: missionId,
+      missionType: 'base-improvement',
+      createdAt,
+      workspaceDistroPath: worktreePath,
+      sourceWorkspaceDistroPath: workspaceRepo.sourcePath,
+      runtimeRoot: resolvedRuntimeRoot,
+      missionRoot,
+      goalPath,
+      repoPackRef: 'repo-pack.json',
+      grantsRef: 'grants.json',
+      promotionPolicyRef: 'promotion-policy.json',
+      baseWorktreeBranch: branchName,
+      lifecycle: ['launch'],
+    };
+
+    const repoPack = {
+      schemaVersion: '0.1',
+      repos: [
+        {
+          id: 'workspace-distro',
+          sourcePath: workspaceRepo.sourcePath,
+          branch: workspaceRepo.branch,
+          head: workspaceRepo.head,
+          worktreePath,
+          baseWorktreeBranch: branchName,
+        },
+      ],
+    };
+
+    const grants = {
+      schemaVersion: '0.1',
+      baseMutationGrant: true,
+      allowedBasePaths: grant.allowedBasePaths,
+      targetRepoWrites: [],
+      forbiddenWrites: ['ungranted-workspace-distro-paths'],
+      sourceGrantPath: grant.sourceGrantPath,
+      bmadArtifactRef: grant.bmadArtifactRef,
+    };
+
+    const promotionPolicy = {
+      schemaVersion: '0.1',
+      explicitOnly: true,
+      requiredEvidence: ['BMAD artifact', 'Base Mutation Grant', 'Worktree Review'],
+      forbiddenActions: ['auto-promotion', 'unreviewed-base-merge'],
+    };
+
+    writeJson(instancePath, instance);
+    writeJson(repoPackPath, repoPack);
+    writeJson(grantsPath, grants);
+    writeJson(promotionPolicyPath, promotionPolicy);
+
+    return {
+      missionId,
+      missionRoot,
+      instancePath,
+      repoPackPath,
+      grantsPath,
+      promotionPolicyPath,
+    };
+  } catch (error) {
+    if (worktreeCreated) {
+      try {
+        git(['worktree', 'remove', '--force', worktreePath], workspaceRepo.sourcePath);
+      } catch {
+        // Preserve original launch failure.
+      }
+    }
+    fs.rmSync(missionRoot, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+function readBaseMutationGrant(grantPath) {
+  if (!grantPath) {
+    throw new Error('base-improvement-requires-base-mutation-grant');
+  }
+
+  const sourceGrantPath = path.resolve(grantPath);
+  if (!fs.existsSync(sourceGrantPath)) {
+    throw new Error(`base-mutation-grant-not-found: ${sourceGrantPath}`);
+  }
+
+  const grant = readJson(sourceGrantPath);
+  if (grant.baseMutationGrant !== true) {
+    throw new Error('base-improvement-requires-base-mutation-grant');
+  }
+  if (!grant.bmadArtifactRef || typeof grant.bmadArtifactRef !== 'string') {
+    throw new Error('base-mutation-grant-requires-bmad-artifact');
+  }
+
+  return {
+    sourceGrantPath,
+    bmadArtifactRef: grant.bmadArtifactRef,
+    allowedBasePaths: normalizeAllowedBasePaths(grant.allowedBasePaths),
+  };
+}
+
+function normalizeAllowedBasePaths(allowedBasePaths) {
+  if (!Array.isArray(allowedBasePaths) || allowedBasePaths.length === 0) {
+    throw new Error('base-mutation-grant-requires-allowed-base-paths');
+  }
+
+  return allowedBasePaths.map((allowedPath) => {
+    if (typeof allowedPath !== 'string' || allowedPath.trim() === '') {
+      throw new Error('base-mutation-grant-path-outside-distro');
+    }
+
+    const normalizedPath = path.normalize(allowedPath.trim());
+    if (path.isAbsolute(normalizedPath) || normalizedPath === '..' || normalizedPath.startsWith(`..${path.sep}`)) {
+      throw new Error('base-mutation-grant-path-outside-distro');
+    }
+
+    return normalizedPath;
+  });
 }
 
 module.exports = {
