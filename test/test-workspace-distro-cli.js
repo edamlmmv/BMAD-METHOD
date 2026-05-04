@@ -109,11 +109,13 @@ function runTests() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-cli-'));
   const baseRepo = createGitRepo(tempRoot, 'workspace-distro-base');
   const targetRepo = createGitRepo(tempRoot, 'target-repo');
+  const secondTargetRepo = createGitRepo(tempRoot, 'second-target-repo');
   const goalPath = path.join(tempRoot, 'goal.md');
   const runtimeRoot = path.join(tempRoot, 'runtime');
   fs.writeFileSync(goalPath, 'Fix target repo bug.\n');
 
   let launchOutput;
+  let multiRepoOutput;
   let baseImprovementOutput;
   try {
     const launch = runCli(['workspace', 'launch', '--repo', targetRepo.path, '--goal', goalPath, '--runtime-root', runtimeRoot], {
@@ -138,6 +140,51 @@ function runTests() {
 
     const baseStatus = git(['status', '--short'], baseRepo.path);
     assert(baseStatus === '', 'launch does not dirty Workspace Distro base repo', baseStatus);
+
+    section('Workspace Multi-Repo Launch');
+
+    const multiLaunch = runCli(
+      [
+        'workspace',
+        'launch',
+        '--repo',
+        targetRepo.path,
+        '--repo',
+        secondTargetRepo.path,
+        '--goal',
+        goalPath,
+        '--runtime-root',
+        runtimeRoot,
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const multiLaunchText = `${multiLaunch.stdout}\n${multiLaunch.stderr}`;
+    assert(multiLaunch.status === 0, 'multi-repo launch exits zero', multiLaunchText);
+    multiRepoOutput = JSON.parse(multiLaunch.stdout);
+    const multiRepoPack = readJson(multiRepoOutput.repoPackPath);
+    assert(multiRepoPack.repos.length === 2, 'multi-repo launch records two repos', JSON.stringify(multiRepoPack, null, 2));
+    assert(
+      multiRepoPack.repos[0].head === targetRepo.head,
+      'multi-repo launch records first repo HEAD',
+      JSON.stringify(multiRepoPack, null, 2),
+    );
+    assert(
+      multiRepoPack.repos[1].head === secondTargetRepo.head,
+      'multi-repo launch records second repo HEAD',
+      JSON.stringify(multiRepoPack, null, 2),
+    );
+    assert(
+      fs.existsSync(multiRepoPack.repos[0].worktreePath),
+      'multi-repo launch creates first worktree',
+      JSON.stringify(multiRepoPack, null, 2),
+    );
+    assert(
+      fs.existsSync(multiRepoPack.repos[1].worktreePath),
+      'multi-repo launch creates second worktree',
+      JSON.stringify(multiRepoPack, null, 2),
+    );
 
     section('Workspace Grant Guard');
 
@@ -437,6 +484,7 @@ function runTests() {
     assert(false, 'workspace command emits parseable mission JSON', error.message);
   } finally {
     removeMissionWorktrees(launchOutput);
+    removeMissionWorktrees(multiRepoOutput);
     removeMissionWorktrees(baseImprovementOutput);
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
