@@ -11,6 +11,7 @@ npm run quality
 # Run individual test suites
 npm run test:install    # Installation component tests
 npm run test:refs       # File reference CSV tests
+npm run test:workspace  # Workspace Distro contract tests
 npm run validate:refs   # File reference validation (strict)
 ```
 
@@ -27,6 +28,13 @@ Validates that the installer compiles and assembles agents correctly.
 **File**: `test/test-file-refs-csv.js`
 
 Tests the CSV-based file reference validation logic.
+
+### Workspace Distro Contract Tests
+
+**File**: `test/test-workspace-distro-contracts.js`
+
+Validates the Workspace Distro V1 BMAD Mission Packet and Capability Contract
+behavior.
 
 ## Test Fixtures
 
