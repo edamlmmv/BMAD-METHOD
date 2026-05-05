@@ -8,6 +8,41 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const CONTRACT_FILES = {
+  policy: {
+    label: 'policy',
+    relativePath: path.join('docs', 'workspace', 'self-improvement-automation-policy.md'),
+  },
+  skill: {
+    label: 'bmad-self-improve skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-self-improve', 'SKILL.md'),
+  },
+  guide: {
+    label: 'runbook',
+    relativePath: path.join('docs', 'workspace', 'self-improvement-codex.md'),
+  },
+  prompt: {
+    label: 'self-improvement prompt',
+    relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'),
+  },
+  resume: {
+    label: 'resume prompt',
+    relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md'),
+  },
+  checkpoint: {
+    label: 'checkpoint template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md'),
+  },
+  moduleHelp: {
+    label: 'module-help.csv',
+    relativePath: path.join('src', 'core-skills', 'module-help.csv'),
+  },
+  packageJson: {
+    label: 'package.json',
+    relativePath: 'package.json',
+  },
+};
+
 const REQUIRED_INVARIANTS = [
   {
     id: 'SI-AUTO-001',
@@ -120,15 +155,53 @@ const REQUIRED_PROMPT_TERMS = [
 ];
 
 const REQUIRED_CHECKPOINT_TERMS = [
+  'Objective',
+  'Question',
+  'Mode and Inputs',
+  '`repo_path`:',
+  '`base_ref`:',
+  '`scope`:',
+  '`stop_condition`:',
+  'effective automation schedule/config consulted:',
+  'explicit operator schedule/cap overrides:',
+  '`max_iterations`:',
+  '`daily_cap`:',
+  '`max_fix_attempts`:',
+  'Baseline Evidence',
   'Base SHA',
+  'Original branch',
   'Baseline policy hash',
+  'Baseline policy path',
+  'Final HEAD SHA',
+  'Lock Evidence',
   'Lock path',
+  'Lock acquired',
+  'Stale lock handling',
+  'Lock released',
+  'Branch Evidence',
+  'Branch created from',
+  'Main guard result',
+  'Push guard result',
+  'Dirty Worktree Preservation',
+  'Dirty files before loop',
   'Preflight status command',
+  'Preflight status output',
   'Preflight scan result',
+  'Branch mutation blocked before scan pass',
+  'Secret/huge generated artifact scan',
   'Self-improve branch',
   'Preservation commit',
+  'Party Mode Decision',
+  'Plan Status',
+  'Party Mode Critique',
   'Policy Consensus Evidence',
+  'Implementation Evidence',
+  'Changed Files',
+  'Tests Run',
+  'Pass/Fail Output',
   'Full Gate Output',
+  'compile/install Evidence',
+  'Refresh Evidence',
   'source SHA-256',
   'installed SHA-256',
   'Activation State',
@@ -148,7 +221,10 @@ const REQUIRED_CHECKPOINT_TERMS = [
   'workspace_session_id: string|null',
   'classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
   'Continuation Decision',
+  'Local Commits',
   'Resume Command',
+  'Next Operator Decision',
+  'Risks',
 ];
 
 const FORBIDDEN_SELF_IMPROVE_PHRASES = [
@@ -158,6 +234,86 @@ const FORBIDDEN_SELF_IMPROVE_PHRASES = [
   'does not create or run scheduler',
   'Cron or recurring automation',
   'bmad-loop remains observe/coordination only; no execution authority',
+];
+
+const ALLOWED_TEMPLATE_PLACEHOLDERS = new Set(['skill-root', 'project-root', 'output_folder']);
+
+const REQUIRED_SEQUENCE_CONTRACTS = [
+  {
+    sourceKey: 'skill',
+    sectionHeading: '## Required Sequence',
+    stopHeading: '## Self-Edit and Policy-Edit Gate',
+    steps: [
+      ['policy', 'Read `docs/workspace/self-improvement-automation-policy.md`'],
+      ['baseline', 'record `SELF_IMPROVE_BASE_REF=$(git rev-parse HEAD)`'],
+      ['schedule', 'Read the effective automation schedule/config'],
+      ['lock', 'Acquire `{output_folder}/self-improvement/automation.lock`'],
+      ['dirty preflight', 'Run `git status --porcelain --untracked-files=all` before branch creation'],
+      ['dirty preservation', 'preserve the current checkout'],
+      ['fresh branch', 'Create or switch to a fresh non-main `codex/self-improve-*` branch'],
+      ['party decision', 'Run `skill:bmad-party-mode` before writing any plan'],
+      ['plan', 'Write a decision-complete plan'],
+      ['party critique', 'Run `skill:bmad-party-mode` again before implementation'],
+      ['tdd', 'Implement with TDD'],
+      ['targeted validation', 'Run targeted validation'],
+      ['full gate', 'Run `npm ci && npm run quality`'],
+      ['invariant validator', 'Run `npm run validate:self-improve-invariants`'],
+      ['install', 'compile/install updated BMAD skills'],
+      ['refresh', 'Verify Codex refresh behavior'],
+      ['activation state', 'Record Activation State'],
+      ['resume contract', 'Record Resume Contract'],
+      ['session identity', 'Record Session Identity'],
+      ['commit', 'Commit passing work locally'],
+      ['checkpoint', 'Write final checkpoint'],
+      ['continuation', 'Allow continuation only'],
+    ],
+  },
+  {
+    sourceKey: 'guide',
+    sectionHeading: '## What It Does',
+    stopHeading: '## Preflight Contract',
+    steps: [
+      ['baseline', 'Baseline policy capture'],
+      ['dirty preflight', 'Dirty worktree preflight'],
+      ['dirty preservation', 'Dirty worktree preservation'],
+      ['fresh branch', 'Fresh non-main branch creation'],
+      ['party decision', 'Party Mode target decision'],
+      ['plan', 'Plan'],
+      ['party critique', 'Party Mode critique'],
+      ['tdd', 'TDD implementation'],
+      ['full gate', '`npm ci && npm run quality`'],
+      ['install', 'BMAD compile/install'],
+      ['refresh', 'Codex refresh evidence'],
+      ['activation state', 'Activation State'],
+      ['commit', 'Local Conventional Commit'],
+      ['checkpoint', 'Final checkpoint'],
+      ['continuation', 'Continuation decision'],
+    ],
+  },
+  {
+    sourceKey: 'prompt',
+    sectionHeading: 'Required policy:',
+    stopHeading: 'Failure behavior:',
+    steps: [
+      ['dirty preflight', 'Before branch creation, run `git status --porcelain --untracked-files=all`'],
+      ['dirty scan', 'If the worktree is dirty, scan pending files'],
+      ['scan failure', 'If the scan fails, abort before preservation'],
+      ['dirty preservation', 'If the scan passes, preserve non-ignored dirty state'],
+      ['fresh branch', 'Create or switch to the fresh branch'],
+      ['party decision', 'Run `skill:bmad-party-mode` before writing any plan'],
+      ['plan', 'Write a decision-complete plan'],
+      ['party critique', 'Run `skill:bmad-party-mode` again before implementation'],
+      ['tdd', 'Implement with TDD'],
+      ['full gate', 'Run `npm ci && npm run quality`'],
+      ['invariant validator', 'Run `npm run validate:self-improve-invariants`'],
+      ['install', 'compile/install updated BMAD skills'],
+      ['refresh', 'Actively request Codex skill reload'],
+      ['activation state', 'Record Activation State'],
+      ['commit', 'Commit passing work locally'],
+      ['checkpoint', 'Write checkpoint evidence'],
+      ['continuation', 'Allow continuation only'],
+    ],
+  },
 ];
 
 function parseArgs(argv) {
@@ -175,11 +331,26 @@ function parseArgs(argv) {
   return args;
 }
 
-function readRequired(filePath) {
+function addError(errors, code, message, details = {}) {
+  const metadata = [];
+  if (details.file) metadata.push(`file=${details.file}`);
+  if (details.field) metadata.push(`field=${details.field}`);
+  if (details.id) metadata.push(`id=${details.id}`);
+  const suffix = metadata.length > 0 ? ` [${metadata.join(' ')}]` : '';
+  errors.push(`${code} ${message}${suffix}`);
+}
+
+function readRequired(filePath, errors, fileLabel = filePath) {
   if (!fs.existsSync(filePath)) {
-    throw new Error(`missing required file: ${filePath}`);
+    addError(errors, 'SI_FILE_MISSING', `missing required file: ${fileLabel}`, { file: fileLabel });
+    return null;
   }
-  return fs.readFileSync(filePath, 'utf8');
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    addError(errors, 'SI_FILE_READ_FAILED', `could not read required file: ${fileLabel}: ${error.message}`, { file: fileLabel });
+    return null;
+  }
 }
 
 function hasTerm(content, term) {
@@ -199,18 +370,21 @@ function hasTerm(content, term) {
   return lowerContent.includes(lowerTerm);
 }
 
-function requireTerms(content, terms, sourceName, errors) {
+function requireTerms(content, terms, sourceName, errors, fileLabel, errorCode = 'SI_TERM_MISSING') {
   for (const term of terms) {
     if (!hasTerm(content, term)) {
-      errors.push(`${sourceName} missing required term: ${term}`);
+      addError(errors, errorCode, `${sourceName} missing required term: ${term}`, { file: fileLabel, field: term });
     }
   }
 }
 
-function requireNoTerms(content, terms, sourceName, errors) {
+function requireNoTerms(content, terms, sourceName, errors, fileLabel) {
   for (const term of terms) {
     if (hasTerm(content, term)) {
-      errors.push(`${sourceName} contains retired manual-only phrase: ${term}`);
+      addError(errors, 'SI_RETIRED_PHRASE', `${sourceName} contains retired manual-only phrase: ${term}`, {
+        file: fileLabel,
+        field: term,
+      });
     }
   }
 }
@@ -220,52 +394,166 @@ function invariantIds(content) {
   return new Set([...matches].map((match) => match[0]));
 }
 
+function countInvariantIds(content) {
+  const counts = new Map();
+  for (const match of content.matchAll(/\bSI-AUTO-\d{3}\b/g)) {
+    counts.set(match[0], (counts.get(match[0]) || 0) + 1);
+  }
+  return counts;
+}
+
+function validateInvariantIds(content, sourceName, fileLabel, errors) {
+  const requiredIds = new Set(REQUIRED_INVARIANTS.map((invariant) => invariant.id));
+  const counts = countInvariantIds(content);
+  for (const [id, count] of counts) {
+    if (!requiredIds.has(id)) {
+      addError(errors, 'SI_ID_UNKNOWN', `${sourceName} contains unknown invariant id ${id}`, { file: fileLabel, id });
+    }
+    if (count > 1) {
+      addError(errors, 'SI_ID_DUPLICATE', `${sourceName} contains duplicate invariant id ${id}`, { file: fileLabel, id });
+    }
+  }
+}
+
+function validatePlaceholders(content, sourceName, fileLabel, errors) {
+  for (const match of content.matchAll(/\{([A-Za-z0-9_-]+)\}/g)) {
+    const placeholder = match[1];
+    if (!ALLOWED_TEMPLATE_PLACEHOLDERS.has(placeholder)) {
+      addError(errors, 'SI_PLACEHOLDER_UNKNOWN', `${sourceName} contains unknown placeholder {${placeholder}}`, {
+        file: fileLabel,
+        field: `{${placeholder}}`,
+      });
+    }
+  }
+}
+
+function validateFenceBalance(content, sourceName, fileLabel, errors) {
+  const fenceCount = (content.match(/```/g) || []).length;
+  if (fenceCount % 2 !== 0) {
+    addError(errors, 'SI_MARKDOWN_FENCE_UNBALANCED', `${sourceName} has unbalanced markdown code fences`, {
+      file: fileLabel,
+    });
+  }
+}
+
+function sliceSection(content, sectionHeading, stopHeading) {
+  const start = content.indexOf(sectionHeading);
+  if (start === -1) {
+    return '';
+  }
+  const bodyStart = start + sectionHeading.length;
+  const stop = stopHeading ? content.indexOf(stopHeading, bodyStart) : -1;
+  return content.slice(bodyStart, stop === -1 ? undefined : stop);
+}
+
+function validateOrderedSequence(content, contract, sourceName, fileLabel, errors) {
+  const section = sliceSection(content, contract.sectionHeading, contract.stopHeading);
+  if (!section) {
+    addError(errors, 'SI_SEQUENCE_SECTION_MISSING', `${sourceName} missing ordered sequence section: ${contract.sectionHeading}`, {
+      file: fileLabel,
+      field: contract.sectionHeading,
+    });
+    return;
+  }
+
+  let previousIndex = -1;
+  let previousStep = null;
+  for (const [stepName, term] of contract.steps) {
+    const index = section.indexOf(term);
+    if (index === -1) {
+      addError(errors, 'SI_SEQUENCE_STEP_MISSING', `${sourceName} missing ordered sequence step: ${stepName}`, {
+        file: fileLabel,
+        field: stepName,
+      });
+      continue;
+    }
+    if (index < previousIndex) {
+      addError(errors, 'SI_SEQUENCE_ORDER', `${sourceName} ordered sequence step "${stepName}" appears before "${previousStep}"`, {
+        file: fileLabel,
+        field: stepName,
+      });
+    }
+    previousIndex = index;
+    previousStep = stepName;
+  }
+}
+
 function validateSelfImproveInvariants(options = {}) {
   const projectRoot = options.projectRoot ? path.resolve(options.projectRoot) : path.resolve(__dirname, '..');
   const errors = [];
-  const files = {
-    policy: path.join(projectRoot, 'docs', 'workspace', 'self-improvement-automation-policy.md'),
-    skill: path.join(projectRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'),
-    guide: path.join(projectRoot, 'docs', 'workspace', 'self-improvement-codex.md'),
-    prompt: path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'),
-    resume: path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md'),
-    checkpoint: path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md'),
-    moduleHelp: path.join(projectRoot, 'src', 'core-skills', 'module-help.csv'),
-    packageJson: path.join(projectRoot, 'package.json'),
-  };
+  const files = Object.fromEntries(
+    Object.entries(CONTRACT_FILES).map(([key, definition]) => [
+      key,
+      {
+        ...definition,
+        filePath: path.join(projectRoot, definition.relativePath),
+      },
+    ]),
+  );
 
-  const policy = readRequired(files.policy);
-  const skill = readRequired(files.skill);
-  const guide = readRequired(files.guide);
-  const prompt = readRequired(files.prompt);
-  const resume = readRequired(files.resume);
-  const checkpoint = readRequired(files.checkpoint);
-  const moduleHelp = readRequired(files.moduleHelp);
-  const packageJson = JSON.parse(readRequired(files.packageJson));
+  const contents = {};
+  for (const [key, definition] of Object.entries(files)) {
+    contents[key] = readRequired(definition.filePath, errors, definition.relativePath);
+  }
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  const { policy, skill, guide, prompt, resume, checkpoint, moduleHelp } = contents;
+  let packageJson = {};
+  try {
+    packageJson = JSON.parse(contents.packageJson);
+  } catch (error) {
+    addError(errors, 'SI_PACKAGE_JSON_INVALID', `package.json contains invalid JSON: ${error.message}`, {
+      file: files.packageJson.relativePath,
+    });
+    return { ok: false, errors };
+  }
+
+  validateInvariantIds(policy, 'policy', files.policy.relativePath, errors);
+  validateInvariantIds(skill, 'bmad-self-improve skill', files.skill.relativePath, errors);
 
   for (const invariant of REQUIRED_INVARIANTS) {
     if (!policy.includes(invariant.id)) {
-      errors.push(`policy missing invariant id ${invariant.id} (${invariant.label})`);
+      addError(errors, 'SI_ID_MISSING', `policy missing invariant id ${invariant.id} (${invariant.label})`, {
+        file: files.policy.relativePath,
+        id: invariant.id,
+      });
     }
     if (!skill.includes(invariant.id)) {
-      errors.push(`skill missing invariant id ${invariant.id} (${invariant.label})`);
+      addError(errors, 'SI_ID_MISSING', `skill missing invariant id ${invariant.id} (${invariant.label})`, {
+        file: files.skill.relativePath,
+        id: invariant.id,
+      });
     }
-    requireTerms(policy, invariant.policyTerms, `policy ${invariant.id}`, errors);
+    requireTerms(policy, invariant.policyTerms, `policy ${invariant.id}`, errors, files.policy.relativePath);
   }
 
   if (options.baselinePolicy) {
-    const baseline = readRequired(options.baselinePolicy);
-    const candidateIds = invariantIds(policy);
-    for (const baselineId of invariantIds(baseline)) {
-      if (!candidateIds.has(baselineId)) {
-        errors.push(`candidate policy removed baseline invariant id: ${baselineId}`);
+    const baseline = readRequired(options.baselinePolicy, errors, path.relative(projectRoot, options.baselinePolicy));
+    if (baseline) {
+      const candidateIds = invariantIds(policy);
+      for (const baselineId of invariantIds(baseline)) {
+        if (!candidateIds.has(baselineId)) {
+          addError(errors, 'SI_BASELINE_ID_REMOVED', `candidate policy removed baseline invariant id: ${baselineId}`, {
+            file: files.policy.relativePath,
+            id: baselineId,
+          });
+        }
       }
     }
   }
 
-  requireTerms(skill, REQUIRED_SKILL_TERMS, 'bmad-self-improve skill', errors);
-  requireTerms(prompt, REQUIRED_PROMPT_TERMS, 'self-improvement prompt', errors);
-  requireTerms(checkpoint, REQUIRED_CHECKPOINT_TERMS, 'checkpoint template', errors);
+  requireTerms(skill, REQUIRED_SKILL_TERMS, 'bmad-self-improve skill', errors, files.skill.relativePath);
+  requireTerms(prompt, REQUIRED_PROMPT_TERMS, 'self-improvement prompt', errors, files.prompt.relativePath);
+  requireTerms(
+    checkpoint,
+    REQUIRED_CHECKPOINT_TERMS,
+    'checkpoint template',
+    errors,
+    files.checkpoint.relativePath,
+    'SI_CHECKPOINT_CONTRACT',
+  );
   requireTerms(
     guide,
     [
@@ -278,22 +566,49 @@ function validateSelfImproveInvariants(options = {}) {
     ],
     'runbook',
     errors,
+    files.guide.relativePath,
   );
   requireTerms(
     resume,
     ['automation.lock', 'max_fix_attempts=5', 'continuation state', 'Activation State', 'Resume Contract', 'Session Identity'],
     'resume prompt',
     errors,
+    files.resume.relativePath,
   );
-  requireTerms(moduleHelp, ['local Codex automation-capable BMAD self-improvement', 'continuation'], 'module-help.csv', errors);
-  requireNoTerms([skill, guide, prompt].join('\n'), FORBIDDEN_SELF_IMPROVE_PHRASES, 'self-improvement docs', errors);
+  requireTerms(
+    moduleHelp,
+    ['local Codex automation-capable BMAD self-improvement', 'continuation'],
+    'module-help.csv',
+    errors,
+    files.moduleHelp.relativePath,
+  );
+
+  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
+    validatePlaceholders(contents[key], files[key].label, files[key].relativePath, errors);
+  }
+  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint']) {
+    validateFenceBalance(contents[key], files[key].label, files[key].relativePath, errors);
+  }
+  for (const contract of REQUIRED_SEQUENCE_CONTRACTS) {
+    const definition = files[contract.sourceKey];
+    validateOrderedSequence(contents[contract.sourceKey], contract, definition.label, definition.relativePath, errors);
+  }
+  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
+    requireNoTerms(contents[key], FORBIDDEN_SELF_IMPROVE_PHRASES, files[key].label, errors, files[key].relativePath);
+  }
 
   const scripts = packageJson.scripts || {};
   if (scripts['validate:self-improve-invariants'] !== 'node tools/validate-self-improve-invariants.js') {
-    errors.push('package.json missing validate:self-improve-invariants script');
+    addError(errors, 'SI_PACKAGE_SCRIPT', 'package.json missing validate:self-improve-invariants script', {
+      file: files.packageJson.relativePath,
+      field: 'validate:self-improve-invariants',
+    });
   }
   if (!scripts.quality || !scripts.quality.includes('validate:self-improve-invariants')) {
-    errors.push('package.json quality script must include validate:self-improve-invariants');
+    addError(errors, 'SI_PACKAGE_SCRIPT', 'package.json quality script must include validate:self-improve-invariants', {
+      file: files.packageJson.relativePath,
+      field: 'quality',
+    });
   }
 
   return { ok: errors.length === 0, errors };

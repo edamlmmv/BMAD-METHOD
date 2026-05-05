@@ -157,6 +157,7 @@ Codex thread ids are not BMAD Workspace Session ids. Treat `SESSION_NOT_FOUND` f
 - Preservation commit:
 - Code commit:
 - Checkpoint commit:
+- Final HEAD SHA:
 
 ## Continuation Decision
 

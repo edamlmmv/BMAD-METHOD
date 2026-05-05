@@ -9,10 +9,24 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const { REQUIRED_INVARIANTS, validateSelfImproveInvariants } = require('../tools/validate-self-improve-invariants');
 
 const repoRoot = path.join(__dirname, '..');
+const validatorPath = path.join(repoRoot, 'tools', 'validate-self-improve-invariants.js');
+
+/*
+ * Contract source map:
+ *
+ * AC-SI-001 missing files: validator file loader, all contract files, temp fixture deletion.
+ * AC-SI-002 invariant identity: policy Non-Negotiable Invariants, duplicate id fixture.
+ * AC-SI-003 checkpoint contract: checkpoint template fields/enums, missing field fixture.
+ * AC-SI-004 template parseability: prompt/resume/checkpoint placeholders and fences, malformed template fixtures.
+ * AC-SI-005 ordered sequence: bmad-self-improve Required Sequence plus runbook/prompt ordering fixtures.
+ * AC-SI-006 retired phrases: self-improve contract file denylist, scoped fixture injection.
+ * AC-SI-007 package wiring: package scripts, quality path fixture mutations.
+ */
 
 function copyDir(source, target) {
   fs.mkdirSync(target, { recursive: true });
@@ -53,6 +67,10 @@ function replaceInFile(root, relativePath, search, replacement) {
   fs.writeFileSync(filePath, content.replaceAll(search, replacement));
 }
 
+function deleteFixtureFile(root, relativePath) {
+  fs.unlinkSync(path.join(root, relativePath));
+}
+
 function validate(root, extra = {}) {
   return validateSelfImproveInvariants({ projectRoot: root, ...extra });
 }
@@ -66,6 +84,24 @@ function assertInvalid(root, expectedFragment, extra = {}) {
   );
 }
 
+function assertInvalidWithAll(root, expectedFragments, extra = {}) {
+  const result = validate(root, extra);
+  assert.equal(result.ok, false, 'fixture should fail validation');
+  for (const expectedFragment of expectedFragments) {
+    assert(
+      result.errors.some((error) => error.includes(expectedFragment)),
+      `expected error containing "${expectedFragment}", got:\n${result.errors.join('\n')}`,
+    );
+  }
+}
+
+function runValidatorCli(root) {
+  return spawnSync(process.execPath, [validatorPath, '--project-root', root], {
+    encoding: 'utf8',
+    env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
+  });
+}
+
 function testCurrentRepoValidates() {
   const result = validate(repoRoot);
   assert.deepEqual(result, { ok: true, errors: [] });
@@ -75,6 +111,37 @@ function testRequiredInvariantIdsExist() {
   const ids = REQUIRED_INVARIANTS.map((item) => item.id);
   assert.equal(ids.length, 13);
   assert.deepEqual([...new Set(ids)], ids);
+}
+
+function testMissingRequiredFileReportsStableError() {
+  const root = makeFixture();
+  deleteFixtureFile(root, 'docs/workspace/templates/self-improvement-codex-resume-prompt.md');
+  assertInvalidWithAll(root, [
+    'SI_FILE_MISSING',
+    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
+    'missing required file',
+  ]);
+}
+
+function testCliMissingRequiredFileUsesInvariantPrefix() {
+  const root = makeFixture();
+  deleteFixtureFile(root, 'docs/workspace/templates/self-improvement-codex-resume-prompt.md');
+  const result = runValidatorCli(root);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_FILE_MISSING'), output);
+  assert(output.includes('docs/workspace/templates/self-improvement-codex-resume-prompt.md'), output);
+}
+
+function testDuplicatePolicyInvariantIdsFail() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/self-improvement-automation-policy.md',
+    '### SI-AUTO-007: Iteration Caps',
+    '### SI-AUTO-007: Iteration Caps\n\n### SI-AUTO-007: Duplicate Iteration Caps',
+  );
+  assertInvalidWithAll(root, ['SI_ID_DUPLICATE', 'SI-AUTO-007']);
 }
 
 function testNeverMainInvariantCannotBeRemoved() {
@@ -180,6 +247,45 @@ function testSessionIdentityClassifiesCodexThreads() {
   );
 }
 
+function testCheckpointRequiresFinalHeadSha() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', '- Final HEAD SHA:', '- Final SHA:');
+  assertInvalidWithAll(root, ['SI_CHECKPOINT_CONTRACT', 'Final HEAD SHA']);
+}
+
+function testPromptRejectsUnknownPlaceholders() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-prompt.md',
+    '[PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]',
+    '[PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]\n{bad-placeholder}',
+  );
+  assertInvalidWithAll(root, ['SI_PLACEHOLDER_UNKNOWN', '{bad-placeholder}']);
+}
+
+function testResumePromptRejectsUnbalancedMarkdownFences() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
+    'remaining risks\n```',
+    'remaining risks\n```\n```',
+  );
+  assertInvalidWithAll(root, ['SI_MARKDOWN_FENCE_UNBALANCED', 'self-improvement-codex-resume-prompt.md']);
+}
+
+function testRequiredSequenceOrderCannotRegress() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-prompt.md',
+    '7. Before branch creation',
+    '7. Create or switch to the fresh branch before preflight.\n8. Before branch creation',
+  );
+  assertInvalidWithAll(root, ['SI_SEQUENCE_ORDER', 'fresh branch']);
+}
+
 function testContinuationRequiresAllActivationGates() {
   const root = makeFixture();
   replaceInFile(
@@ -243,10 +349,35 @@ function testRetiredManualOnlyPhrasesStayRemoved() {
   assertInvalid(root, 'contains retired manual-only phrase: Missing automation is expected');
 }
 
+function testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
+    '# Self-Improvement Resume Prompt',
+    '# Self-Improvement Resume Prompt\n\nMissing automation is expected.',
+  );
+  assertInvalidWithAll(root, ['SI_RETIRED_PHRASE', 'self-improvement-codex-resume-prompt.md', 'Missing automation is expected']);
+}
+
+function testPackageWiringUsesStableErrorCode() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'package.json',
+    '"validate:self-improve-invariants": "node tools/validate-self-improve-invariants.js"',
+    '"validate:self-improve-invariants": "node tools/other-validator.js"',
+  );
+  assertInvalidWithAll(root, ['SI_PACKAGE_SCRIPT', 'validate:self-improve-invariants']);
+}
+
 function run() {
   const tests = [
     testCurrentRepoValidates,
     testRequiredInvariantIdsExist,
+    testMissingRequiredFileReportsStableError,
+    testCliMissingRequiredFileUsesInvariantPrefix,
+    testDuplicatePolicyInvariantIdsFail,
     testNeverMainInvariantCannotBeRemoved,
     testNeverPushTermCannotBeRemoved,
     testMaxFixAttemptsCannotBeWeakened,
@@ -259,6 +390,10 @@ function run() {
     testRefreshUnknownCannotAllowContinuation,
     testActiveHashMismatchBlocksContinuation,
     testSessionIdentityClassifiesCodexThreads,
+    testCheckpointRequiresFinalHeadSha,
+    testPromptRejectsUnknownPlaceholders,
+    testResumePromptRejectsUnbalancedMarkdownFences,
+    testRequiredSequenceOrderCannotRegress,
     testContinuationRequiresAllActivationGates,
     testContinuationGateCannotBeRemoved,
     testScheduleAwarenessCannotBeRemoved,
@@ -267,6 +402,8 @@ function run() {
     testSelfEditContractRequiresSkillTerms,
     testPolicyBaselineBlocksRemovedIds,
     testRetiredManualOnlyPhrasesStayRemoved,
+    testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles,
+    testPackageWiringUsesStableErrorCode,
   ];
 
   for (const test of tests) {

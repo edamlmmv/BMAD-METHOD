@@ -182,3 +182,10 @@ _bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md
 ```
 
 Each checkpoint records objective, question, mode and inputs, effective automation schedule/config, base SHA, baseline policy hash, branch, dirty preservation commit, Party Mode decision and critique, policy consensus evidence, plan status, changed files, tests run, pass/fail output, full gate output, compile/install evidence, refresh evidence, Activation State, Resume Contract, Session Identity, local commit SHAs, lock result, continuation decision, resume command, unresolved risks, and next operator decision.
+
+## Contract Maintenance
+
+When a self-improvement policy, prompt, resume prompt, checkpoint template,
+skill, or module-help contract changes, update
+`tools/validate-self-improve-invariants.js` and the matching fixture coverage in
+`test/test-self-improve-invariants.js` in the same change.
