@@ -4,6 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateWorkPacket } = require('./contracts');
+const { EVIDENCE_GATE_FAILED, evaluateEvidenceGates, normalizeEvidenceRefs } = require('./evidence-gates');
 const { readExecutorContractStatus } = require('./executor-contract');
 const { enrichChecks } = require('./next-action');
 const { readResultLedger } = require('./result');
@@ -71,6 +72,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     artifacts,
     intake: { state: 'missing', repos: [] },
     setup: { state: 'missing', entries: {} },
+    evidenceGates: { state: 'not-applicable', gates: [] },
     routing: null,
     executorContract: { state: 'missing', present: false, valid: false },
     results: { state: 'none', count: 0, latest: null, entries: [] },
@@ -220,6 +222,41 @@ function readPacketStatus({ sessionRoot, status, checks }) {
   status.setup = inspectSessionSetup(packet.sessionSetup, checks);
   status.executorContract = readExecutorContractStatus({ sessionRoot, packet, checks });
   status.artifacts.executorContract = artifactStatus(sessionRoot, packet.executorContractRef);
+  status.evidenceGates = inspectEvidenceGates({ packet, sessionRoot, checks });
+}
+
+function inspectEvidenceGates({ packet, sessionRoot, checks }) {
+  if (!Array.isArray(packet.evidenceGates) || packet.evidenceGates.length === 0) {
+    return { state: 'not-applicable', gates: [] };
+  }
+
+  const result = evaluateEvidenceGates({ packet, sessionRoot });
+  const refs = normalizeEvidenceRefs(packet);
+  for (const gate of result.gates) {
+    for (const failure of gate.failures || []) {
+      const evidenceRef = refs.find((ref) => ref.id === failure.evidenceRefId);
+      checks.push(
+        check(
+          EVIDENCE_GATE_FAILED,
+          gate.required ? 'error' : 'warning',
+          `${failure.gateId} failed for ${failure.capability}: ${failure.reason}`,
+          evidenceRef ? path.join(sessionRoot, evidenceRef.artifactRef) : path.join(sessionRoot, 'packets/bmad-work-packet.json'),
+        ),
+      );
+    }
+  }
+  return {
+    state: result.state,
+    gates: result.gates.map((gate) => ({
+      id: gate.id,
+      required: gate.required,
+      requiredCapabilityIds: gate.requiredCapabilityIds,
+      freshnessPolicy: gate.freshnessPolicy,
+      state: gate.state,
+      message: gate.message,
+      failures: gate.failures,
+    })),
+  };
 }
 
 function inspectSessionSetup(sessionSetup, checks) {

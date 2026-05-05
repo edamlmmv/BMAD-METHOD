@@ -5,10 +5,19 @@ const { execFileSync } = require('node:child_process');
 const { parse } = require('csv-parse/sync');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
 const { validateCapabilityContract, validateWorkPacket } = require('./contracts');
+const {
+  EVIDENCE_GATE_FAILED,
+  PACKET_VERSION_WITH_EVIDENCE_GATES,
+  REPO_INTAKE_GRAPH_CAPABILITY,
+  evaluateEvidenceGates,
+  normalizeEvidenceRefs,
+} = require('./evidence-gates');
 const { EXECUTOR_CONTRACT_REF, buildExecutorContract, validateExecutorContract } = require('./executor-contract');
 const { routeWorkspace } = require('./routing');
 
 const GRAPH_EVIDENCE_REF = 'intake/graph.json';
+const REPO_INTAKE_EVIDENCE_GATE_ID = 'repo-intake-graph';
+const REPO_INTAKE_EVIDENCE_REF_ID = 'repo-intake-graph-evidence';
 const GRAPHIFY_VALIDATION_COMMAND = 'npm run validate:graphify-manifests';
 const GRAPH_EVIDENCE_GUIDANCE = Object.freeze({
   bmad: 'Graph evidence is advisory Workspace context for BMAD planning; source files remain authority.',
@@ -130,14 +139,17 @@ function buildWorkPacket({
   const grants = readJson(path.join(sessionRoot, instance.grantsRef));
   const capabilityContract = createCapabilityContract(instance.workspaceBasePath);
   assertValid('Capability Contract', validateCapabilityContract(capabilityContract));
+  const evidenceRefs = buildEvidenceRefs({ sessionRoot, instance });
+  const evidenceGates = buildEvidenceGates();
 
   const packet = {
     kind: 'bmad-work-packet',
-    packetVersion: 4,
+    packetVersion: PACKET_VERSION_WITH_EVIDENCE_GATES,
     sessionId,
     bmadWorkflow: routing.selectedWorkflow,
     goal,
-    repoIntakeRefs,
+    evidenceGates,
+    evidenceRefs,
     constraints: ['BMAD is kernel/truth', 'Do not mutate Workspace Base', 'Use Repo Intake evidence before executor prompt'],
     grants: [instance.grantsRef],
     acceptanceCriteria: [
@@ -154,6 +166,7 @@ function buildWorkPacket({
   };
 
   assertValid('BMAD Work Packet', validateWorkPacket(packet));
+  certifyEvidenceGates({ packet, sessionRoot });
   const renderedPrompt = renderPrompt(packet);
   const executorContract = buildExecutorContract({
     sessionId,
@@ -198,6 +211,65 @@ function buildWorkPacket({
     executorContractPath,
     repoIntakePath: readiness.repoIntakePath,
   };
+}
+
+function buildEvidenceGates() {
+  return [
+    {
+      id: REPO_INTAKE_EVIDENCE_GATE_ID,
+      requiredCapabilityIds: [REPO_INTAKE_GRAPH_CAPABILITY],
+      required: true,
+      evidenceRefIds: [REPO_INTAKE_EVIDENCE_REF_ID],
+      freshnessPolicy: 'mtime',
+      message: 'Workspace packet requires fresh repo-intake graph evidence from checked-in graph artifacts.',
+    },
+  ];
+}
+
+function buildEvidenceRefs({ sessionRoot, instance }) {
+  const graphEvidencePath = path.join(sessionRoot, GRAPH_EVIDENCE_REF);
+  const graphEvidence = readOptionalJson(graphEvidencePath);
+  const repoIntakeSource = buildSourceFileRef(sessionRoot, instance.repoIntakeRef || 'intake/repo-intake.json');
+
+  return [
+    {
+      id: REPO_INTAKE_EVIDENCE_REF_ID,
+      capability: REPO_INTAKE_GRAPH_CAPABILITY,
+      artifactRef: GRAPH_EVIDENCE_REF,
+      sha256: fs.existsSync(graphEvidencePath) && fs.statSync(graphEvidencePath).isFile() ? sha256File(graphEvidencePath) : '0'.repeat(64),
+      generatedAt: typeof graphEvidence?.generatedAt === 'string' ? graphEvidence.generatedAt : new Date().toISOString(),
+      sourceFiles: [repoIntakeSource],
+    },
+  ];
+}
+
+function buildSourceFileRef(sessionRoot, ref) {
+  const sourcePath = path.join(sessionRoot, ref);
+  const source = { path: ref };
+  if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isFile()) {
+    source.sha256 = sha256File(sourcePath);
+  }
+  return source;
+}
+
+function readOptionalJson(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  try {
+    return readJson(filePath);
+  } catch {
+    return null;
+  }
+}
+
+function certifyEvidenceGates({ packet, sessionRoot }) {
+  const result = evaluateEvidenceGates({ packet, sessionRoot });
+  if (result.failures.length === 0) {
+    return result;
+  }
+  const payload = result.failures[0];
+  throw new Error(`${EVIDENCE_GATE_FAILED}: ${JSON.stringify(payload)}`);
 }
 
 function collectArtifactRefs(instance, sessionSetup) {
@@ -402,6 +474,7 @@ function assertValid(label, result) {
 }
 
 function renderPrompt(packet) {
+  const evidenceRefs = normalizeEvidenceRefs(packet);
   return `# BMAD Work Packet Execution Prompt
 
 Source of truth: \`packets/bmad-work-packet.json\`
@@ -419,7 +492,10 @@ ${packet.bmadWorkflow}
 - nextManualStep: ${packet.routing.nextManualStep}
 
 ## Evidence
-${packet.repoIntakeRefs.map((reference) => `- ${reference}`).join('\n')}
+${evidenceRefs.map((reference) => `- ${reference.artifactRef} (${reference.capability})`).join('\n')}
+
+## Evidence Gates
+${packet.evidenceGates.map((gate) => `- ${gate.id}: ${gate.message}`).join('\n')}
 
 ## Graph Evidence
 - ${GRAPH_EVIDENCE_REF}

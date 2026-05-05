@@ -66,6 +66,9 @@ function nextManualActionForCode(code, context = {}) {
     case 'EXECUTOR_CONTRACT_REF_MISSING': {
       return `Rebuild the BMAD Work Packet with bmad workspace packet ${sessionId}${runtime}.`;
     }
+    case 'EVIDENCE_GATE_FAILED': {
+      return `Refresh checked-in graph evidence through Repo Intake, then rerun bmad workspace packet ${sessionId}${runtime}.`;
+    }
     case 'RESULT_INVALID':
     case 'RESULT_INVALID_JSON':
     case 'RESULT_SECRET_DETECTED': {

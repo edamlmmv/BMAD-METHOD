@@ -1,9 +1,10 @@
 const { validateRoutingDecision } = require('./routing');
+const { PACKET_VERSION_WITH_EVIDENCE_GATES, VALID_FRESHNESS_POLICIES } = require('./evidence-gates');
 
 const ENGINE_LIKE_GROUPS = new Set(['runtime.session']);
 const ENGINE_LIKE_INTERFACES = new Set(['scheduler', 'planner', 'ledger', 'memory-graph', 'review-engine', 'grant-engine']);
 
-const REQUIRED_PACKET_FIELDS = [
+const REQUIRED_PACKET_FIELDS_V4 = [
   'kind',
   'packetVersion',
   'sessionId',
@@ -20,7 +21,17 @@ const REQUIRED_PACKET_FIELDS = [
   'sessionSetup',
 ];
 
-const ALLOWED_PACKET_FIELDS = new Set([...REQUIRED_PACKET_FIELDS, 'reviewPlan']);
+const REQUIRED_PACKET_FIELDS_V5 = [
+  ...REQUIRED_PACKET_FIELDS_V4.filter((field) => field !== 'repoIntakeRefs'),
+  'evidenceGates',
+  'evidenceRefs',
+];
+
+const ALLOWED_PACKET_FIELDS_V4 = new Set([...REQUIRED_PACKET_FIELDS_V4, 'reviewPlan']);
+const ALLOWED_PACKET_FIELDS_V5 = new Set([...REQUIRED_PACKET_FIELDS_V5, 'repoIntakeRefs', 'reviewPlan']);
+const ALLOWED_EVIDENCE_GATE_FIELDS = new Set(['id', 'requiredCapabilityIds', 'required', 'evidenceRefIds', 'freshnessPolicy', 'message']);
+const ALLOWED_EVIDENCE_REF_FIELDS = new Set(['id', 'capability', 'artifactRef', 'sha256', 'generatedAt', 'sourceFiles']);
+const ALLOWED_EVIDENCE_SOURCE_FIELDS = new Set(['path', 'sha256']);
 
 const REQUIRED_CAPABILITY_FIELDS = [
   'id',
@@ -43,9 +54,13 @@ function validateWorkPacket(packet) {
     return invalid('packet must be an object');
   }
 
-  validateAllowedFields(packet, ALLOWED_PACKET_FIELDS, 'packet', errors);
+  const packetVersion = packet.packetVersion;
+  const requiredPacketFields = packetVersion === PACKET_VERSION_WITH_EVIDENCE_GATES ? REQUIRED_PACKET_FIELDS_V5 : REQUIRED_PACKET_FIELDS_V4;
+  const allowedPacketFields = packetVersion === PACKET_VERSION_WITH_EVIDENCE_GATES ? ALLOWED_PACKET_FIELDS_V5 : ALLOWED_PACKET_FIELDS_V4;
 
-  for (const field of REQUIRED_PACKET_FIELDS) {
+  validateAllowedFields(packet, allowedPacketFields, 'packet', errors);
+
+  for (const field of requiredPacketFields) {
     if (!(field in packet)) {
       errors.push(`packet.${field} is required`);
     }
@@ -54,13 +69,15 @@ function validateWorkPacket(packet) {
   if (packet.kind !== 'bmad-work-packet') {
     errors.push('packet.kind must be bmad-work-packet');
   }
-  if (packet.packetVersion !== 4) {
-    errors.push('packet.packetVersion must be 4');
+  if (![4, PACKET_VERSION_WITH_EVIDENCE_GATES].includes(packet.packetVersion)) {
+    errors.push(`packet.packetVersion must be 4 or ${PACKET_VERSION_WITH_EVIDENCE_GATES}`);
   }
   requireNonEmptyString(packet, 'sessionId', errors);
   requireNonEmptyString(packet, 'bmadWorkflow', errors);
   requireNonEmptyString(packet, 'goal', errors);
-  requireNonEmptyArray(packet, 'repoIntakeRefs', errors);
+  if ('repoIntakeRefs' in packet) {
+    requireNonEmptyArray(packet, 'repoIntakeRefs', errors);
+  }
   requireNonEmptyArray(packet, 'constraints', errors);
   requireNonEmptyArray(packet, 'grants', errors);
   requireNonEmptyArray(packet, 'acceptanceCriteria', errors);
@@ -80,6 +97,9 @@ function validateWorkPacket(packet) {
     errors.push('packet.bmadWorkflow must equal packet.routing.selectedWorkflow');
   }
   validateSessionSetup(packet.sessionSetup, errors);
+  if (packetVersion === PACKET_VERSION_WITH_EVIDENCE_GATES) {
+    validateEvidenceGateContract(packet, errors);
+  }
 
   return result(errors);
 }
@@ -89,6 +109,139 @@ function validateAllowedFields(object, allowedFields, label, errors) {
     if (!allowedFields.has(field)) {
       errors.push(`${label}.${field} is not allowed by current Workspace contract`);
     }
+  }
+}
+
+function validateEvidenceGateContract(packet, errors) {
+  const refs = packet.evidenceRefs;
+  const gates = packet.evidenceGates;
+
+  if (!Array.isArray(gates) || gates.length === 0) {
+    errors.push('packet.evidenceGates must be a non-empty array');
+  }
+  if (!Array.isArray(refs) || refs.length === 0) {
+    errors.push('packet.evidenceRefs must be a non-empty array');
+  }
+
+  if (!Array.isArray(gates) || !Array.isArray(refs)) {
+    return;
+  }
+
+  const evidenceRefIds = new Set();
+  for (const [index, ref] of refs.entries()) {
+    validateEvidenceRef(ref, index, errors);
+    if (isObject(ref) && typeof ref.id === 'string') {
+      if (evidenceRefIds.has(ref.id)) {
+        errors.push(`packet.evidenceRefs[${index}].id must be unique`);
+      }
+      evidenceRefIds.add(ref.id);
+    }
+  }
+
+  for (const [index, gate] of gates.entries()) {
+    validateEvidenceGate(gate, index, refs, evidenceRefIds, errors);
+  }
+
+  if ('repoIntakeRefs' in packet) {
+    validateEvidenceAliasCompatibility(packet, errors);
+  }
+}
+
+function validateEvidenceGate(gate, index, refs, evidenceRefIds, errors) {
+  const label = `packet.evidenceGates[${index}]`;
+  if (!isObject(gate)) {
+    errors.push(`${label} must be an object`);
+    return;
+  }
+
+  validateAllowedFields(gate, ALLOWED_EVIDENCE_GATE_FIELDS, label, errors);
+  for (const field of ['id', 'message']) {
+    requireNonEmptyString(gate, field, errors, label);
+  }
+  requireNonEmptyArray(gate, 'requiredCapabilityIds', errors, label);
+  if (typeof gate.required !== 'boolean') {
+    errors.push(`${label}.required must be boolean`);
+  }
+  if (!VALID_FRESHNESS_POLICIES.has(gate.freshnessPolicy)) {
+    errors.push(`${label}.freshnessPolicy must be source-hash, mtime, or none`);
+  }
+  if ('evidenceRefIds' in gate) {
+    requireNonEmptyArray(gate, 'evidenceRefIds', errors, label);
+    if (Array.isArray(gate.evidenceRefIds)) {
+      for (const [refIndex, refId] of gate.evidenceRefIds.entries()) {
+        if (typeof refId !== 'string' || refId.trim() === '') {
+          errors.push(`${label}.evidenceRefIds[${refIndex}] must be a non-empty string`);
+          continue;
+        }
+        if (!evidenceRefIds.has(refId)) {
+          errors.push(`${label}.evidenceRefIds[${refIndex}] must reference packet.evidenceRefs.id`);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(gate.requiredCapabilityIds)) {
+    for (const [capabilityIndex, capability] of gate.requiredCapabilityIds.entries()) {
+      if (typeof capability !== 'string' || capability.trim() === '') {
+        errors.push(`${label}.requiredCapabilityIds[${capabilityIndex}] must be a non-empty string`);
+        continue;
+      }
+      const matchingRef = refs.some(
+        (ref) => ref.capability === capability && (!Array.isArray(gate.evidenceRefIds) || gate.evidenceRefIds.includes(ref.id)),
+      );
+      if (!matchingRef) {
+        errors.push(`${label}.requiredCapabilityIds[${capabilityIndex}] must have a matching packet.evidenceRefs.capability`);
+      }
+    }
+  }
+}
+
+function validateEvidenceRef(ref, index, errors) {
+  const label = `packet.evidenceRefs[${index}]`;
+  if (!isObject(ref)) {
+    errors.push(`${label} must be an object`);
+    return;
+  }
+
+  validateAllowedFields(ref, ALLOWED_EVIDENCE_REF_FIELDS, label, errors);
+  for (const field of ['id', 'capability', 'artifactRef', 'sha256', 'generatedAt']) {
+    requireNonEmptyString(ref, field, errors, label);
+  }
+  if (typeof ref.sha256 === 'string' && !/^[a-f0-9]{64}$/i.test(ref.sha256)) {
+    errors.push(`${label}.sha256 must be a 64-character hex string`);
+  }
+  if (typeof ref.generatedAt === 'string' && Number.isNaN(Date.parse(ref.generatedAt))) {
+    errors.push(`${label}.generatedAt must be an ISO timestamp`);
+  }
+  requireNonEmptyArray(ref, 'sourceFiles', errors, label);
+  if (Array.isArray(ref.sourceFiles)) {
+    for (const [sourceIndex, source] of ref.sourceFiles.entries()) {
+      validateEvidenceSource(source, sourceIndex, errors, label);
+    }
+  }
+}
+
+function validateEvidenceSource(source, index, errors, evidenceRefLabel) {
+  const label = `${evidenceRefLabel}.sourceFiles[${index}]`;
+  if (!isObject(source)) {
+    errors.push(`${label} must be an object`);
+    return;
+  }
+  validateAllowedFields(source, ALLOWED_EVIDENCE_SOURCE_FIELDS, label, errors);
+  requireNonEmptyString(source, 'path', errors, label);
+  if ('sha256' in source && (typeof source.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(source.sha256))) {
+    errors.push(`${label}.sha256 must be a 64-character hex string`);
+  }
+}
+
+function validateEvidenceAliasCompatibility(packet, errors) {
+  if (!Array.isArray(packet.repoIntakeRefs) || !Array.isArray(packet.evidenceRefs)) {
+    return;
+  }
+  const legacyRefs = [...packet.repoIntakeRefs].sort();
+  const evidenceArtifactRefs = [...new Set(packet.evidenceRefs.map((ref) => ref.artifactRef).filter(Boolean))].sort();
+  if (JSON.stringify(legacyRefs) !== JSON.stringify(evidenceArtifactRefs)) {
+    errors.push('packet.repoIntakeRefs and packet.evidenceRefs diverge');
   }
 }
 

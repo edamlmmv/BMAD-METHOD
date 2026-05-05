@@ -162,11 +162,30 @@ artifacts retained by policy.
 ```json
 {
   "kind": "bmad-work-packet",
-  "packetVersion": 4,
+  "packetVersion": 5,
   "sessionId": "session-2026-05-04-example",
   "bmadWorkflow": "bmad-quick-dev",
   "goal": "Fix the reported bug",
-  "repoIntakeRefs": ["intake/repo-intake.json"],
+  "evidenceGates": [
+    {
+      "id": "repo-intake-graph",
+      "requiredCapabilityIds": ["evidence.graph.repo-intake"],
+      "required": true,
+      "evidenceRefIds": ["repo-intake-graph-evidence"],
+      "freshnessPolicy": "mtime",
+      "message": "Workspace packet requires fresh repo-intake graph evidence from checked-in graph artifacts."
+    }
+  ],
+  "evidenceRefs": [
+    {
+      "id": "repo-intake-graph-evidence",
+      "capability": "evidence.graph.repo-intake",
+      "artifactRef": "intake/graph.json",
+      "sha256": "<sha256>",
+      "generatedAt": "2026-05-04T00:00:00.000Z",
+      "sourceFiles": [{ "path": "intake/repo-intake.json", "sha256": "<sha256>" }]
+    }
+  ],
   "constraints": ["Do not mutate BMAD Workspace"],
   "grants": ["grants.json"],
   "acceptanceCriteria": ["Tests pass", "Worktree Review ready"],

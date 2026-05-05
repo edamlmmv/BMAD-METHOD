@@ -298,6 +298,7 @@ function runTests() {
   fs.writeFileSync(path.join(setupDocsDir, 'setup-grill-decisions.md'), 'Decision log.\n');
   fs.writeFileSync(path.join(setupDocsDir, 'setup-tdd-plan.md'), '# TDD Order\n');
   fs.writeFileSync(path.join(baseRepo.path, 'UBIQUITOUS_LANGUAGE.md'), '# Ubiquitous Language\n');
+  addMinimalGraphArtifact(baseRepo);
 
   let launchOutput;
   let multiRepoOutput;
@@ -1103,26 +1104,104 @@ function runTests() {
       invalidWorkflowPacketText,
     );
 
-    const packet = runCli(
-      [
-        'workspace',
-        'packet',
-        launchOutput.sessionId,
-        '--runtime-root',
-        runtimeRoot,
-        '--zoom-out-ref',
-        'docs/workspace/setup-zoom-out.md',
-        '--ubiquitous-language-ref',
-        'UBIQUITOUS_LANGUAGE.md',
-        '--grill-decisions-ref',
-        'docs/workspace/setup-grill-decisions.md',
-        '--tdd-plan-ref',
-        'docs/workspace/setup-tdd-plan.md#tdd-order',
-      ],
-      {
-        cwd: baseRepo.path,
-      },
+    const completePacketArgs = [
+      'workspace',
+      'packet',
+      launchOutput.sessionId,
+      '--runtime-root',
+      runtimeRoot,
+      '--zoom-out-ref',
+      'docs/workspace/setup-zoom-out.md',
+      '--ubiquitous-language-ref',
+      'UBIQUITOUS_LANGUAGE.md',
+      '--grill-decisions-ref',
+      'docs/workspace/setup-grill-decisions.md',
+      '--tdd-plan-ref',
+      'docs/workspace/setup-tdd-plan.md#tdd-order',
+    ];
+    const graphEvidencePath = path.join(launchOutput.sessionRoot, 'intake', 'graph.json');
+
+    fs.rmSync(graphEvidencePath);
+    const missingGraphPacket = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
+    const missingGraphPacketText = `${missingGraphPacket.stdout}\n${missingGraphPacket.stderr}`;
+    assert(missingGraphPacket.status !== 0, 'packet rejects missing required graph evidence', missingGraphPacketText);
+    assert(
+      missingGraphPacketText.includes('EVIDENCE_GATE_FAILED'),
+      'missing graph evidence names EVIDENCE_GATE_FAILED',
+      missingGraphPacketText,
     );
+    assert(missingGraphPacketText.includes('"reason":"missing"'), 'missing graph evidence reports missing reason', missingGraphPacketText);
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with missing graph evidence does not write partial packet',
+      missingGraphPacketText,
+    );
+
+    const restoreAfterMissingGraph = runCli(['workspace', 'intake', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    assert(
+      restoreAfterMissingGraph.status === 0,
+      're-intake restores missing graph evidence',
+      `${restoreAfterMissingGraph.stdout}\n${restoreAfterMissingGraph.stderr}`,
+    );
+
+    fs.writeFileSync(graphEvidencePath, `${JSON.stringify({ kind: 'not-graph-evidence', schemaVersion: 1 }, null, 2)}\n`);
+    const invalidGraphPacket = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
+    const invalidGraphPacketText = `${invalidGraphPacket.stdout}\n${invalidGraphPacket.stderr}`;
+    assert(invalidGraphPacket.status !== 0, 'packet rejects invalid required graph evidence', invalidGraphPacketText);
+    assert(
+      invalidGraphPacketText.includes('EVIDENCE_GATE_FAILED'),
+      'invalid graph evidence names EVIDENCE_GATE_FAILED',
+      invalidGraphPacketText,
+    );
+    assert(invalidGraphPacketText.includes('"reason":"invalid"'), 'invalid graph evidence reports invalid reason', invalidGraphPacketText);
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with invalid graph evidence does not write partial packet',
+      invalidGraphPacketText,
+    );
+
+    const restoreAfterInvalidGraph = runCli(['workspace', 'intake', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    assert(
+      restoreAfterInvalidGraph.status === 0,
+      're-intake restores invalid graph evidence',
+      `${restoreAfterInvalidGraph.stdout}\n${restoreAfterInvalidGraph.stderr}`,
+    );
+
+    const future = new Date(Date.now() + 10_000);
+    fs.utimesSync(path.join(launchOutput.sessionRoot, 'intake', 'repo-intake.json'), future, future);
+    const staleGraphPacket = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
+    const staleGraphPacketText = `${staleGraphPacket.stdout}\n${staleGraphPacket.stderr}`;
+    assert(staleGraphPacket.status !== 0, 'packet rejects stale required graph evidence', staleGraphPacketText);
+    assert(staleGraphPacketText.includes('EVIDENCE_GATE_FAILED'), 'stale graph evidence names EVIDENCE_GATE_FAILED', staleGraphPacketText);
+    assert(staleGraphPacketText.includes('"reason":"stale"'), 'stale graph evidence reports stale reason', staleGraphPacketText);
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with stale graph evidence does not write partial packet',
+      staleGraphPacketText,
+    );
+
+    const restoreAfterStaleGraph = runCli(['workspace', 'intake', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    assert(
+      restoreAfterStaleGraph.status === 0,
+      're-intake restores stale graph evidence',
+      `${restoreAfterStaleGraph.stdout}\n${restoreAfterStaleGraph.stderr}`,
+    );
+
+    const packet = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
     const packetText = `${packet.stdout}\n${packet.stderr}`;
     assert(packet.status === 0, 'packet with fresh intake exits zero', packetText);
     const packetOutput = JSON.parse(packet.stdout);
@@ -1134,7 +1213,7 @@ function runTests() {
 
     const sessionPacket = readJson(packetOutput.packetPath);
     assert(sessionPacket.kind === 'bmad-work-packet', 'packet records Work Packet kind', JSON.stringify(sessionPacket, null, 2));
-    assert(sessionPacket.packetVersion === 4, 'packet records packetVersion 4', JSON.stringify(sessionPacket, null, 2));
+    assert(sessionPacket.packetVersion === 5, 'packet records packetVersion 5', JSON.stringify(sessionPacket, null, 2));
     assert(sessionPacket.sessionId === launchOutput.sessionId, 'packet records sessionId', JSON.stringify(sessionPacket, null, 2));
     assertSessionOutput(sessionPacket, 'BMAD Work Packet');
     assert(sessionPacket.routing.routingSchemaVersion === 1, 'packet records routing schema', JSON.stringify(sessionPacket, null, 2));
@@ -1164,9 +1243,22 @@ function runTests() {
       'packet records zoom-out setup checksum',
       JSON.stringify(sessionPacket, null, 2),
     );
+    assert(!('repoIntakeRefs' in sessionPacket), 'v5 packet omits legacy repoIntakeRefs', JSON.stringify(sessionPacket, null, 2));
+    assert(Array.isArray(sessionPacket.evidenceGates), 'v5 packet records evidenceGates', JSON.stringify(sessionPacket, null, 2));
+    assert(Array.isArray(sessionPacket.evidenceRefs), 'v5 packet records evidenceRefs', JSON.stringify(sessionPacket, null, 2));
     assert(
-      sessionPacket.repoIntakeRefs.includes('intake/repo-intake.json'),
-      'packet references repo intake',
+      sessionPacket.evidenceGates.some(
+        (gate) =>
+          gate.required === true && gate.requiredCapabilityIds.includes('evidence.graph.repo-intake') && gate.freshnessPolicy === 'mtime',
+      ),
+      'v5 packet declares required repo-intake graph evidence gate',
+      JSON.stringify(sessionPacket, null, 2),
+    );
+    assert(
+      sessionPacket.evidenceRefs.some(
+        (ref) => ref.capability === 'evidence.graph.repo-intake' && ref.artifactRef === 'intake/graph.json' && ref.sha256,
+      ),
+      'v5 packet references repo-intake graph evidence',
       JSON.stringify(sessionPacket, null, 2),
     );
     assert(
@@ -1307,6 +1399,22 @@ function runTests() {
       renderedPrompt,
     );
 
+    const packetStatusBefore = fingerprintTree(launchOutput.sessionRoot);
+    const packetStatus = runCli(['workspace', 'status', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const packetStatusAfter = fingerprintTree(launchOutput.sessionRoot);
+    const packetStatusText = `${packetStatus.stdout}\n${packetStatus.stderr}`;
+    assert(packetStatus.status === 0, 'status after packet exits zero', packetStatusText);
+    assert(packetStatusBefore === packetStatusAfter, 'status after packet is read-only', packetStatusText);
+    const packetStatusOutput = JSON.parse(packetStatus.stdout);
+    assert(packetStatusOutput.evidenceGates.state === 'passed', 'status summarizes passed evidence gates', packetStatusText);
+    assert(
+      packetStatusOutput.evidenceGates.gates.some((gate) => gate.id === 'repo-intake-graph' && gate.state === 'passed'),
+      'status reports repo-intake graph evidence gate details',
+      packetStatusText,
+    );
+
     const packetEvidenceBefore = fingerprintTree(launchOutput.sessionRoot);
     const packetEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
@@ -1319,6 +1427,12 @@ function runTests() {
     assert(
       packetEvidenceOutput.artifacts.some((item) => item.kind === 'work-packet' && item.validationState === 'valid' && item.sha256),
       'evidence records packet checksum',
+      packetEvidenceText,
+    );
+    assert(packetEvidenceOutput.evidenceGates.state === 'passed', 'evidence summarizes passed evidence gates', packetEvidenceText);
+    assert(
+      packetEvidenceOutput.evidenceGates.gates.some((gate) => gate.id === 'repo-intake-graph' && gate.state === 'passed'),
+      'evidence reports repo-intake graph evidence gate details',
       packetEvidenceText,
     );
     assert(
@@ -2422,6 +2536,7 @@ function runTests() {
     );
     fs.rmSync(secretStoredCloseoutPath);
 
+    addMinimalGraphArtifact(secondTargetRepo);
     const noResultIntake = runCli(['workspace', 'intake', multiRepoOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });

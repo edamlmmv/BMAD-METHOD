@@ -21,6 +21,7 @@ function readEvidenceIndex({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, gene
     sessionRoot: status.sessionRoot,
     generatedAt,
     state: deriveEvidenceState(checks),
+    evidenceGates: status.evidenceGates || { state: 'not-applicable', gates: [] },
     artifacts,
     checks,
   };

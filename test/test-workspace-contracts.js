@@ -8,8 +8,10 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { createEvidenceGateFailure, evaluateEvidenceGates } = require('../tools/workspace/evidence-gates');
 const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
 const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
 const { buildSessionSetup } = require('../tools/workspace/packet');
@@ -89,6 +91,41 @@ function validWorkPacket() {
     },
     reviewPlan: 'Run BMAD Code Review after execution',
   };
+}
+
+function validEvidenceRef() {
+  return {
+    id: 'repo-intake-graph-evidence',
+    capability: 'evidence.graph.repo-intake',
+    artifactRef: 'intake/graph.json',
+    sha256: 'a'.repeat(64),
+    generatedAt: '2026-05-04T00:00:00.000Z',
+    sourceFiles: [{ path: 'intake/repo-intake.json', sha256: 'b'.repeat(64) }],
+  };
+}
+
+function validEvidenceGate() {
+  return {
+    id: 'repo-intake-graph',
+    requiredCapabilityIds: ['evidence.graph.repo-intake'],
+    required: true,
+    evidenceRefIds: ['repo-intake-graph-evidence'],
+    freshnessPolicy: 'none',
+    message: 'Workspace packet requires repo-intake graph evidence.',
+  };
+}
+
+function validWorkPacketV5() {
+  const packet = validWorkPacket();
+  delete packet.repoIntakeRefs;
+  packet.packetVersion = 5;
+  packet.evidenceGates = [validEvidenceGate()];
+  packet.evidenceRefs = [validEvidenceRef()];
+  return packet;
+}
+
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
 function validCapabilityContract() {
@@ -424,7 +461,105 @@ function runTests() {
 
   {
     const result = validateWorkPacket(validWorkPacket());
-    assert(result.ok === true, 'valid session packet is accepted', result.errors.join('; '));
+    assert(result.ok === true, 'valid v4 session packet without evidence gates is accepted', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacket();
+    packet.evidenceGates = [validEvidenceGate()];
+    packet.evidenceRefs = [validEvidenceRef()];
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'v4 packet rejects v5 evidence gate fields');
+    assert(
+      result.errors.some((error) => error.includes('evidenceGates') || error.includes('evidenceRefs')),
+      'v4 evidence gate rejection names locked fields',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const result = validateWorkPacket(validWorkPacketV5());
+    assert(result.ok === true, 'valid v5 session packet with evidence gates is accepted', result.errors.join('; '));
+  }
+
+  {
+    const packet = validWorkPacketV5();
+    packet.evidenceGates[0].freshnessPolicy = 'eventual';
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'v5 packet rejects unknown evidence freshness policy');
+    assert(
+      result.errors.some((error) => error.includes('freshnessPolicy')),
+      'v5 freshness rejection names freshnessPolicy',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacketV5();
+    packet.evidenceRefs[0].repoIntakeRef = 'intake/repo-intake.json';
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'v5 packet rejects unknown evidence ref fields');
+    assert(
+      result.errors.some((error) => error.includes('evidenceRefs[0].repoIntakeRef')),
+      'v5 evidence ref rejection names unknown field',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const packet = validWorkPacketV5();
+    packet.repoIntakeRefs = ['intake/other.json'];
+    const result = validateWorkPacket(packet);
+    assert(result.ok === false, 'packet rejects diverged repoIntakeRefs and evidenceRefs');
+    assert(
+      result.errors.some((error) => error.includes('repoIntakeRefs') && error.includes('evidenceRefs')),
+      'diverged evidence alias rejection names both fields',
+      result.errors.join('; '),
+    );
+  }
+
+  {
+    const payload = createEvidenceGateFailure({
+      gateId: 'repo-intake-graph',
+      capability: 'evidence.graph.repo-intake',
+      reason: 'missing',
+      packetVersion: 5,
+    });
+    assert(payload.code === 'EVIDENCE_GATE_FAILED', 'evidence gate failure payload records stable code', JSON.stringify(payload));
+    assert(payload.packetVersion === 5, 'evidence gate failure payload records packetVersion 5', JSON.stringify(payload));
+  }
+
+  {
+    const sessionRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-evidence-gate-'));
+    fs.mkdirSync(path.join(sessionRoot, 'intake'), { recursive: true });
+    const graphPath = path.join(sessionRoot, 'intake', 'graph.json');
+    const sourcePath = path.join(sessionRoot, 'intake', 'repo-intake.json');
+    fs.writeFileSync(
+      graphPath,
+      `${JSON.stringify({
+        kind: 'bmad-workspace-graph-evidence',
+        schemaVersion: 1,
+        generatedAt: '2026-05-04T00:00:00.000Z',
+        summary: { state: 'valid' },
+        repos: [],
+      })}\n`,
+    );
+    fs.writeFileSync(sourcePath, '{"kind":"repo-intake"}\n');
+    const future = new Date(Date.now() + 10_000);
+    fs.utimesSync(sourcePath, future, future);
+    const packet = validWorkPacketV5();
+    packet.evidenceGates[0].required = false;
+    packet.evidenceGates[0].freshnessPolicy = 'mtime';
+    packet.evidenceRefs[0].sha256 = sha256File(graphPath);
+    packet.evidenceRefs[0].sourceFiles = [{ path: 'intake/repo-intake.json' }];
+    const result = evaluateEvidenceGates({ packet, sessionRoot });
+    assert(result.state === 'warning', 'optional stale evidence gate reports warning state', JSON.stringify(result));
+    assert(result.failures.length === 0, 'optional stale evidence gate does not block certification', JSON.stringify(result));
+    assert(
+      result.warnings.some((warning) => warning.reason === 'stale'),
+      'optional stale evidence gate records stale warning',
+      JSON.stringify(result),
+    );
   }
 
   {

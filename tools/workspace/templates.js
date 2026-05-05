@@ -74,6 +74,8 @@ function validateWorkPacketTemplate(root, errors) {
     'grantRef',
     'promptRef',
     'reviewRef',
+    'evidenceGates',
+    'evidenceRefs',
     'acceptanceCriteria',
     'traceability',
   ]) {
@@ -85,8 +87,14 @@ function validateWorkPacketTemplate(root, errors) {
   if (packet.kind !== 'bmad-work-packet') {
     errors.push('work packet template requires kind=bmad-work-packet');
   }
-  if (packet.packetVersion !== 4) {
-    errors.push('work packet template requires packetVersion=4');
+  if (packet.packetVersion !== 5) {
+    errors.push('work packet template requires packetVersion=5');
+  }
+  if (!Array.isArray(packet.evidenceGates) || packet.evidenceGates.length === 0) {
+    errors.push('work packet template requires non-empty evidenceGates');
+  }
+  if (!Array.isArray(packet.evidenceRefs) || packet.evidenceRefs.length === 0) {
+    errors.push('work packet template requires non-empty evidenceRefs');
   }
   if (!Array.isArray(packet.acceptanceCriteria) || packet.acceptanceCriteria.length === 0) {
     errors.push('work packet template requires non-empty acceptanceCriteria');

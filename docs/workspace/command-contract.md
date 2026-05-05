@@ -52,7 +52,7 @@ Public command names and options are frozen for this contract.
 | --- | --- | --- | --- | --- |
 | `launch` | `write` | JSON | Creates session runtime, repo worktrees, grants, and `instance.json`. | Requires `--repo`, `--goal`, and optional `--session-id`. |
 | `intake` | `write` | JSON | Writes `intake/repo-intake.json` and provenance. | Fails when session is missing or invalid. |
-| `packet` | `write` | JSON | Writes active packet bundle under `packets/`. | Requires fresh intake and complete or explicitly skipped Setup Gate. |
+| `packet` | `write` | JSON | Writes active packet bundle under `packets/`. | Requires fresh intake, complete or explicitly skipped Setup Gate, and required Evidence Gate v1 evidence. |
 | `list` | `read` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
 | `status` | `read` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
 | `handoff` | `read` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
@@ -75,6 +75,7 @@ Public command names and options are frozen for this contract.
   `ROUTE_DECISION_REQUIRED`.
 - Executor readiness: `EXECUTOR_CONTRACT_MISSING`,
   `EXECUTOR_CONTRACT_INVALID`.
+- Evidence Gate v1: `EVIDENCE_GATE_FAILED`.
 - Result ledger: `RESULT_PACKET_MISSING`, `RESULT_ID_UNSAFE`,
   `RESULT_EXISTS`, `RESULT_INVALID`, `RESULT_SECRET_DETECTED`.
 - Closeout: `CLOSEOUT_PACKET_MISSING`, `CLOSEOUT_REVIEW_MISSING`,
@@ -98,6 +99,8 @@ Public command names and options are frozen for this contract.
 - `schemaVersion: 1`
 - `sessionId`, `sessionRoot`, and `generatedAt`
 - `state: complete | warning | invalid`
+- `evidenceGates` projection with recomputed gate state; pass/fail status is
+  never persisted back into the packet
 - `artifacts[]` entries with `stage`, `kind`, `ref`, `present`,
   `validationState`, `sha256`, `bytes`, and `sourceCommand`
 - `checks[]` entries with `code`, `severity`, `message`, `ref`, and

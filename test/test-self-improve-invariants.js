@@ -271,6 +271,37 @@ function testSelfImproveConsumesWorkspaceGraphEvidenceOnly() {
   }
 }
 
+function testSelfImproveEvidenceGateV1IsFutureCompatibleOnly() {
+  const surfaces = {
+    runbook: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8'),
+    prompt: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'), 'utf8'),
+    selfImproveSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8'),
+  };
+
+  for (const [surface, content] of Object.entries(surfaces)) {
+    for (const requiredText of [
+      'Evidence Gate v1',
+      'future-compatible',
+      'packet v5',
+      'Self-Improve does not actively enforce Evidence Gate v1 in v1',
+      'does not mark gates pass/fail',
+    ]) {
+      assert(content.includes(requiredText), `${surface} keeps Evidence Gate v1 future-compatible: ${requiredText}`);
+    }
+  }
+}
+
+function testSelfImproveRejectsActiveEvidenceGateV1Claim() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-self-improve/SKILL.md',
+    'Self-Improve does not actively enforce Evidence Gate v1 in v1',
+    'Self-Improve actively enforces Evidence Gate v1',
+  );
+  assertInvalidWithAll(root, ['SI_EVIDENCE_GATE_V1_BOUNDARY', 'Self-Improve actively enforces Evidence Gate v1']);
+}
+
 function testRequiredInvariantIdsExist() {
   const ids = REQUIRED_INVARIANTS.map((item) => item.id);
   assert.equal(ids.length, 13);
@@ -743,6 +774,8 @@ function run() {
     testCurrentRepoValidates,
     testSelfImproveRunbookExposesCheckpointResumeWorkflow,
     testSelfImproveConsumesWorkspaceGraphEvidenceOnly,
+    testSelfImproveEvidenceGateV1IsFutureCompatibleOnly,
+    testSelfImproveRejectsActiveEvidenceGateV1Claim,
     testRequiredInvariantIdsExist,
     testMissingRequiredFileReportsStableError,
     testCliMissingRequiredFileUsesInvariantPrefix,

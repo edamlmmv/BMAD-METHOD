@@ -101,6 +101,17 @@ Graphify is not called ad hoc by Workspace. Missing or invalid graph artifacts
 must not block ordinary Repo Intake; Workspace records the evidence state and
 continues with git intake.
 
+## Evidence Gate v1
+
+New BMAD Work Packets use `packetVersion: 5` with `evidenceGates` declarations
+and `evidenceRefs` pointers. `workspace packet` validates required Evidence Gate
+v1 entries before writing the packet and fails with `EVIDENCE_GATE_FAILED` when
+required graph evidence is missing, invalid, or stale.
+
+`workspace status` and `workspace evidence` recompute gate state as read-only
+projections from the packet and referenced artifacts. They do not persist pass
+or fail status back into the packet.
+
 ## Codex Operator Affordances
 
 Codex slash commands, tools, hooks, plugins, and future UI commands are operator

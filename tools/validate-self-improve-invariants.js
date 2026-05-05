@@ -169,6 +169,25 @@ const REQUIRED_PROMPT_TERMS = [
   'Vercel Workflow WDK is not part of this run',
 ];
 
+const REQUIRED_EVIDENCE_GATE_V1_TERMS = [
+  'Evidence Gate v1',
+  'future-compatible',
+  'packet v5',
+  'Self-Improve does not actively enforce Evidence Gate v1 in v1',
+  'does not mark gates pass/fail',
+];
+
+const FORBIDDEN_EVIDENCE_GATE_V1_CLAIMS = [
+  'Self-Improve actively enforces Evidence Gate v1',
+  'Self-Improve enforces Evidence Gate v1',
+  'blocks continuation on Evidence Gate v1',
+  'marks gates pass/fail in v1',
+  'marks evidence gates pass/fail',
+  'runs Graphify ad hoc',
+  'calls Graphify to rebuild',
+  'silently regenerates graph artifacts',
+];
+
 const REQUIRED_CHECKPOINT_TERMS = [
   'Objective',
   'Question',
@@ -501,6 +520,17 @@ function requireNoTerms(content, terms, sourceName, errors, fileLabel) {
   for (const term of terms) {
     if (hasTerm(content, term)) {
       addError(errors, 'SI_RETIRED_PHRASE', `${sourceName} contains retired manual-only phrase: ${term}`, {
+        file: fileLabel,
+        field: term,
+      });
+    }
+  }
+}
+
+function requireNoTermsWithCode(content, terms, sourceName, errors, fileLabel, errorCode) {
+  for (const term of terms) {
+    if (hasTerm(content, term)) {
+      addError(errors, errorCode, `${sourceName} contains forbidden Evidence Gate v1 claim: ${term}`, {
         file: fileLabel,
         field: term,
       });
@@ -872,6 +902,16 @@ function validateSelfImproveInvariants(options = {}) {
     errors,
     files.guide.relativePath,
   );
+  for (const key of ['skill', 'guide', 'prompt']) {
+    requireTerms(
+      contents[key],
+      REQUIRED_EVIDENCE_GATE_V1_TERMS,
+      files[key].label,
+      errors,
+      files[key].relativePath,
+      'SI_EVIDENCE_GATE_V1_BOUNDARY',
+    );
+  }
   validateCheckpointEvidence(checkpointExample, 'checkpoint example', files.checkpointExample.relativePath, errors, checkpointContract);
   requireTerms(
     resume,
@@ -909,6 +949,14 @@ function validateSelfImproveInvariants(options = {}) {
   }
   for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'checkpointExample', 'moduleHelp']) {
     requireNoTerms(contents[key], FORBIDDEN_SELF_IMPROVE_PHRASES, files[key].label, errors, files[key].relativePath);
+    requireNoTermsWithCode(
+      contents[key],
+      FORBIDDEN_EVIDENCE_GATE_V1_CLAIMS,
+      files[key].label,
+      errors,
+      files[key].relativePath,
+      'SI_EVIDENCE_GATE_V1_BOUNDARY',
+    );
   }
 
   const scripts = packageJson.scripts || {};

@@ -69,6 +69,14 @@ Graph evidence is advisory. It may guide repo topology analysis, docs/code link
 checks, and agent/tool boundary work, but source files remain authority before
 any recommendation or edit. Workspace graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
 
+## Evidence Gate v1 Boundary
+
+Evidence Gate v1 is future-compatible Self-Improve context through BMAD
+Workspace packet v5. Self-Improve does not actively enforce Evidence Gate v1 in v1,
+does not make continuation decisions from packet gates, and does not mark gates pass/fail.
+A later phase may consume packet v5 gates after packet v5 stabilizes and after Party Mode
+consensus plus tests preserve the no-Graphify-runtime boundary.
+
 ## Codex Advanced Configuration
 
 Codex Advanced Configuration is optional operator-local setup. It can change

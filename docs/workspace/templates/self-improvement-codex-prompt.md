@@ -33,6 +33,12 @@ Workspace graph evidence:
 - It does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
 - You must not call Graphify ad hoc and must not silently regenerate graph artifacts.
 
+Evidence Gate v1:
+- Evidence Gate v1 is future-compatible Self-Improve context through BMAD Workspace packet v5.
+- Self-Improve does not actively enforce Evidence Gate v1 in v1.
+- Do not make continuation decisions from packet gates; Self-Improve does not mark gates pass/fail.
+- A later phase may consume packet v5 gates only after packet v5 stabilizes and Party Mode consensus plus tests preserve the no-Graphify-runtime boundary.
+
 Mode: local Codex automation loop
 Repo path: `{project-root}`
 Base ref: current HEAD

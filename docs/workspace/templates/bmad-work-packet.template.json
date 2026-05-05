@@ -1,11 +1,31 @@
 {
   "kind": "bmad-work-packet",
-  "packetVersion": 4,
+  "packetVersion": 5,
   "sessionId": "session-example",
   "goalRef": "base-improvement-goal.md",
   "grantRef": "base-mutation-grant.json",
   "promptRef": "base-improvement-prompt.md",
   "reviewRef": "worktree-review-checklist.md",
+  "evidenceGates": [
+    {
+      "id": "repo-intake-graph",
+      "requiredCapabilityIds": ["evidence.graph.repo-intake"],
+      "required": true,
+      "evidenceRefIds": ["repo-intake-graph-evidence"],
+      "freshnessPolicy": "mtime",
+      "message": "Workspace packet requires fresh repo-intake graph evidence from checked-in graph artifacts."
+    }
+  ],
+  "evidenceRefs": [
+    {
+      "id": "repo-intake-graph-evidence",
+      "capability": "evidence.graph.repo-intake",
+      "artifactRef": "intake/graph.json",
+      "sha256": "<sha256>",
+      "generatedAt": "<iso8601>",
+      "sourceFiles": [{ "path": "intake/repo-intake.json", "sha256": "<sha256>" }]
+    }
+  ],
   "sessionSetup": {
     "zoomOut": {
       "status": "complete",
