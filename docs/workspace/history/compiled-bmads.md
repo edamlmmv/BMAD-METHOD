@@ -10,8 +10,8 @@ This archive replaces the scattered per-release BMAD planning files that previou
 ## Compilation Scope
 
 - Source artifacts compiled: 67
-- Release groups compiled: 18
-- Compact entries compiled: 1
+- Release groups compiled: 19
+- Compact entries compiled: 2
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -451,6 +451,27 @@ This archive replaces the scattered per-release BMAD planning files that previou
   - No archive restore, replay, import, merge, promotion, scheduler, watcher, daemon, live adapter, or `workspace run`.
   - No removal of compiled history records.
 - Acceptance anchors: strict-packet-current-contract, strict-routing-source, strict-executor-contract, strict-archive-version, strict-diff-archive-validation, removed-contract-guard
+- Traceability markers: Evidence, Test Target
+
+### V21
+
+- Compiled artifacts: Compact Plan, Implementation, Contract Tests
+- Compact Plan: Current archive manifest contract language and guard scan cleanup
+- Implementation: Workspace archive validation now reports current manifest contract mismatches through `ARCHIVE_MANIFEST_INVALID`
+- Contract Tests: CLI fixtures and contract scans cover invalid current-manifest handling without embedding phrase lists
+- Overview: V21 keeps Workspace archive behavior focused on the current manifest contract. Current docs, source skill guidance, CLI tests, and history entries describe archive validation as current contract validation, and guard scans check for contract drift through current codes and manifest literals.
+- Goals:
+  - Keep `verify-archive` and `diff` guidance current-contract only.
+  - Route manifest contract mismatches through `ARCHIVE_MANIFEST_INVALID`.
+  - Keep invalid archive manifest tests neutral.
+  - Make Workspace archive guard scans generic and compact.
+  - Preserve the compiled history folder as the only Workspace history surface.
+- Non-goals:
+  - No command shape change.
+  - No archive schema change.
+  - No migration tooling.
+  - No archive restore, replay, import, merge, promotion, scheduler, watcher, daemon, live adapter, or `workspace run`.
+- Acceptance anchors: archive-current-contract-language, archive-manifest-invalid-error, archive-generic-contract-guard, compiled-history-only
 - Traceability markers: Evidence, Test Target
 
 ## Old Artifact Removal

@@ -1240,8 +1240,8 @@ function runTests() {
     }
 
     assert(historyArchive.includes('Source artifacts compiled: 67'), 'history archive records source artifact count');
-    assert(historyArchive.includes('Release groups compiled: 18'), 'history archive records release group count');
-    assert(historyArchive.includes('Compact entries compiled: 1'), 'history archive records compact entry count');
+    assert(historyArchive.includes('Release groups compiled: 19'), 'history archive records release group count');
+    assert(historyArchive.includes('Compact entries compiled: 2'), 'history archive records compact entry count');
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
@@ -1249,6 +1249,7 @@ function runTests() {
       historyArchive.includes('Current Workspace packet, routing, executor, archive, and diff contracts'),
       'history records current contract plan',
     );
+    assert(historyArchive.includes('Current archive manifest contract language'), 'history records archive manifest cleanup plan');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
