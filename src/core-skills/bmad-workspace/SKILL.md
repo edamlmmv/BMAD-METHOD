@@ -194,6 +194,10 @@ Every BMAD Work Packet requires setup entries for:
 - grill decisions
 - TDD plan
 
+Internal packet refs remain `zoomOut`, `ubiquitousLanguage`,
+`grillDecisions`, and `tddPlan`; these refs are stable Workspace evidence
+fields, not separate CLI commands.
+
 Each setup entry must be complete with a ref or skipped with an explicit reason.
 Use `--skip-setup <step=reason>` only when the user accepts the skip.
 

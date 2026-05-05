@@ -27,6 +27,7 @@ const validatorPath = path.join(repoRoot, 'tools', 'validate-self-improve-invari
  * AC-SI-006 retired phrases: self-improve contract file denylist, scoped fixture injection.
  * AC-SI-007 package wiring: package scripts, quality path fixture mutations.
  * AC-SI-008 Party Mode contract: thread lifecycle, Codex agent budget/config boundary, and TDD voice injection.
+ * AC-SI-009 self-improve capabilities: registry, setup refs, public surface anchors, and vendored snapshots.
  */
 
 function copyDir(source, target) {
@@ -45,12 +46,15 @@ function copyDir(source, target) {
 function makeFixture() {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-self-improve-invariants-'));
   for (const relativePath of [
+    'tools/self-improve-capabilities.json',
+    'tools/workspace/packet.js',
     'docs/workspace/self-improvement-automation-policy.md',
     'docs/workspace/self-improvement-codex.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
     'src/core-skills/bmad-party-mode/SKILL.md',
+    'src/core-skills/bmad-workspace/SKILL.md',
     'src/core-skills/module-help.csv',
     'package.json',
   ]) {
@@ -60,6 +64,10 @@ function makeFixture() {
     fs.copyFileSync(sourcePath, targetPath);
   }
   copyDir(path.join(repoRoot, 'src/core-skills/bmad-self-improve'), path.join(fixtureRoot, 'src/core-skills/bmad-self-improve'));
+  copyDir(
+    path.join(repoRoot, 'docs/workspace/vendor/mattpocock-skills'),
+    path.join(fixtureRoot, 'docs/workspace/vendor/mattpocock-skills'),
+  );
   return fixtureRoot;
 }
 
@@ -397,6 +405,30 @@ function testPackageWiringUsesStableErrorCode() {
   assertInvalidWithAll(root, ['SI_PACKAGE_SCRIPT', 'validate:self-improve-invariants']);
 }
 
+function testSelfImproveCapabilityRegistryIsRequired() {
+  const root = makeFixture();
+  deleteFixtureFile(root, 'tools/self-improve-capabilities.json');
+  assertInvalidWithAll(root, ['SI_FILE_MISSING', 'tools/self-improve-capabilities.json']);
+}
+
+function testSelfImproveCapabilityMissingSurfaceFails() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'capability:grill-me', 'capability:removed-grill');
+  assertInvalidWithAll(root, ['SI_CAPABILITY_SURFACE', 'capability:grill-me', 'bmad-party-mode skill']);
+}
+
+function testSelfImproveCapabilitySetupRefMismatchFails() {
+  const root = makeFixture();
+  replaceInFile(root, 'tools/self-improve-capabilities.json', '"setupGateRef": "tddPlan"', '"setupGateRef": "tdd"');
+  assertInvalidWithAll(root, ['SI_CAPABILITY_SETUP_REF', 'tdd', 'tddPlan']);
+}
+
+function testSelfImproveCapabilityVendorManifestEntryRequired() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/vendor/mattpocock-skills/MANIFEST.json', '"name": "grill-me"', '"name": "grill-missing"');
+  assertInvalidWithAll(root, ['SI_CAPABILITY_VENDOR', 'grill-me']);
+}
+
 function run() {
   const tests = [
     testCurrentRepoValidates,
@@ -434,6 +466,10 @@ function run() {
     testRetiredManualOnlyPhrasesStayRemoved,
     testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles,
     testPackageWiringUsesStableErrorCode,
+    testSelfImproveCapabilityRegistryIsRequired,
+    testSelfImproveCapabilityMissingSurfaceFails,
+    testSelfImproveCapabilitySetupRefMismatchFails,
+    testSelfImproveCapabilityVendorManifestEntryRequired,
   ];
 
   for (const test of tests) {

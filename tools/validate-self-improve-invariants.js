@@ -13,6 +13,22 @@ const CONTRACT_FILES = {
     label: 'policy',
     relativePath: path.join('docs', 'workspace', 'self-improvement-automation-policy.md'),
   },
+  capabilityRegistry: {
+    label: 'self-improve capability registry',
+    relativePath: path.join('tools', 'self-improve-capabilities.json'),
+  },
+  vendorManifest: {
+    label: 'Matt Pocock skill snapshot manifest',
+    relativePath: path.join('docs', 'workspace', 'vendor', 'mattpocock-skills', 'MANIFEST.json'),
+  },
+  workspacePacket: {
+    label: 'Workspace packet builder',
+    relativePath: path.join('tools', 'workspace', 'packet.js'),
+  },
+  workspaceSkill: {
+    label: 'bmad-workspace skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-workspace', 'SKILL.md'),
+  },
   skill: {
     label: 'bmad-self-improve skill',
     relativePath: path.join('src', 'core-skills', 'bmad-self-improve', 'SKILL.md'),
@@ -275,6 +291,15 @@ const FORBIDDEN_SELF_IMPROVE_PHRASES = [
 
 const ALLOWED_TEMPLATE_PLACEHOLDERS = new Set(['skill-root', 'project-root', 'output_folder']);
 
+const SELF_IMPROVE_SETUP_REFS = {
+  'zoom-out': 'zoomOut',
+  tdd: 'tddPlan',
+  'ubiquitous-language': 'ubiquitousLanguage',
+  'grill-me': 'grillDecisions',
+};
+
+const REQUIRED_CAPABILITY_SURFACES = ['skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp'];
+
 const REQUIRED_SEQUENCE_CONTRACTS = [
   {
     sourceKey: 'skill',
@@ -386,6 +411,15 @@ function readRequired(filePath, errors, fileLabel = filePath) {
     return fs.readFileSync(filePath, 'utf8');
   } catch (error) {
     addError(errors, 'SI_FILE_READ_FAILED', `could not read required file: ${fileLabel}: ${error.message}`, { file: fileLabel });
+    return null;
+  }
+}
+
+function parseJson(content, sourceName, fileLabel, errors, errorCode) {
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    addError(errors, errorCode, `${sourceName} contains invalid JSON: ${error.message}`, { file: fileLabel });
     return null;
   }
 }
@@ -527,6 +561,179 @@ function validateOrderedSequence(content, contract, sourceName, fileLabel, error
   }
 }
 
+function validateSelfImproveCapabilities(registry, vendorManifest, contents, files, projectRoot, errors) {
+  if (!registry || !vendorManifest) {
+    return;
+  }
+  if (registry.schemaVersion !== 1) {
+    addError(errors, 'SI_CAPABILITY_REGISTRY', 'self-improve capability registry schemaVersion must be 1', {
+      file: files.capabilityRegistry.relativePath,
+      field: 'schemaVersion',
+    });
+  }
+  if (!Array.isArray(registry.capabilities)) {
+    addError(errors, 'SI_CAPABILITY_REGISTRY', 'self-improve capability registry capabilities must be an array', {
+      file: files.capabilityRegistry.relativePath,
+      field: 'capabilities',
+    });
+    return;
+  }
+
+  const expectedSlugs = Object.keys(SELF_IMPROVE_SETUP_REFS);
+  const bySlug = new Map();
+  for (const capability of registry.capabilities) {
+    if (!capability || typeof capability !== 'object') {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', 'self-improve capability entry must be an object', {
+        file: files.capabilityRegistry.relativePath,
+      });
+      continue;
+    }
+    const slug = capability.slug;
+    if (typeof slug !== 'string' || slug.trim() === '') {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', 'self-improve capability slug must be a non-empty string', {
+        file: files.capabilityRegistry.relativePath,
+        field: 'slug',
+      });
+      continue;
+    }
+    if (bySlug.has(slug)) {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', `self-improve capability registry contains duplicate slug: ${slug}`, {
+        file: files.capabilityRegistry.relativePath,
+        field: slug,
+      });
+    }
+    bySlug.set(slug, capability);
+  }
+
+  for (const slug of expectedSlugs) {
+    const capability = bySlug.get(slug);
+    if (!capability) {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', `self-improve capability registry missing slug: ${slug}`, {
+        file: files.capabilityRegistry.relativePath,
+        field: slug,
+      });
+      continue;
+    }
+    validateCapabilityEntry(slug, capability, contents, files, projectRoot, errors);
+  }
+
+  for (const slug of bySlug.keys()) {
+    if (!expectedSlugs.includes(slug)) {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', `self-improve capability registry contains unknown slug: ${slug}`, {
+        file: files.capabilityRegistry.relativePath,
+        field: slug,
+      });
+    }
+  }
+
+  validateCapabilityVendorManifest(expectedSlugs, vendorManifest, projectRoot, files.vendorManifest.relativePath, errors);
+}
+
+function validateCapabilityEntry(slug, capability, contents, files, projectRoot, errors) {
+  for (const field of ['label', 'operatorUse', 'partyModeUse', 'boundary']) {
+    if (typeof capability[field] !== 'string' || capability[field].trim() === '') {
+      addError(errors, 'SI_CAPABILITY_REGISTRY', `self-improve capability ${slug} missing non-empty field: ${field}`, {
+        file: files.capabilityRegistry.relativePath,
+        field,
+      });
+    }
+  }
+
+  const expectedSetupRef = SELF_IMPROVE_SETUP_REFS[slug];
+  if (capability.setupGateRef !== expectedSetupRef) {
+    addError(
+      errors,
+      'SI_CAPABILITY_SETUP_REF',
+      `self-improve capability ${slug} setupGateRef ${capability.setupGateRef} must match Workspace Setup Gate ref ${expectedSetupRef}`,
+      { file: files.capabilityRegistry.relativePath, field: slug },
+    );
+  }
+  for (const sourceKey of ['workspacePacket', 'workspaceSkill']) {
+    if (!hasTerm(contents[sourceKey], expectedSetupRef)) {
+      addError(
+        errors,
+        'SI_CAPABILITY_SETUP_REF',
+        `${files[sourceKey].label} missing Workspace Setup Gate ref for ${slug}: ${expectedSetupRef}`,
+        { file: files[sourceKey].relativePath, field: expectedSetupRef },
+      );
+    }
+  }
+
+  if (!Array.isArray(capability.docsSurfaces)) {
+    addError(errors, 'SI_CAPABILITY_REGISTRY', `self-improve capability ${slug} docsSurfaces must be an array`, {
+      file: files.capabilityRegistry.relativePath,
+      field: 'docsSurfaces',
+    });
+    return;
+  }
+  for (const surface of REQUIRED_CAPABILITY_SURFACES) {
+    if (!capability.docsSurfaces.includes(surface)) {
+      addError(errors, 'SI_CAPABILITY_SURFACE', `self-improve capability ${slug} missing required docs surface: ${surface}`, {
+        file: files.capabilityRegistry.relativePath,
+        field: surface,
+      });
+    }
+  }
+  for (const surface of capability.docsSurfaces) {
+    if (!REQUIRED_CAPABILITY_SURFACES.includes(surface)) {
+      addError(errors, 'SI_CAPABILITY_SURFACE', `self-improve capability ${slug} contains unknown docs surface: ${surface}`, {
+        file: files.capabilityRegistry.relativePath,
+        field: surface,
+      });
+      continue;
+    }
+    const anchor = `capability:${slug}`;
+    if (!hasTerm(contents[surface], anchor)) {
+      addError(errors, 'SI_CAPABILITY_SURFACE', `${files[surface].label} missing self-improve capability anchor ${anchor}`, {
+        file: files[surface].relativePath,
+        field: anchor,
+      });
+    }
+  }
+
+  const vendorSkillPath = path.join(projectRoot, 'docs', 'workspace', 'vendor', 'mattpocock-skills', slug, 'SKILL.md');
+  if (!fs.existsSync(vendorSkillPath)) {
+    addError(errors, 'SI_CAPABILITY_VENDOR', `vendored Matt Pocock skill snapshot missing for capability: ${slug}`, {
+      file: path.relative(projectRoot, vendorSkillPath),
+      field: slug,
+    });
+  }
+}
+
+function validateCapabilityVendorManifest(expectedSlugs, vendorManifest, projectRoot, fileLabel, errors) {
+  if (!Array.isArray(vendorManifest.skills)) {
+    addError(errors, 'SI_CAPABILITY_VENDOR', 'Matt Pocock skill snapshot manifest skills must be an array', {
+      file: fileLabel,
+      field: 'skills',
+    });
+    return;
+  }
+  for (const slug of expectedSlugs) {
+    const entry = vendorManifest.skills.find((skill) => skill && skill.name === slug);
+    if (!entry) {
+      addError(errors, 'SI_CAPABILITY_VENDOR', `Matt Pocock skill snapshot manifest missing capability: ${slug}`, {
+        file: fileLabel,
+        field: slug,
+      });
+      continue;
+    }
+    if (typeof entry.path !== 'string' || entry.path.trim() === '') {
+      addError(errors, 'SI_CAPABILITY_VENDOR', `Matt Pocock skill snapshot manifest entry ${slug} missing path`, {
+        file: fileLabel,
+        field: slug,
+      });
+      continue;
+    }
+    const snapshotPath = path.join(projectRoot, 'docs', 'workspace', 'vendor', 'mattpocock-skills', entry.path);
+    if (!fs.existsSync(snapshotPath)) {
+      addError(errors, 'SI_CAPABILITY_VENDOR', `Matt Pocock skill snapshot path missing for capability ${slug}: ${entry.path}`, {
+        file: fileLabel,
+        field: slug,
+      });
+    }
+  }
+}
+
 function validateSelfImproveInvariants(options = {}) {
   const projectRoot = options.projectRoot ? path.resolve(options.projectRoot) : path.resolve(__dirname, '..');
   const errors = [];
@@ -558,6 +765,20 @@ function validateSelfImproveInvariants(options = {}) {
     });
     return { ok: false, errors };
   }
+  const capabilityRegistry = parseJson(
+    contents.capabilityRegistry,
+    'self-improve capability registry',
+    files.capabilityRegistry.relativePath,
+    errors,
+    'SI_CAPABILITY_REGISTRY',
+  );
+  const vendorManifest = parseJson(
+    contents.vendorManifest,
+    'Matt Pocock skill snapshot manifest',
+    files.vendorManifest.relativePath,
+    errors,
+    'SI_CAPABILITY_VENDOR',
+  );
 
   validateInvariantIds(policy, 'policy', files.policy.relativePath, errors);
   validateInvariantIds(skill, 'bmad-self-improve skill', files.skill.relativePath, errors);
@@ -632,6 +853,7 @@ function validateSelfImproveInvariants(options = {}) {
     files.moduleHelp.relativePath,
   );
   requireConceptGroups(partyMode, REQUIRED_PARTY_MODE_CONTRACTS, 'bmad-party-mode skill', errors, files.partyMode.relativePath);
+  validateSelfImproveCapabilities(capabilityRegistry, vendorManifest, contents, files, projectRoot, errors);
 
   for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
     validatePlaceholders(contents[key], files[key].label, files[key].relativePath, errors);

@@ -69,6 +69,15 @@ Future mode: hosted orchestrator adapter. Vercel Workflow WDK may wrap the same 
 - Continuation decision.
 - Checkpoint under `{output_folder}/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
 
+## Self-Improvement Capabilities
+
+These are explicit operator-invoked self-improvement capabilities, not automatic background behavior.
+
+- `capability:zoom-out` `zoom-out` runs one bounded reframing pass for problem, constraints, alternatives, and chosen path.
+- `capability:tdd` `tdd` produces failing-test-first implementation guidance when implementation risk warrants it.
+- `capability:ubiquitous-language` `ubiquitous-language` aligns terms across skills, docs, prompts, module help, and code-facing names.
+- `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
+
 ## Stop Conditions
 
 Stop and report when any condition appears:

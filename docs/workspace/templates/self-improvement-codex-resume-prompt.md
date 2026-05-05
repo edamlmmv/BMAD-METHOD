@@ -18,6 +18,12 @@ You are Codex working in `{project-root}`.
 
 Resume BMAD self-improvement from the latest checkpoint under `{output_folder}/self-improvement/`.
 
+Self-improvement capabilities remain operator-invoked skills, not automatic background steps:
+- `capability:zoom-out` `zoom-out`: resume any bounded reframing decision only if the checkpoint says framing changed.
+- `capability:tdd` `tdd`: preserve failing-test-first evidence and continue the next red-green-refactor slice.
+- `capability:ubiquitous-language` `ubiquitous-language`: preserve canonical term decisions and check new wording against them.
+- `capability:grill-me` `grill-me`: re-run only when assumptions changed, prior objections remain unresolved, or checkpoint risk is high.
+
 First read:
 
 - `docs/workspace/self-improvement-automation-policy.md`

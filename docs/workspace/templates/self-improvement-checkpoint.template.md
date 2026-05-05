@@ -71,6 +71,14 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 
 -
 
+## Self-Improvement Capabilities
+
+- `capability:zoom-out` reframing summary:
+- `capability:tdd` failing-test-first evidence:
+- `capability:ubiquitous-language` term changes:
+- `capability:grill-me` challenge findings:
+- Capability decisions changed or deferred:
+
 ## Policy Consensus Evidence
 
 - Policy changed:

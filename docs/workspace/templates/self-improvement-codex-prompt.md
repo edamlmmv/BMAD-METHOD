@@ -18,6 +18,12 @@ You are Codex working in `{project-root}`.
 
 Run local Codex automation-capable BMAD self-improvement.
 
+Self-improvement capabilities are explicit operator-invoked skills, not automatic background steps:
+- `capability:zoom-out` `zoom-out`: run one bounded reframing pass for problem, constraints, alternatives, and chosen path.
+- `capability:tdd` `tdd`: produce failing-test-first implementation guidance when implementation risk warrants it.
+- `capability:ubiquitous-language` `ubiquitous-language`: align terms across skills, docs, prompts, module help, and code-facing names.
+- `capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
+
 Mode: local Codex automation loop
 Repo path: `{project-root}`
 Base ref: current HEAD

@@ -48,6 +48,22 @@ Mode: hosted orchestrator adapter
 
 The hosted adapter mode is documentation-only for now. It must wrap the same policy, invariant checker, install, refresh, and checkpoint contract.
 
+## Self-Improvement Capabilities
+
+Self-improvement capabilities are explicit operator-invoked skills, not automatic background steps.
+
+- `capability:zoom-out` `zoom-out` runs one bounded reframing pass for problem, constraints, alternatives, and chosen path.
+- `capability:tdd` `tdd` produces failing-test-first implementation guidance when implementation risk warrants it.
+- `capability:ubiquitous-language` `ubiquitous-language` aligns terms across skills, docs, prompts, module help, and code-facing names.
+- `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
+
+Optional Codex advanced integration notes, reviewed on 2026-05-05:
+
+- Codex `skills.config` can enable skill paths for operators.
+- Project `.codex/config.toml` loads only for trusted projects.
+- Hooks require `features.codex_hooks`; this workflow does not require hooks.
+- Multi-agent features are normally available, with documented defaults of `max_threads=6` and `max_depth=1` when unset.
+
 ## What It Does
 
 The workflow runs:
