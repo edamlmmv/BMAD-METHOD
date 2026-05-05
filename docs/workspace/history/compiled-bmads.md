@@ -10,8 +10,8 @@ This archive replaces the scattered per-release BMAD planning files that previou
 ## Compilation Scope
 
 - Source artifacts compiled: 67
-- Release groups compiled: 19
-- Compact entries compiled: 2
+- Release groups compiled: 20
+- Compact entries compiled: 3
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -472,6 +472,26 @@ This archive replaces the scattered per-release BMAD planning files that previou
   - No migration tooling.
   - No archive restore, replay, import, merge, promotion, scheduler, watcher, daemon, live adapter, or `workspace run`.
 - Acceptance anchors: archive-current-contract-language, archive-manifest-invalid-error, archive-generic-contract-guard, compiled-history-only
+- Traceability markers: Evidence, Test Target
+
+### V22
+
+- Compiled artifacts: Compact Plan, Implementation, Contract Tests
+- Compact Plan: Prompt Builder removal from current BMAD Workspace operator prompts
+- Implementation: The deprecated `bmad-prompt-builder` skill file, catalog row, and fresh-chat template references were removed while keeping the Workspace foundation files from the original commit
+- Contract Tests: Skill validation, reference validation, docs build, Workspace contract tests, and full quality gates cover the current catalog and templates without Prompt Builder references
+- Overview: V22 keeps BMAD Workspace fresh-chat routing on current supported skills. `bmad-help` remains the route selection entrypoint, and the removed Prompt Builder feature no longer appears in current skill catalogs or operator templates.
+- Goals:
+  - Remove `bmad-prompt-builder` from current source, catalog, and fresh-chat route options.
+  - Keep `BMAD.md`, `bmad.config.yaml`, and `.hermes.md` as current Workspace foundation files.
+  - Preserve no-live-reference checks for deleted prompt-builder surfaces.
+  - Keep compiled history as the only Workspace history surface.
+- Non-goals:
+  - No full revert of the original Workspace foundation commit.
+  - No new prompt-routing skill.
+  - No command shape change.
+  - No scheduler, watcher, daemon, restore, replay, merge, promotion, live adapter, or `workspace run`.
+- Acceptance anchors: prompt-builder-surface-removed, workspace-foundation-preserved, current-template-routing, full-quality-green
 - Traceability markers: Evidence, Test Target
 
 ## Old Artifact Removal
