@@ -14,7 +14,6 @@ before running it.
 [$bmad-help]({skill-root}/bmad-help/SKILL.md)
 [$bmad-workspace]({skill-root}/bmad-workspace/SKILL.md)
 [$bmad-index-docs]({skill-root}/bmad-index-docs/SKILL.md)
-[$bmad-prompt-builder]({skill-root}/bmad-prompt-builder/SKILL.md)
 
 You are Codex working in `{project-root}`.
 
@@ -57,8 +56,8 @@ Start:
 
 Route options:
 
+- Routing/help: `bmad-help`
 - Docs/context: `bmad-index-docs`, `bmad-generate-project-context`
-- Prompt design: `bmad-prompt-builder`
 - Roundtable: `bmad-party-mode`
 - Research: `bmad-technical-research`
 - PRD: `bmad-create-prd`, `bmad-validate-prd`

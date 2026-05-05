@@ -3,7 +3,6 @@ Core,_meta,,,,,,,,,false,https://docs.bmad-method.org/llms.txt,
 Core,bmad-brainstorming,Brainstorming,BSP,Use early in ideation or when stuck generating ideas.,,anytime,,,false,{output_folder}/brainstorming,brainstorming session
 Core,bmad-party-mode,Party Mode,PM,Orchestrate multi-agent discussions when you need multiple perspectives or want agents to collaborate.,,anytime,,,false,,
 Core,bmad-help,BMad Help,BH,,,anytime,,,false,,
-Core,bmad-prompt-builder,Prompt Builder,PB,"Build copy-ready prompts that combine the smallest useful BMAD skill chain for a task.",,anytime,,,false,,
 Core,bmad-workspace,BMAD Workspace,WS,"Operate BMAD Workspace Sessions from Codex, including Repo Intake, BMAD Work Packets, Review Manifest, Evidence Index, archive diff, manual results, Manual Closeout, Worktree Review, archives, destroy, and grant-governed base improvement.",,anytime,,,false,{project-root}/docs/workspace,workspace session artifacts
 Core,bmad-index-docs,Index Docs,ID,Use when LLM needs to understand available docs without loading everything.,,anytime,,,false,,
 Core,bmad-shard-doc,Shard Document,SD,Use when doc becomes too large (>500 lines) to manage effectively.,[path],anytime,,,false,,
