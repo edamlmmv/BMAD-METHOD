@@ -48,6 +48,7 @@ function makeFixture() {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-self-improve-invariants-'));
   for (const relativePath of [
     'tools/bmad-planning-capabilities.json',
+    'tools/self-improve-checkpoint-contract.json',
     'tools/validate-bmad-planning-capabilities.js',
     'tools/workspace/packet.js',
     'docs/workspace/self-improvement-automation-policy.md',
@@ -109,11 +110,82 @@ function assertInvalidWithAll(root, expectedFragments, extra = {}) {
   }
 }
 
-function runValidatorCli(root) {
-  return spawnSync(process.execPath, [validatorPath, '--project-root', root], {
+function runValidatorCli(root, extraArgs = []) {
+  return spawnSync(process.execPath, [validatorPath, '--project-root', root, ...extraArgs], {
     encoding: 'utf8',
     env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
   });
+}
+
+function currentRepoHead() {
+  const result = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], {
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  return result.stdout.trim();
+}
+
+function writeTempCheckpoint({
+  finalHeadSha = currentRepoHead(),
+  includeFinalHeadSha = true,
+  continuationAllowed = true,
+  overrides = {},
+} = {}) {
+  const checkpointPath = path.join(os.tmpdir(), `bmad-self-improve-checkpoint-${process.pid}-${Date.now()}.md`);
+  const activationState = {
+    repo_quality: 'pass',
+    repo_local_install: 'pass',
+    active_user_install: 'pass',
+    active_skill_hash: 'match',
+    refresh_state: 'known_good',
+    ...overrides.activation_state,
+  };
+  const evidenceGates = {
+    quality_gate: 'pass',
+    repo_local_install_gate: 'pass',
+    active_user_install_gate: 'pass',
+    hash_gate: 'match',
+    refresh_gate: 'known_good',
+    ...overrides.evidence_gates,
+  };
+  const finalHeadLine = includeFinalHeadSha ? `- Final HEAD SHA: ${finalHeadSha}` : '';
+  const checkpoint = `# BMAD Self-Improvement Checkpoint
+
+## Objective
+
+- Test checkpoint.
+
+## Activation State
+
+\`\`\`yaml self_improvement_checkpoint
+activation_state:
+  repo_quality: ${activationState.repo_quality}
+  repo_local_install: ${activationState.repo_local_install}
+  active_user_install: ${activationState.active_user_install}
+  active_skill_hash: ${activationState.active_skill_hash}
+  refresh_state: ${activationState.refresh_state}
+resume_contract:
+  continuation_allowed: ${continuationAllowed}
+  reason: "Fixture resume contract."
+  required_before_resume: []
+session_identity:
+  codex_thread_id: "codex-thread-example"
+  workspace_session_id: null
+  classification: codex_thread_only
+evidence_gates:
+  quality_gate: ${evidenceGates.quality_gate}
+  repo_local_install_gate: ${evidenceGates.repo_local_install_gate}
+  active_user_install_gate: ${evidenceGates.active_user_install_gate}
+  hash_gate: ${evidenceGates.hash_gate}
+  refresh_gate: ${evidenceGates.refresh_gate}
+\`\`\`
+
+## Local Commits
+
+${finalHeadLine}
+`;
+  fs.writeFileSync(checkpointPath, checkpoint);
+  return checkpointPath;
 }
 
 function replaceCheckpointExample(root, fixtureName) {
@@ -348,8 +420,8 @@ function testResumePromptRejectsUnbalancedMarkdownFences() {
   replaceInFile(
     root,
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
-    'remaining risks\n```',
-    'remaining risks\n```\n```',
+    'remaining risks\n````',
+    'remaining risks\n````\n```',
   );
   assertInvalidWithAll(root, ['SI_MARKDOWN_FENCE_UNBALANCED', 'self-improvement-codex-resume-prompt.md']);
 }
@@ -515,6 +587,81 @@ function testPlanningCapabilityVendorManifestEntryRequired() {
   assertInvalidWithAll(root, ['BPC_VENDOR', 'grill-me']);
 }
 
+function testResumeModeAllowsBlockedCheckpointWithoutContinuationRequirement() {
+  const checkpointPath = writeTempCheckpoint({
+    continuationAllowed: false,
+    overrides: {
+      activation_state: {
+        active_user_install: 'blocked',
+        active_skill_hash: 'unknown',
+        refresh_state: 'unknown',
+      },
+      evidence_gates: {
+        active_user_install_gate: 'blocked',
+        hash_gate: 'unknown',
+        refresh_gate: 'unknown',
+      },
+    },
+  });
+  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+}
+
+function testResumeModeBlocksCheckpointWhenContinuationFalse() {
+  const checkpointPath = writeTempCheckpoint({
+    continuationAllowed: false,
+    overrides: {
+      activation_state: {
+        active_user_install: 'blocked',
+        active_skill_hash: 'unknown',
+        refresh_state: 'unknown',
+      },
+      evidence_gates: {
+        active_user_install_gate: 'blocked',
+        hash_gate: 'unknown',
+        refresh_gate: 'unknown',
+      },
+    },
+  });
+  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_CONTINUATION_BLOCKED'), output);
+  assert(output.includes(checkpointPath), output);
+  assert(output.includes('resume_contract.continuation_allowed'), output);
+}
+
+function testResumeModeRequiresFinalHeadSha() {
+  const checkpointPath = writeTempCheckpoint({ includeFinalHeadSha: false });
+  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_HEAD_MISSING'), output);
+  assert(output.includes(checkpointPath), output);
+  assert(output.includes('Final HEAD SHA'), output);
+}
+
+function testResumeModeRejectsStaleFinalHeadSha() {
+  const checkpointPath = writeTempCheckpoint({ finalHeadSha: 'a'.repeat(40) });
+  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_STALE_HEAD'), output);
+  assert(output.includes(checkpointPath), output);
+  assert(output.includes('Final HEAD SHA'), output);
+}
+
+function testPlanningCapabilityRejectsUnknownAnchors() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-party-mode/SKILL.md',
+    'capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.',
+    'capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.\n- `capability:ghost`: should fail.',
+  );
+  assertInvalidWithAll(root, ['BPC_UNKNOWN_CAPABILITY_ANCHOR', 'capability:ghost', 'bmad-party-mode skill']);
+}
+
 function testInvalidCheckpointActivationStateFails() {
   const root = makeFixture();
   replaceCheckpointExample(root, 'invalid-activation-state.md');
@@ -592,6 +739,11 @@ function run() {
     testPlanningCapabilitySetupRefMismatchFails,
     testPlanningCapabilityModuleHelpRowsRequired,
     testPlanningCapabilityVendorManifestEntryRequired,
+    testResumeModeAllowsBlockedCheckpointWithoutContinuationRequirement,
+    testResumeModeBlocksCheckpointWhenContinuationFalse,
+    testResumeModeRequiresFinalHeadSha,
+    testResumeModeRejectsStaleFinalHeadSha,
+    testPlanningCapabilityRejectsUnknownAnchors,
     testInvalidCheckpointActivationStateFails,
     testInvalidCheckpointContinuationAllowedFails,
     testInvalidCheckpointFailedGateFails,

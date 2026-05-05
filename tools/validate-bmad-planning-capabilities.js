@@ -96,6 +96,7 @@ const FORBIDDEN_CAPABILITY_AUTOMATION_CLAIMS = Object.freeze([
   'adds Workspace schema',
   'changes Workspace schema',
 ]);
+const CAPABILITY_ANCHOR_PATTERN = /\bcapability:([a-z0-9][a-z0-9-]*)\b/g;
 
 function parseArgs(argv) {
   const args = { projectRoot: path.resolve(__dirname, '..') };
@@ -203,6 +204,7 @@ function validateBmadPlanningCapabilities(options = {}) {
   }
 
   validateCapabilityRegistry(registry, vendorManifest, contents, files, projectRoot, errors);
+  validateKnownCapabilityAnchors(contents, files, Object.keys(BMAD_PLANNING_SETUP_REFS), errors);
   validateModuleHelpRows(contents.moduleHelp, Object.keys(BMAD_PLANNING_SETUP_REFS), files.moduleHelp.relativePath, errors);
   validatePackageScripts(packageJson, files.packageJson.relativePath, errors);
 
@@ -278,6 +280,27 @@ function validateCapabilityRegistry(registry, vendorManifest, contents, files, p
   }
 
   validateCapabilityVendorManifest(expectedSlugs, vendorManifest, projectRoot, files.vendorManifest.relativePath, errors);
+}
+
+function validateKnownCapabilityAnchors(contents, files, expectedSlugs, errors) {
+  const allowedSlugs = new Set(expectedSlugs);
+  for (const sourceKey of REQUIRED_CAPABILITY_SURFACES) {
+    const content = contents[sourceKey] || '';
+    for (const match of content.matchAll(CAPABILITY_ANCHOR_PATTERN)) {
+      const slug = match[1];
+      if (!allowedSlugs.has(slug)) {
+        addError(
+          errors,
+          'BPC_UNKNOWN_CAPABILITY_ANCHOR',
+          `${files[sourceKey].label} references unknown BMAD planning capability anchor capability:${slug}`,
+          {
+            file: files[sourceKey].relativePath,
+            field: `capability:${slug}`,
+          },
+        );
+      }
+    }
+  }
 }
 
 function validateCapabilityEntry(slug, capability, contents, files, projectRoot, errors) {

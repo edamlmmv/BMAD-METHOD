@@ -1,5 +1,5 @@
 ---
-title: "bmad-self-improve Codex Automation Runbook"
+title: 'bmad-self-improve Codex Automation Runbook'
 description: Local Codex automation-capable BMAD self-improvement workflow
 ---
 
@@ -144,6 +144,14 @@ the exact info string `yaml self_improvement_checkpoint`. The block must record
 `activation_state`, `resume_contract`, `session_identity`, and `evidence_gates`.
 `resume_contract.continuation_allowed` may be true only when all activation
 state fields and matching evidence gates prove readiness.
+
+Before continuing from a real checkpoint, run:
+
+```text
+node tools/validate-self-improve-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
+```
+
+The default `npm run validate:self-improve-invariants` remains repo-contract-only and does not scan ignored local checkpoints. Resume-mode failures use stable codes: `SI_CHECKPOINT_CONTINUATION_BLOCKED`, `SI_CHECKPOINT_HEAD_MISSING`, and `SI_CHECKPOINT_STALE_HEAD`.
 
 ## Launch Prompt
 

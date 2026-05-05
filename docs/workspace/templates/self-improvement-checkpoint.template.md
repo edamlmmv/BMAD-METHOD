@@ -1,5 +1,5 @@
 ---
-title: "Self-Improvement Checkpoint Template"
+title: 'Self-Improvement Checkpoint Template'
 description: Checkpoint template for BMAD self-improvement automation runs
 ---
 
@@ -150,6 +150,14 @@ resume_contract:
 ```
 
 Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.
+
+Before continuing from this checkpoint, validate resume readiness:
+
+```text
+node tools/validate-self-improve-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
+```
+
+The default `npm run validate:self-improve-invariants` remains repo-contract-only. Resume-mode failures use `SI_CHECKPOINT_CONTINUATION_BLOCKED`, `SI_CHECKPOINT_HEAD_MISSING`, and `SI_CHECKPOINT_STALE_HEAD`.
 
 ## Session Identity
 

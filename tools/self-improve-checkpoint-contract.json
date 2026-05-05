@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "evidenceInfoString": "yaml self_improvement_checkpoint",
+  "topLevelMappings": ["activation_state", "resume_contract", "session_identity", "evidence_gates"],
+  "enums": {
+    "activation_state.repo_quality": ["pass", "fail", "unknown"],
+    "activation_state.repo_local_install": ["pass", "fail", "unknown"],
+    "activation_state.active_user_install": ["pass", "fail", "blocked", "unknown"],
+    "activation_state.active_skill_hash": ["match", "mismatch", "unknown"],
+    "activation_state.refresh_state": ["known_good", "failed", "blocked", "unknown"],
+    "session_identity.classification": ["valid_workspace_session", "codex_thread_only", "session_not_found", "unknown"],
+    "evidence_gates.quality_gate": ["pass", "fail", "unknown"],
+    "evidence_gates.repo_local_install_gate": ["pass", "fail", "unknown"],
+    "evidence_gates.active_user_install_gate": ["pass", "fail", "blocked", "unknown"],
+    "evidence_gates.hash_gate": ["match", "mismatch", "unknown"],
+    "evidence_gates.refresh_gate": ["known_good", "failed", "blocked", "unknown"]
+  },
+  "continuationPassingValues": {
+    "activation_state.repo_quality": "pass",
+    "activation_state.repo_local_install": "pass",
+    "activation_state.active_user_install": "pass",
+    "activation_state.active_skill_hash": "match",
+    "activation_state.refresh_state": "known_good",
+    "evidence_gates.quality_gate": "pass",
+    "evidence_gates.repo_local_install_gate": "pass",
+    "evidence_gates.active_user_install_gate": "pass",
+    "evidence_gates.hash_gate": "match",
+    "evidence_gates.refresh_gate": "known_good"
+  },
+  "finalHeadSha": {
+    "fieldLabel": "Final HEAD SHA",
+    "pattern": "^[a-f0-9]{40}$"
+  }
+}

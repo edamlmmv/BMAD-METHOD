@@ -1,5 +1,5 @@
 ---
-title: "Self-Improvement Resume Prompt"
+title: 'Self-Improvement Resume Prompt'
 description: Prompt template for resuming BMAD self-improvement automation in Codex
 ---
 
@@ -7,7 +7,7 @@ description: Prompt template for resuming BMAD self-improvement automation in Co
 
 Use this prompt when context runs low or a fresh Codex chat must continue a BMAD self-improvement run.
 
-```md
+````md
 [$caveman]({skill-root}/caveman/SKILL.md)
 [$bmad-help]({skill-root}/bmad-help/SKILL.md)
 [$bmad-workspace]({skill-root}/bmad-workspace/SKILL.md)
@@ -23,6 +23,7 @@ Use the Foreground Resume Quickstart in `docs/workspace/self-improvement-codex.m
 Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
 
 Self-Improve consumes these shared capabilities when its run needs them:
+
 - `capability:zoom-out` `zoom-out`: resume any bounded reframing decision only if the checkpoint says framing changed.
 - `capability:tdd` `tdd`: preserve failing-test-first evidence and continue the next red-green-refactor slice.
 - `capability:ubiquitous-language` `ubiquitous-language`: preserve canonical term decisions and check new wording against them.
@@ -41,6 +42,14 @@ First read:
 - Activation State
 - Resume Contract
 - Session Identity
+
+Run resume-mode validation before continuing from the checkpoint:
+
+```text
+node tools/validate-self-improve-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
+```
+
+The default `npm run validate:self-improve-invariants` validates repo contracts only; it does not fail because ignored local checkpoints are blocked. Treat `SI_CHECKPOINT_CONTINUATION_BLOCKED`, `SI_CHECKPOINT_HEAD_MISSING`, and `SI_CHECKPOINT_STALE_HEAD` as stop signals.
 
 Resume from the next exact task. Do not restart discovery unless the checkpoint says the plan is invalid. Preserve Party Mode decisions unless they conflict with repo rules, tests, policy, or safety.
 
@@ -75,4 +84,4 @@ Before final response, record:
 - continuation decision
 - next operator decision
 - remaining risks
-```
+````

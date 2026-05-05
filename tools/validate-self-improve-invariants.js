@@ -7,6 +7,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const yaml = require('yaml');
 const { validateBmadPlanningCapabilities } = require('./validate-bmad-planning-capabilities');
 
@@ -42,6 +43,10 @@ const CONTRACT_FILES = {
   checkpointExample: {
     label: 'checkpoint example',
     relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-checkpoint.example.md'),
+  },
+  checkpointContract: {
+    label: 'checkpoint contract',
+    relativePath: path.join('tools', 'self-improve-checkpoint-contract.json'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -280,34 +285,6 @@ const FORBIDDEN_SELF_IMPROVE_PHRASES = [
 ];
 
 const ALLOWED_TEMPLATE_PLACEHOLDERS = new Set(['skill-root', 'project-root', 'output_folder']);
-const CHECKPOINT_EVIDENCE_INFO_STRING = 'yaml self_improvement_checkpoint';
-const CHECKPOINT_EVIDENCE_TOP_LEVEL_KEYS = Object.freeze(['activation_state', 'resume_contract', 'session_identity', 'evidence_gates']);
-const CHECKPOINT_EVIDENCE_ENUMS = Object.freeze({
-  'activation_state.repo_quality': ['pass', 'fail', 'unknown'],
-  'activation_state.repo_local_install': ['pass', 'fail', 'unknown'],
-  'activation_state.active_user_install': ['pass', 'fail', 'blocked', 'unknown'],
-  'activation_state.active_skill_hash': ['match', 'mismatch', 'unknown'],
-  'activation_state.refresh_state': ['known_good', 'failed', 'blocked', 'unknown'],
-  'session_identity.classification': ['valid_workspace_session', 'codex_thread_only', 'session_not_found', 'unknown'],
-  'evidence_gates.quality_gate': ['pass', 'fail', 'unknown'],
-  'evidence_gates.repo_local_install_gate': ['pass', 'fail', 'unknown'],
-  'evidence_gates.active_user_install_gate': ['pass', 'fail', 'blocked', 'unknown'],
-  'evidence_gates.hash_gate': ['match', 'mismatch', 'unknown'],
-  'evidence_gates.refresh_gate': ['known_good', 'failed', 'blocked', 'unknown'],
-});
-
-const CHECKPOINT_CONTINUATION_PASSING_VALUES = Object.freeze({
-  'activation_state.repo_quality': 'pass',
-  'activation_state.repo_local_install': 'pass',
-  'activation_state.active_user_install': 'pass',
-  'activation_state.active_skill_hash': 'match',
-  'activation_state.refresh_state': 'known_good',
-  'evidence_gates.quality_gate': 'pass',
-  'evidence_gates.repo_local_install_gate': 'pass',
-  'evidence_gates.active_user_install_gate': 'pass',
-  'evidence_gates.hash_gate': 'match',
-  'evidence_gates.refresh_gate': 'known_good',
-});
 
 const REQUIRED_SEQUENCE_CONTRACTS = [
   {
@@ -388,15 +365,38 @@ const REQUIRED_SEQUENCE_CONTRACTS = [
 ];
 
 function parseArgs(argv) {
-  const args = { projectRoot: path.resolve(__dirname, '..'), baselinePolicy: null };
+  const args = {
+    projectRoot: path.resolve(__dirname, '..'),
+    baselinePolicy: null,
+    checkpoint: null,
+    requireContinuationAllowed: false,
+  };
   for (let index = 2; index < argv.length; index++) {
     const arg = argv[index];
-    if (arg === '--project-root') {
-      args.projectRoot = path.resolve(argv[++index]);
-    } else if (arg === '--baseline-policy') {
-      args.baselinePolicy = path.resolve(argv[++index]);
-    } else {
-      throw new Error(`unknown argument: ${arg}`);
+    switch (arg) {
+      case '--project-root': {
+        args.projectRoot = path.resolve(argv[++index]);
+
+        break;
+      }
+      case '--baseline-policy': {
+        args.baselinePolicy = path.resolve(argv[++index]);
+
+        break;
+      }
+      case '--checkpoint': {
+        args.checkpoint = path.resolve(argv[++index]);
+
+        break;
+      }
+      case '--require-continuation-allowed': {
+        args.requireContinuationAllowed = true;
+
+        break;
+      }
+      default: {
+        throw new Error(`unknown argument: ${arg}`);
+      }
     }
   }
   return args;
@@ -422,6 +422,54 @@ function readRequired(filePath, errors, fileLabel = filePath) {
     addError(errors, 'SI_FILE_READ_FAILED', `could not read required file: ${fileLabel}: ${error.message}`, { file: fileLabel });
     return null;
   }
+}
+
+function parseJsonRequired(content, sourceName, fileLabel, errors, errorCode) {
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    addError(errors, errorCode, `${sourceName} contains invalid JSON: ${error.message}`, { file: fileLabel });
+    return null;
+  }
+}
+
+function validateCheckpointContract(contract, sourceName, fileLabel, errors) {
+  if (!contract || typeof contract !== 'object' || Array.isArray(contract)) {
+    addError(errors, 'SI_CHECKPOINT_CONTRACT_JSON', `${sourceName} must be a JSON object`, { file: fileLabel });
+    return false;
+  }
+  if (contract.schemaVersion !== 1) {
+    addError(errors, 'SI_CHECKPOINT_CONTRACT_JSON', `${sourceName} schemaVersion must be 1`, {
+      file: fileLabel,
+      field: 'schemaVersion',
+    });
+  }
+  for (const [field, expectedType] of [
+    ['evidenceInfoString', 'string'],
+    ['enums', 'object'],
+    ['continuationPassingValues', 'object'],
+    ['finalHeadSha', 'object'],
+  ]) {
+    if (typeof contract[field] !== expectedType || contract[field] === null || Array.isArray(contract[field])) {
+      addError(errors, 'SI_CHECKPOINT_CONTRACT_JSON', `${sourceName} missing valid field: ${field}`, {
+        file: fileLabel,
+        field,
+      });
+    }
+  }
+  if (!Array.isArray(contract.topLevelMappings) || contract.topLevelMappings.length === 0) {
+    addError(errors, 'SI_CHECKPOINT_CONTRACT_JSON', `${sourceName} topLevelMappings must be a non-empty array`, {
+      file: fileLabel,
+      field: 'topLevelMappings',
+    });
+  }
+  if (!contract.finalHeadSha || typeof contract.finalHeadSha.fieldLabel !== 'string' || typeof contract.finalHeadSha.pattern !== 'string') {
+    addError(errors, 'SI_CHECKPOINT_CONTRACT_JSON', `${sourceName} finalHeadSha requires fieldLabel and pattern`, {
+      file: fileLabel,
+      field: 'finalHeadSha',
+    });
+  }
+  return errors.length === 0;
 }
 
 function hasTerm(content, term) {
@@ -570,28 +618,25 @@ function getPathValue(object, fieldPath) {
   }, object);
 }
 
-function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
-  const blocks = [...content.matchAll(/^```yaml self_improvement_checkpoint[ \t]*\r?\n([\s\S]*?)^```[ \t]*$/gm)].map((match) => match[1]);
+function validateCheckpointEvidence(content, sourceName, fileLabel, errors, checkpointContract, options = {}) {
+  const infoString = checkpointContract.evidenceInfoString;
+  const blockPattern = new RegExp(`^\`\`\`${escapeRegExp(infoString)}[ \\t]*\\r?\\n([\\s\\S]*?)^\`\`\`[ \\t]*$`, 'gm');
+  const blocks = [...content.matchAll(blockPattern)].map((match) => match[1]);
 
   if (blocks.length === 0) {
-    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MISSING', `${sourceName} missing ${CHECKPOINT_EVIDENCE_INFO_STRING} block`, {
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MISSING', `${sourceName} missing ${infoString} block`, {
       file: fileLabel,
-      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+      field: infoString,
     });
-    return;
+    return null;
   }
 
   if (blocks.length > 1) {
-    addError(
-      errors,
-      'SI_CHECKPOINT_EVIDENCE_MALFORMED',
-      `${sourceName} must contain exactly one ${CHECKPOINT_EVIDENCE_INFO_STRING} block`,
-      {
-        file: fileLabel,
-        field: CHECKPOINT_EVIDENCE_INFO_STRING,
-      },
-    );
-    return;
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} must contain exactly one ${infoString} block`, {
+      file: fileLabel,
+      field: infoString,
+    });
+    return null;
   }
 
   let parsed;
@@ -600,20 +645,20 @@ function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
   } catch (error) {
     addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence YAML is invalid: ${error.message}`, {
       file: fileLabel,
-      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+      field: infoString,
     });
-    return;
+    return null;
   }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence must be a YAML mapping`, {
       file: fileLabel,
-      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+      field: infoString,
     });
-    return;
+    return null;
   }
 
-  for (const key of CHECKPOINT_EVIDENCE_TOP_LEVEL_KEYS) {
+  for (const key of checkpointContract.topLevelMappings) {
     if (!parsed[key] || typeof parsed[key] !== 'object' || Array.isArray(parsed[key])) {
       addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence missing mapping: ${key}`, {
         file: fileLabel,
@@ -622,7 +667,7 @@ function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
     }
   }
 
-  for (const [fieldPath, allowedValues] of Object.entries(CHECKPOINT_EVIDENCE_ENUMS)) {
+  for (const [fieldPath, allowedValues] of Object.entries(checkpointContract.enums)) {
     const value = getPathValue(parsed, fieldPath);
     if (!allowedValues.includes(value)) {
       addError(
@@ -643,19 +688,25 @@ function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
       file: fileLabel,
       field: 'resume_contract.continuation_allowed',
     });
-    return;
+    return parsed;
   }
 
   if (!continuationAllowed) {
-    return;
+    if (options.requireContinuationAllowed) {
+      addError(errors, 'SI_CHECKPOINT_CONTINUATION_BLOCKED', `${sourceName} continuation is not allowed`, {
+        file: fileLabel,
+        field: 'resume_contract.continuation_allowed',
+      });
+    }
+    return parsed;
   }
 
-  for (const [fieldPath, expectedValue] of Object.entries(CHECKPOINT_CONTINUATION_PASSING_VALUES)) {
+  for (const [fieldPath, expectedValue] of Object.entries(checkpointContract.continuationPassingValues)) {
     const actualValue = getPathValue(parsed, fieldPath);
     if (actualValue !== expectedValue) {
       addError(
         errors,
-        'SI_CHECKPOINT_UNSAFE_CONTINUATION',
+        options.requireContinuationAllowed ? 'SI_CHECKPOINT_CONTINUATION_BLOCKED' : 'SI_CHECKPOINT_UNSAFE_CONTINUATION',
         `${sourceName} resume_contract.continuation_allowed requires ${fieldPath}=${expectedValue}`,
         {
           file: fileLabel,
@@ -664,6 +715,57 @@ function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
       );
     }
   }
+  return parsed;
+}
+
+function escapeRegExp(value) {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+function validateCheckpointHeadSha(content, sourceName, fileLabel, projectRoot, checkpointContract, errors) {
+  const { fieldLabel, pattern } = checkpointContract.finalHeadSha;
+  const finalHeadPattern = new RegExp(`^\\s*-\\s*${escapeRegExp(fieldLabel)}:\\s*(\\S+)\\s*$`, 'im');
+  const match = content.match(finalHeadPattern);
+  const shaPattern = new RegExp(pattern);
+  if (!match || !shaPattern.test(match[1])) {
+    addError(errors, 'SI_CHECKPOINT_HEAD_MISSING', `${sourceName} missing valid ${fieldLabel}`, {
+      file: fileLabel,
+      field: fieldLabel,
+    });
+    return;
+  }
+
+  let currentHead;
+  try {
+    currentHead = execFileSync('git', ['-C', projectRoot, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  } catch (error) {
+    addError(errors, 'SI_CHECKPOINT_HEAD_MISSING', `${sourceName} could not read current HEAD: ${error.message}`, {
+      file: fileLabel,
+      field: fieldLabel,
+    });
+    return;
+  }
+
+  if (match[1] !== currentHead) {
+    addError(errors, 'SI_CHECKPOINT_STALE_HEAD', `${sourceName} ${fieldLabel} does not match current HEAD`, {
+      file: fileLabel,
+      field: fieldLabel,
+    });
+  }
+}
+
+function validateResumeCheckpoint({ checkpointPath, requireContinuationAllowed, projectRoot, checkpointContract, errors }) {
+  const checkpointContent = readRequired(checkpointPath, errors, checkpointPath);
+  if (!checkpointContent) {
+    return;
+  }
+  validateCheckpointEvidence(checkpointContent, 'resume checkpoint', checkpointPath, errors, checkpointContract, {
+    requireContinuationAllowed,
+  });
+  validateCheckpointHeadSha(checkpointContent, 'resume checkpoint', checkpointPath, projectRoot, checkpointContract, errors);
 }
 
 function validateSelfImproveInvariants(options = {}) {
@@ -695,6 +797,19 @@ function validateSelfImproveInvariants(options = {}) {
     addError(errors, 'SI_PACKAGE_JSON_INVALID', `package.json contains invalid JSON: ${error.message}`, {
       file: files.packageJson.relativePath,
     });
+    return { ok: false, errors };
+  }
+  const checkpointContract = parseJsonRequired(
+    contents.checkpointContract,
+    'checkpoint contract',
+    files.checkpointContract.relativePath,
+    errors,
+    'SI_CHECKPOINT_CONTRACT_JSON',
+  );
+  if (checkpointContract) {
+    validateCheckpointContract(checkpointContract, 'checkpoint contract', files.checkpointContract.relativePath, errors);
+  }
+  if (!checkpointContract) {
     return { ok: false, errors };
   }
 
@@ -757,7 +872,7 @@ function validateSelfImproveInvariants(options = {}) {
     errors,
     files.guide.relativePath,
   );
-  validateCheckpointEvidence(checkpointExample, 'checkpoint example', files.checkpointExample.relativePath, errors);
+  validateCheckpointEvidence(checkpointExample, 'checkpoint example', files.checkpointExample.relativePath, errors, checkpointContract);
   requireTerms(
     resume,
     [
@@ -810,6 +925,16 @@ function validateSelfImproveInvariants(options = {}) {
     });
   }
 
+  if (options.checkpoint) {
+    validateResumeCheckpoint({
+      checkpointPath: options.checkpoint,
+      requireContinuationAllowed: Boolean(options.requireContinuationAllowed),
+      projectRoot,
+      checkpointContract,
+      errors,
+    });
+  }
+
   const planningCapabilityResult = validateBmadPlanningCapabilities({ projectRoot });
   if (!planningCapabilityResult.ok) {
     errors.push(...planningCapabilityResult.errors);
@@ -820,7 +945,12 @@ function validateSelfImproveInvariants(options = {}) {
 
 function main() {
   const args = parseArgs(process.argv);
-  const result = validateSelfImproveInvariants({ projectRoot: args.projectRoot, baselinePolicy: args.baselinePolicy });
+  const result = validateSelfImproveInvariants({
+    projectRoot: args.projectRoot,
+    baselinePolicy: args.baselinePolicy,
+    checkpoint: args.checkpoint,
+    requireContinuationAllowed: args.requireContinuationAllowed,
+  });
   if (!result.ok) {
     for (const error of result.errors) {
       console.error(`SELF_IMPROVE_INVARIANT: ${error}`);
