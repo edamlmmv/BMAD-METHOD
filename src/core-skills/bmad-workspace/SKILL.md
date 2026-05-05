@@ -309,8 +309,8 @@ bmad workspace verify-archive <archive-dir>
 
 Verify checks `manifest.json`, required files, safe relative paths, SHA-256
 checksums, archived result shape, archived closeout shape, Review Manifest
-shape, and Evidence Index shape for current `archiveVersion: 2` bundles. It
-rejects old archive formats. It does not fetch, repair, probe repos, restore,
+shape, and Evidence Index shape for archives that match the current Workspace
+archive manifest contract. It does not fetch, repair, probe repos, restore,
 import, execute, schedule, merge, or change durable state.
 
 ## Diff
@@ -324,8 +324,8 @@ bmad workspace diff --left <archive-dir> --right <archive-dir>
 
 Diff emits JSON with `schemaVersion: 1`, `diffVersion: 1`, source descriptors,
 summary counts, file deltas, status deltas, Evidence Index deltas, packet
-deltas, and closeout deltas. Inputs must be verified current Workspace archives.
-Old archive formats are rejected before comparison.
+deltas, and closeout deltas. Inputs must verify under the current Workspace
+archive manifest contract before comparison.
 
 Diff is read-only. It does not fetch, repair, restore, replay, import, sync,
 apply, merge, promote, schedule, watch, execute, or activate adapters.

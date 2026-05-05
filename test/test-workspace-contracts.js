@@ -332,15 +332,13 @@ function findWorkspaceRemovedContractRefsOutsideHistory() {
     path.join(repoRoot, 'test', 'test-workspace-contracts.js'),
     path.join(repoRoot, 'test', 'test-workspace-cli.js'),
   ];
-  const bannedTerms = [
+  const removedContractTerms = [
     ['legacy', 'missing'].join('-'),
     ['legacy', 'workspace', 'artifact', 'unsupported'].join('-'),
     ['mission', 'Id'].join(''),
     ['mission', 'Root'].join(''),
     ['mission', 'Type'].join(''),
     ['mission', '-id'].join(''),
-    ['archiveVersion:', '1'].join(' '),
-    ['backward', 'compatibility'].join(' '),
   ];
   const findings = [];
 
@@ -351,9 +349,68 @@ function findWorkspaceRemovedContractRefsOutsideHistory() {
     const relativePath = path.relative(repoRoot, filePath).split(path.sep).join('/');
     const lines = fs.readFileSync(filePath, 'utf8').split('\n');
     for (const [index, line] of lines.entries()) {
-      const matches = bannedTerms.filter((term) => line.includes(term));
+      const matches = removedContractTerms.filter((term) => line.includes(term));
       if (matches.length > 0) {
         findings.push(`${relativePath}:${index + 1}: ${matches.join(', ')}`);
+      }
+    }
+  }
+
+  return findings;
+}
+
+function findWorkspaceArchiveContractDrift() {
+  const scannedFiles = [
+    ...listFiles(path.join(repoRoot, 'docs', 'workspace'), {
+      extensions: ['.md', '.json'],
+      skip: ['docs/workspace/vendor'],
+    }),
+    ...listFiles(path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace'), { extensions: ['.md'] }),
+    ...listFiles(path.join(repoRoot, 'tools', 'workspace'), { extensions: ['.js'] }),
+    path.join(repoRoot, 'test', 'test-workspace-contracts.js'),
+    path.join(repoRoot, 'test', 'test-workspace-cli.js'),
+  ];
+  const currentArchiveCodes = new Set([
+    'ARCHIVE_CHECKSUM_MISMATCH',
+    'ARCHIVE_CLOSEOUT_INVALID',
+    'ARCHIVE_CLOSEOUT_REF_MISSING',
+    'ARCHIVE_CLOSEOUT_SECRET_DETECTED',
+    'ARCHIVE_EVIDENCE_INDEX_INVALID',
+    'ARCHIVE_EXECUTOR_CONTRACT_INVALID',
+    'ARCHIVE_EXECUTOR_CONTRACT_MISSING',
+    'ARCHIVE_EXECUTOR_CONTRACT_REF_MISSING',
+    'ARCHIVE_FILE_MISSING',
+    'ARCHIVE_MANIFEST_INVALID',
+    'ARCHIVE_MANIFEST_MISSING',
+    'ARCHIVE_NOT_FOUND',
+    'ARCHIVE_OUTPUT_EXISTS',
+    'ARCHIVE_OUTPUT_UNSAFE',
+    'ARCHIVE_OUTPUT_UNWRITABLE',
+    'ARCHIVE_PACKET_INVALID',
+    'ARCHIVE_RESULT_INVALID',
+    'ARCHIVE_RESULT_SECRET_DETECTED',
+    'ARCHIVE_REVIEW_MANIFEST_INVALID',
+    'ARCHIVE_UNSAFE_PATH',
+    'ARCHIVE_VERSION',
+    'DIFF_ARCHIVE_INVALID',
+  ]);
+  const findings = [];
+
+  for (const filePath of scannedFiles) {
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const relativePath = path.relative(repoRoot, filePath).split(path.sep).join('/');
+    const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+    for (const [index, line] of lines.entries()) {
+      const archiveCodes = line.match(/\b(?:ARCHIVE|DIFF_ARCHIVE)_[A-Z_]+\b/g) || [];
+      const unexpectedCodes = archiveCodes.filter((code) => !currentArchiveCodes.has(code));
+      if (unexpectedCodes.length > 0) {
+        findings.push(`${relativePath}:${index + 1}: unexpected archive code ${unexpectedCodes.join(', ')}`);
+      }
+      const archiveVersionLiteral = line.match(/\barchiveVersion:\s*([0-9]+)/);
+      if (archiveVersionLiteral && archiveVersionLiteral[1] !== '2') {
+        findings.push(`${relativePath}:${index + 1}: non-current archiveVersion literal`);
       }
     }
   }
@@ -1188,7 +1245,10 @@ function runTests() {
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
-    assert(historyArchive.includes('Strict reject of old Workspace packet'), 'history records strict reject plan');
+    assert(
+      historyArchive.includes('Current Workspace packet, routing, executor, archive, and diff contracts'),
+      'history records current contract plan',
+    );
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
@@ -1297,6 +1357,8 @@ function runTests() {
       'removed Workspace contract refs stay out of current surfaces',
       removedContractFindings.join('\n'),
     );
+    const archiveContractFindings = findWorkspaceArchiveContractDrift();
+    assert(archiveContractFindings.length === 0, 'archive contract surfaces stay current', archiveContractFindings.join('\n'));
   }
 
   section('Workspace Compiled History');

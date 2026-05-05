@@ -2542,25 +2542,22 @@ function runTests() {
       verifyUnknownFieldArchiveText,
     );
 
-    const removedVersionArchiveRoot = path.join(tempRoot, 'archive-removed-version');
-    copyTree(archiveRoot, removedVersionArchiveRoot);
-    const removedVersionManifestPath = path.join(removedVersionArchiveRoot, 'manifest.json');
-    const removedVersionManifest = readJson(removedVersionManifestPath);
-    removedVersionManifest[['archive', 'Version'].join('')] = Number('1');
-    delete removedVersionManifest.evidenceIndexRef;
-    removedVersionManifest.files = removedVersionManifest.files.filter((file) => file.path !== 'evidence-index.json');
-    fs.rmSync(path.join(removedVersionArchiveRoot, 'evidence-index.json'));
-    fs.writeFileSync(removedVersionManifestPath, `${JSON.stringify(removedVersionManifest, null, 2)}\n`);
-    rewriteArchiveChecksums(removedVersionArchiveRoot);
-    const verifyRemovedVersionArchive = runCli(['workspace', 'verify-archive', removedVersionArchiveRoot], {
+    const invalidManifestArchiveRoot = path.join(tempRoot, 'archive-invalid-manifest');
+    copyTree(archiveRoot, invalidManifestArchiveRoot);
+    const invalidManifestPath = path.join(invalidManifestArchiveRoot, 'manifest.json');
+    const contractMismatchManifest = readJson(invalidManifestPath);
+    contractMismatchManifest.archiveVersion = 'current-contract-mismatch';
+    fs.writeFileSync(invalidManifestPath, `${JSON.stringify(contractMismatchManifest, null, 2)}\n`);
+    rewriteArchiveChecksums(invalidManifestArchiveRoot);
+    const verifyInvalidManifestArchive = runCli(['workspace', 'verify-archive', invalidManifestArchiveRoot], {
       cwd: baseRepo.path,
     });
-    const verifyRemovedVersionArchiveText = `${verifyRemovedVersionArchive.stdout}\n${verifyRemovedVersionArchive.stderr}`;
-    assert(verifyRemovedVersionArchive.status !== 0, 'verify-archive rejects removed archive version', verifyRemovedVersionArchiveText);
+    const verifyInvalidManifestArchiveText = `${verifyInvalidManifestArchive.stdout}\n${verifyInvalidManifestArchive.stderr}`;
+    assert(verifyInvalidManifestArchive.status !== 0, 'verify-archive rejects invalid archive manifest', verifyInvalidManifestArchiveText);
     assert(
-      verifyRemovedVersionArchiveText.includes('ARCHIVE_UNSUPPORTED_VERSION'),
-      'verify-archive removed version names unsupported archive',
-      verifyRemovedVersionArchiveText,
+      verifyInvalidManifestArchiveText.includes('ARCHIVE_MANIFEST_INVALID'),
+      'verify-archive invalid manifest names stable error',
+      verifyInvalidManifestArchiveText,
     );
 
     section('Workspace Diff');
@@ -2664,15 +2661,16 @@ function runTests() {
       addedRemovedDiffText,
     );
 
-    const removedCurrentDiff = runCli(['workspace', 'diff', '--left', removedVersionArchiveRoot, '--right', archiveRoot], {
+    const invalidManifestCurrentDiff = runCli(['workspace', 'diff', '--left', invalidManifestArchiveRoot, '--right', archiveRoot], {
       cwd: baseRepo.path,
     });
-    const removedCurrentDiffText = `${removedCurrentDiff.stdout}\n${removedCurrentDiff.stderr}`;
-    assert(removedCurrentDiff.status !== 0, 'diff rejects removed archive version', removedCurrentDiffText);
+    const invalidManifestCurrentDiffText = `${invalidManifestCurrentDiff.stdout}\n${invalidManifestCurrentDiff.stderr}`;
+    assert(invalidManifestCurrentDiff.status !== 0, 'diff rejects invalid archive manifest', invalidManifestCurrentDiffText);
     assert(
-      removedCurrentDiffText.includes('DIFF_ARCHIVE_INVALID') && removedCurrentDiffText.includes('ARCHIVE_UNSUPPORTED_VERSION'),
-      'diff removed version names invalid archive',
-      removedCurrentDiffText,
+      invalidManifestCurrentDiffText.includes('DIFF_ARCHIVE_INVALID') &&
+        invalidManifestCurrentDiffText.includes('ARCHIVE_MANIFEST_INVALID'),
+      'diff invalid manifest names invalid archive',
+      invalidManifestCurrentDiffText,
     );
 
     const invalidExecutorArchiveRoot = path.join(tempRoot, 'invalid-executor-archive');

@@ -395,7 +395,7 @@ function validateManifestShape(manifest) {
     }
   }
   if (manifest.schemaVersion !== 1 || manifest.archiveVersion !== ARCHIVE_VERSION) {
-    throw new Error(`ARCHIVE_UNSUPPORTED_VERSION: expected schemaVersion 1 and archiveVersion ${ARCHIVE_VERSION}`);
+    throw new Error('ARCHIVE_MANIFEST_INVALID: manifest does not match the current Workspace archive contract');
   }
   for (const field of ['createdAt', 'sessionId', 'sessionType', 'statusRef', 'handoffRef', 'closeoutRef']) {
     if (typeof manifest[field] !== 'string' || manifest[field].trim() === '') {

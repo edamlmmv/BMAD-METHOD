@@ -332,12 +332,12 @@ This archive replaces the scattered per-release BMAD planning files that previou
 - Backlog: TDD-first backlog for Evidence Index and operator trust
 - Acceptance Tests: Acceptance tests for Evidence Index and operator trust
 - Traceability: Progress tracking for Evidence Index and operator trust
-- Overview: V14 adds a read-only Evidence Index so operators can inspect Workspace Session artifacts, checksums, validation state, and next manual actions without expanding runtime authority. It also upgrades new archives to V2 by including `evidence-index.json` while keeping V1 archive verification compatible.
+- Overview: V14 adds a read-only Evidence Index so operators can inspect Workspace Session artifacts, checksums, validation state, and next manual actions without expanding runtime authority. It also records `evidence-index.json` in new archive bundles for portable evidence review.
 - Goals:
   - Add read-only `bmad workspace evidence`.
   - Add `nextManualAction` to status and evidence checks.
-  - Include Evidence Index in new archive V2 bundles.
-  - Validate archive V2 Evidence Index shape and checksum.
+  - Include Evidence Index in new archive bundles.
+  - Validate archive Evidence Index shape and checksum.
   - Add Evidence Index section to handoff.
   - Add V14 docs, traceability, tests, and release readiness checks.
 - Non-goals:
@@ -365,7 +365,7 @@ This archive replaces the scattered per-release BMAD planning files that previou
   - Verify both archive inputs before comparing.
   - Compare archive file inventory by safe relative path, SHA-256, and byte size.
   - Compare status, packet, closeout, and Evidence Index data after removing
-  - Treat archive V1 Evidence Index as unavailable, not invalid.
+  - Represent missing Evidence Index data as unavailable in diff output.
   - Add V15 docs, tests, command contract updates, and source skill guidance.
 - Non-goals:
   - No `workspace compare` in V15.
@@ -436,15 +436,15 @@ This archive replaces the scattered per-release BMAD planning files that previou
 ### V20
 
 - Compiled artifacts: Compact Plan, Implementation, Contract Tests
-- Compact Plan: Strict reject of old Workspace packet, routing, executor, archive, and diff contracts
+- Compact Plan: Current Workspace packet, routing, executor, archive, and diff contracts
 - Implementation: Current Workspace validators and renderers now assume only the current contract
 - Contract Tests: Packet, archive, diff, status, handoff, docs, source skill, and guard scans cover removed compatibility paths
-- Overview: V20 removes old Workspace compatibility from current behavior. A current BMAD Work Packet must carry routing and an Executor Contract reference, unknown packet fields fail, old routing sources fail, missing executor contract state is invalid, archives must use the current archive format, and archive diff rejects old bundles before comparison.
+- Overview: V20 makes current Workspace behavior strict and explicit. A current BMAD Work Packet must carry routing and an Executor Contract reference, unknown packet fields fail, routing source validation is deterministic, missing executor contract state is invalid, archives must satisfy the current manifest contract, and archive diff compares verified bundles only.
 - Goals:
   - Require current Work Packet routing and Executor Contract references before render, status, archive, handoff, result, or closeout flows.
   - Remove synthetic routing and executor readiness fallback states from current code paths.
-  - Reject unsupported archive formats at verify and diff boundaries.
-  - Update current docs and source skill guidance so operators regenerate old Workspace artifacts instead of relying on compatibility.
+  - Validate archive manifests at verify and diff boundaries.
+  - Update current docs and source skill guidance so current Workspace artifacts are the canonical inputs.
   - Add regression tests and guard scans for removed Workspace contract terms outside history.
 - Non-goals:
   - No migration tool.

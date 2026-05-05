@@ -117,11 +117,11 @@ Review Manifest is an evidence map only. It never executes, restores, replays,
 imports, merges, promotes, fetches, schedules, watches, activates adapters, or
 turns review findings into approval.
 
-## Archive Formats
+## Archive Contract
 
 Current archives use `archiveVersion: 2` and include `evidence-index.json`.
-`verify-archive` rejects old archive formats and validates the Evidence Index
-shape and checksum for current bundles.
+`verify-archive` validates the current manifest contract, Evidence Index shape,
+and Evidence Index checksum for current bundles.
 
 ## Diff Shape
 
@@ -134,8 +134,8 @@ shape and checksum for current bundles.
 - `fileDeltas` grouped as added, removed, changed, and unchanged
 - `statusDeltas`, `evidenceDeltas`, `packetDeltas`, and `closeoutDeltas`
 
-Inputs must be verified current Workspace archives. Old archive formats are
-rejected before comparison.
+Inputs must verify under the current Workspace archive manifest contract before
+comparison.
 
 ## Non-Goals
 

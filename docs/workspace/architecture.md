@@ -289,7 +289,7 @@ bundles. It records:
 - file deltas by safe relative path, SHA-256, and bytes
 - status, packet, closeout, and Evidence Index deltas after volatile field
   normalization
-- rejection of old archive formats before comparison
+- verified current archive inputs before comparison
 
 The diff is not a restore plan, replay input, import input, merge instruction,
 promotion approval, scheduler input, watcher input, or adapter instruction.
