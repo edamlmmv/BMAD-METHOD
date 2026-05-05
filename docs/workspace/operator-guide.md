@@ -55,12 +55,14 @@ authorize hidden execution or Workspace mutation.
 
 ## Self-Improvement Prompt
 
-Use [Codex Self-Improvement Automation](./self-improvement-codex.md) when Codex
-is improving BMAD skills, prompts, Workspace templates, or Codex integration.
-The workflow requires Party Mode before planning, Party Mode again before
-implementation, TDD, compile/install evidence, and Codex refresh evidence. It is
-operator-run automation only; it does not authorize hidden execution, a
-scheduler, watcher, daemon, live adapter, or auto-promotion loop.
+Use [Manual bmad-self-improve Operator Runbook](./self-improvement-codex.md)
+when Codex is improving BMAD skills, prompts, Workspace templates, or Codex
+integration. `bmad-self-improve` is an operator-invoked BMAD skill, not Codex
+automation. Missing automation is expected. The workflow requires fixed launch
+inputs, Party Mode before planning, Party Mode again before implementation,
+TDD, compile/install evidence, and Codex refresh evidence. It does not authorize
+hidden execution, a scheduler, watcher, daemon, live adapter, auto-promotion
+loop, or `bmad-loop` execution authority.
 
 ## Evidence Index
 

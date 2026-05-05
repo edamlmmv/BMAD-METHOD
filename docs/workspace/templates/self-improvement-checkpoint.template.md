@@ -12,6 +12,19 @@ Do not commit generated run checkpoints by default.
 
 -
 
+## Question
+
+-
+
+## Mode and Inputs
+
+- Mode:
+- `repo_path`:
+- `branch`:
+- `scope`:
+- `target_skill_or_files`:
+- `stop_condition`:
+
 ## Party Mode Decision
 
 -
@@ -28,7 +41,15 @@ Do not commit generated run checkpoints by default.
 
 -
 
+## Changed Files
+
+-
+
 ## Tests Run
+
+-
+
+## Pass/Fail Output
 
 -
 
@@ -45,7 +66,7 @@ Record one value:
 - `refresh: requires Codex restart`
 - `refresh: unknown`
 
-## Next Exact Task
+## Next Operator Decision
 
 -
 

@@ -3562,6 +3562,26 @@ async function runTests() {
       ),
       'bmad-self-improve forbids hidden automation surfaces',
     );
+    assert(
+      skillContent45.includes('operator-invoked BMAD skill, not Codex automation'),
+      'bmad-self-improve states it is not Codex automation',
+    );
+    assert(skillContent45.includes('missing automation is expected'), 'bmad-self-improve explains missing automation');
+    assert(
+      skillContent45.includes('foreground, operator-started, one-shot unassisted run'),
+      'bmad-self-improve bounds one-shot unassisted mode',
+    );
+    for (const requiredInput45 of ['repo_path', 'branch', 'scope', 'target_skill_or_files', 'stop_condition']) {
+      assert(skillContent45.includes(requiredInput45), `bmad-self-improve requires ${requiredInput45}`);
+    }
+    assert(
+      skillContent45.includes('bmad-loop remains observe/coordination only; no execution authority'),
+      'bmad-self-improve keeps bmad-loop observe-only',
+    );
+    assert(
+      skillContent45.includes('stop condition is missing or not finite'),
+      'bmad-self-improve stops on missing or non-finite stop condition',
+    );
 
     const helpContent45 = await fs.readFile(sourceHelp45, 'utf8');
     assert(helpContent45.includes('Core,bmad-self-improve,'), 'module-help.csv routes bmad-self-improve');
@@ -3575,6 +3595,30 @@ async function runTests() {
       'self-improvement guide cites Codex skills refresh documentation',
     );
     assert(guideContent45.includes('global install remains out of scope'), 'self-improvement guide keeps global install out of scope');
+    assert(
+      guideContent45.includes('Manual `bmad-self-improve` Operator Runbook'),
+      'self-improvement guide exposes manual operator runbook',
+    );
+    assert(guideContent45.includes('Missing automation is expected'), 'self-improvement guide explains why no automation exists');
+    assert(
+      guideContent45.includes('bmad-loop remains observe/coordination only; no execution authority'),
+      'self-improvement guide documents bmad-loop boundary',
+    );
+
+    const promptContent45 = (await fs.pathExists(prompt45)) ? await fs.readFile(prompt45, 'utf8') : '';
+    assert(promptContent45.includes('Mode: manual operator-run'), 'self-improvement prompt includes manual mode');
+    assert(
+      promptContent45.includes('Mode: one-shot unassisted foreground run'),
+      'self-improvement prompt documents one-shot unassisted mode',
+    );
+    for (const requiredInput45 of ['Branch:', 'Scope:', 'Target skill or files:', 'Stop condition:']) {
+      assert(promptContent45.includes(requiredInput45), `self-improvement prompt includes ${requiredInput45}`);
+    }
+
+    const checkpointContent45 = (await fs.pathExists(checkpointTemplate45)) ? await fs.readFile(checkpointTemplate45, 'utf8') : '';
+    for (const checkpointField45 of ['Mode and Inputs', 'Changed Files', 'Pass/Fail Output', 'Next Operator Decision']) {
+      assert(checkpointContent45.includes(checkpointField45), `self-improvement checkpoint records ${checkpointField45}`);
+    }
 
     tempRoot45 = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-self-improve-source-'));
     const bmadDir45 = path.join(tempRoot45, '_bmad');

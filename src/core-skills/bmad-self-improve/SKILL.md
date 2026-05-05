@@ -7,18 +7,46 @@ description: 'Run a Codex operator workflow for improving BMAD itself. Use when 
 
 ## Purpose
 
+`bmad-self-improve` is an operator-invoked BMAD skill, not Codex automation.
+If no automation entry appears, missing automation is expected.
+
 Run a manual, evidence-first improvement cycle for BMAD. Codex performs the
 work, Party Mode supplies bounded decisions, and tests plus repo rules remain
 hard gates.
 
 This skill does not create or run scheduler, watcher, daemon, hidden executor,
 live adapter, or auto-promotion loop. It runs only when the operator invokes it.
+bmad-loop remains observe/coordination only; no execution authority.
 
 ## Inputs
 
-- Optional operator goal. If absent, Party Mode chooses the highest-value BMAD
-  improvement target inside current repo rules.
+- `repo_path` for the BMAD repository being improved.
+- `branch` expected for the run.
+- `scope` describing the narrow improvement boundary.
+- `target_skill_or_files` listing the skill, docs, code, or templates allowed.
+- `stop_condition` defining the finite endpoint, such as checkpoint written,
+  max files, max attempts, operator review, or specific test result.
+- Optional operator goal and question. If absent, Party Mode chooses the
+  highest-value BMAD improvement target inside current repo rules and the
+  declared scope.
 - Current repo state, installed BMAD config, and Workspace guardrails.
+
+## Run Modes
+
+Recommended mode: manual operator-run.
+
+Allowed alternate: foreground, operator-started, one-shot unassisted run with
+fixed `repo_path`, `branch`, `scope`, `target_skill_or_files`, and
+`stop_condition`. It ends at checkpoint and must not recur.
+
+Rejected modes:
+
+- Cron or recurring automation.
+- Watcher or daemon.
+- Hidden executor.
+- Live adapter.
+- Auto-promotion loop.
+- Self-expanding scope.
 
 ## Outputs
 
@@ -36,6 +64,10 @@ live adapter, or auto-promotion loop. It runs only when the operator invokes it.
 
 Stop and report when any condition appears:
 
+- Required launch input is missing.
+- stop condition is missing or not finite.
+- Current branch does not match `branch`.
+- Scope escape appears.
 - Quality gate or targeted test fails and next fix is unclear.
 - Change would be destructive, broad, or outside user intent.
 - Party Mode decision conflicts with repo rules, safety, or tests.
@@ -47,19 +79,23 @@ Stop and report when any condition appears:
 
 1. Verify repo instructions, current git state, `bmad --version`, and
    `bmad workspace --help`.
-2. Run `skill:bmad-party-mode` before writing any plan. Ask it to choose the
+2. Validate `repo_path`, `branch`, `scope`, `target_skill_or_files`, and
+   `stop_condition`. Stop before implementation if any input is missing or the
+   stop condition is not finite.
+3. Run `skill:bmad-party-mode` before writing any plan. Ask it to choose the
    highest-value improvement target, likely files, risks, and tests.
-3. Write a decision-complete plan. Include public behavior, acceptance criteria,
+4. Write a decision-complete plan. Include public behavior, acceptance criteria,
    TDD slices, compile/install steps, refresh probe, and checkpoint path.
-4. Run `skill:bmad-party-mode` again before implementation. Ask it to critique
+5. Run `skill:bmad-party-mode` again before implementation. Ask it to critique
    the plan, reject weak assumptions, and revise decisions.
-5. Revise the plan from Party Mode output. Treat Party Mode as bounded decision
+6. Revise the plan from Party Mode output. Treat Party Mode as bounded decision
    authority inside tests, repo rules, Workspace guardrails, and safety.
-6. Implement with TDD, one vertical slice at a time.
-7. Run targeted validation before broad checks.
-8. compile/install updated BMAD skills with the existing installer.
-9. Verify Codex refresh behavior.
-10. Write final checkpoint and summarize evidence.
+7. Implement with TDD, one vertical slice at a time, only inside the declared
+   scope and target files.
+8. Run targeted validation before broad checks.
+9. compile/install updated BMAD skills with the existing installer.
+10. Verify Codex refresh behavior.
+11. Write final checkpoint and summarize evidence.
 
 ## TDD Rules
 
@@ -68,6 +104,11 @@ Stop and report when any condition appears:
 - Repeat for each acceptance criterion.
 - Refactor only when tests are green.
 - Prefer public behavior checks over implementation details.
+- When automation boundaries are touched, validate forbidden modes stay
+  rejected: cron, watcher, daemon, recurring automation, hidden executor, live
+  adapter, and auto-promotion.
+- Validate `bmad-loop` remains observe/coordination only; no execution
+  authority.
 
 ## compile/install Rules
 
@@ -126,14 +167,23 @@ Write checkpoints under `{output_folder}/self-improvement/` using this shape:
 # BMAD Self-Improvement Checkpoint
 
 - Objective:
+- Question:
+- Mode:
+- Inputs:
+  - repo_path:
+  - branch:
+  - scope:
+  - target_skill_or_files:
+  - stop_condition:
 - Party Mode decision:
 - Plan status:
 - Critique result:
 - Changed files:
 - Tests run:
+- Pass/fail output:
 - compile/install evidence:
 - Refresh evidence:
-- Next exact task:
+- Next operator decision:
 - Risks:
 ```
 
