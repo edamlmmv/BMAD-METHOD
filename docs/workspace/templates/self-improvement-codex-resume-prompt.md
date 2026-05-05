@@ -25,6 +25,8 @@ First read:
 - `{output_folder}/self-improvement/automation.lock`
 - effective automation schedule/config or explicit operator parameters
 - current git branch and diff
+- `git status --porcelain --untracked-files=all` output from the checkpoint
+- dirty preflight scan result
 - targeted test or validation output named in the checkpoint
 
 Resume from the next exact task. Do not restart discovery unless the checkpoint says the plan is invalid. Preserve Party Mode decisions unless they conflict with repo rules, tests, policy, or safety.
@@ -32,6 +34,9 @@ Resume from the next exact task. Do not restart discovery unless the checkpoint 
 Before continuing, verify:
 
 - current branch is a fresh non-main `codex/self-improve-*` branch
+- branch was created for the current run before improvement edits
+- no dirty non-ignored worktree state remains unpreserved
+- preflight scan did not report suspected secrets or huge generated artifacts
 - no push is required
 - baseline policy hash or baseline ref is recorded
 - `max_fix_attempts=5`
@@ -41,7 +46,7 @@ Before final response, record:
 
 - implementation status
 - tests run
-- `npm ci && npm run quality` result if reached
+- `npm ci && npm run quality` result on `HEAD` of the exact checkout if reached
 - compile/install result
 - Codex refresh result
 - local commit SHAs

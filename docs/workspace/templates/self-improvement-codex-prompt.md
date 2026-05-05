@@ -32,26 +32,29 @@ Required policy:
 
 1. Read `docs/workspace/self-improvement-automation-policy.md`.
 2. Capture `SELF_IMPROVE_BASE_REF=$(git rev-parse HEAD)` and baseline policy hash before edits.
-3. Acquire `{output_folder}/self-improvement/automation.lock`; stale lock needs checkpointed failure evidence before continuation.
-4. Create a fresh `codex/self-improve-YYYYMMDD-HHMM-<slug>` branch from current `HEAD` unless I provide an explicit base ref.
-5. Read effective automation schedule/config, explicit operator parameters, and latest checkpoint. If continuation is blocked, stop before branch creation unless I explicitly clear or override the block.
+3. Read effective automation schedule/config, explicit operator parameters, and latest checkpoint. If continuation is blocked, stop before branch creation unless I explicitly clear or override the block.
+4. Acquire `{output_folder}/self-improvement/automation.lock`; stale lock needs checkpointed failure evidence before continuation.
+5. Choose the fresh `codex/self-improve-YYYYMMDD-HHMM-<slug>` branch name, but do not create or switch branches until dirty-worktree preflight passes.
 6. Never run implementation work on `main`; never push.
-7. If the worktree is dirty, preserve non-ignored dirty state in a separate local commit before improvement edits: `chore: preserve pre-automation worktree state`.
-8. Stop before preservation if dirty files contain high-confidence secrets or huge generated artifacts.
-9. Run `skill:bmad-party-mode` before writing any plan. Party Mode may choose any BMAD repo target.
-10. Write a decision-complete plan with acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, and continuation preconditions.
-11. Run `skill:bmad-party-mode` again before implementation to critique the plan.
-12. Implement with TDD, one vertical slice at a time.
-13. Attempt fixes until green or `max_fix_attempts=5`.
-14. Run `npm ci && npm run quality` before local code commit, install, refresh, or continuation.
-15. Run `npm run validate:self-improve-invariants` when policy, `bmad-self-improve`, or automation docs change.
-16. For policy edits, record Party Mode consensus from at least three BMAD voices, including Developer and Architect.
-17. compile/install updated BMAD skills with the existing installer.
-18. Install repo-local/test target first, then `/Users/edam/.agents` when applicable.
-19. Actively request Codex skill reload when available; otherwise record installed path, manifest row, source/installed SHA-256 hashes, and fallback refresh status.
-20. Commit passing work locally with a Conventional Commit message. Never push.
-21. Write checkpoint evidence under `{output_folder}/self-improvement/`.
-22. Allow continuation only after gates, commit, install/refresh evidence, checkpoint, lock release, effective schedule/config, and caps pass.
+7. Before branch creation, run `git status --porcelain --untracked-files=all` to identify tracked, deleted, or untracked non-ignored files.
+8. If the worktree is dirty, scan pending files for high-confidence secrets and huge generated artifacts before preservation.
+9. If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
+10. If the scan passes, preserve non-ignored dirty state in a separate local commit before branch creation: `chore: preserve pre-automation worktree state`.
+11. Create or switch to the fresh branch, then verify the active branch is a fresh non-main `codex/self-improve-*` branch created for the current run before improvement edits.
+12. Run `skill:bmad-party-mode` before writing any plan. Party Mode may choose any BMAD repo target.
+13. Write a decision-complete plan with acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, and continuation preconditions.
+14. Run `skill:bmad-party-mode` again before implementation to critique the plan.
+15. Implement with TDD, one vertical slice at a time.
+16. Attempt fixes until green or `max_fix_attempts=5`.
+17. Run `npm ci && npm run quality` on `HEAD` of the exact checkout before local code commit, install, refresh, or continuation.
+18. Run `npm run validate:self-improve-invariants` when policy, `bmad-self-improve`, or automation docs change.
+19. For policy edits, record Party Mode consensus from at least three BMAD voices, including Developer and Architect.
+20. compile/install updated BMAD skills with the existing installer.
+21. Install repo-local/test target first, then `/Users/edam/.agents` when applicable.
+22. Actively request Codex skill reload when available; otherwise record installed path, manifest row, source/installed SHA-256 hashes, and fallback refresh status.
+23. Commit passing work locally with a Conventional Commit message. Never push.
+24. Write checkpoint evidence under `{output_folder}/self-improvement/`.
+25. Allow continuation only after gates, commit, install/refresh evidence, checkpoint, lock release, effective schedule/config, and caps pass.
 
 Failure behavior:
 

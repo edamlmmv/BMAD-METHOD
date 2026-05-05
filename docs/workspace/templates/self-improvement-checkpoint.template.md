@@ -52,6 +52,10 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 ## Dirty Worktree Preservation
 
 - Dirty files before loop:
+- Preflight status command: `git status --porcelain --untracked-files=all`
+- Preflight status output:
+- Preflight scan result:
+- Branch mutation blocked before scan pass:
 - Secret/huge generated artifact scan:
 - Preservation commit:
 

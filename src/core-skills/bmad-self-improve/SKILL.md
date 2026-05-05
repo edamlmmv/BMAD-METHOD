@@ -20,8 +20,8 @@ Core invariants:
 - `SI-AUTO-001` fresh non-main branch from current `HEAD` unless explicit `base_ref` is supplied.
 - `SI-AUTO-002` never run implementation work on `main` and never push.
 - `SI-AUTO-003` local Conventional Commits only.
-- `SI-AUTO-004` dirty worktree preservation commit before improvement edits.
-- `SI-AUTO-005` full gates each loop, including `npm ci && npm run quality`.
+- `SI-AUTO-004` dirty worktree preservation preflight with `git status --porcelain --untracked-files=all`.
+- `SI-AUTO-005` full gates each loop, including `npm ci && npm run quality` on `HEAD` of the exact checkout.
 - `SI-AUTO-006` `max_fix_attempts=5`.
 - `SI-AUTO-007` `max_iterations=1` by default; starter automation may set `max_iterations=3` and `daily_cap=3`.
 - `SI-AUTO-008` continuation only after gates, commit, install/refresh evidence, checkpoint, and effective automation schedule/config checks succeed.
@@ -75,7 +75,7 @@ Stop and report when any condition appears:
 - Required input or finite stop condition is missing.
 - Policy baseline cannot be captured.
 - `automation.lock` exists and is not resolved by checkpointed failure evidence.
-- Current branch is `main` and a fresh non-main branch cannot be created before improvement work.
+- Current branch is `main` or `master` and a fresh non-main branch cannot be created before improvement work.
 - Branch name does not start with `codex/self-improve-`.
 - Push would be required.
 - Secret or huge generated file appears in dirty preservation scope.
@@ -93,19 +93,21 @@ Stop and report when any condition appears:
 2. Read `docs/workspace/self-improvement-automation-policy.md`, capture baseline policy content, and record `SELF_IMPROVE_BASE_REF=$(git rev-parse HEAD)`.
 3. Read the effective automation schedule/config, explicit operator parameters, and latest self-improvement checkpoint. If continuation is blocked, stop before branch creation unless the operator explicitly cleared or overrode the block.
 4. Acquire `{output_folder}/self-improvement/automation.lock`. If an existing lock is stale, write checkpointed failure evidence before continuing.
-5. Create a fresh non-main branch from current `HEAD` or explicit `base_ref` before improvement work. If dirty files exist, create `chore: preserve pre-automation worktree state` on the fresh branch before implementation edits.
-6. Run `skill:bmad-party-mode` before writing any plan. Ask it to choose the highest-value BMAD repo target, likely files, risks, and tests.
-7. Write a decision-complete plan. Include public behavior, acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, effective automation schedule/config consulted, and continuation preconditions.
-8. Run `skill:bmad-party-mode` again before implementation. Ask it to critique the plan, reject weak assumptions, and revise decisions.
-9. Implement with TDD, one vertical slice at a time, inside the selected BMAD repo target.
-10. Run targeted validation after each slice. If failures remain, fix until green or `max_fix_attempts=5` is reached.
-11. Run `npm ci && npm run quality` before local code commit, install, refresh, or continuation.
-12. Run `npm run validate:self-improve-invariants` when policy, automation docs, or `bmad-self-improve` changes.
-13. compile/install updated BMAD skills with the existing installer.
-14. Verify Codex refresh behavior. Request app-server reload if available; else record installed path, manifest row, source/installed SHA-256 hashes, and a fallback refresh status.
-15. Commit passing work locally with a Conventional Commit message. Never push.
-16. Write final checkpoint with branch, commits, gate evidence, install/refresh evidence, and continuation decision.
-17. Allow continuation only when the effective automation schedule/config, latest checkpoint, gates, evidence, lock state, and loop caps allow it.
+5. Run `git status --porcelain --untracked-files=all` before branch creation. If it reports tracked, deleted, or untracked non-ignored files, scan the pending files for suspected secrets and huge generated artifacts. If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
+6. If dirty preservation is required and the scan passes, preserve the current checkout with `chore: preserve pre-automation worktree state` before branch creation.
+7. Create or switch to a fresh non-main `codex/self-improve-*` branch from current `HEAD`, explicit `base_ref`, or the preservation commit. Fresh means not `main` or `master`, matching `codex/self-improve-*`, and created for the current run before improvement edits. Verify branch freshness before any implementation, docs, tests, install, refresh, or continuation mutation.
+8. Run `skill:bmad-party-mode` before writing any plan. Ask it to choose the highest-value BMAD repo target, likely files, risks, and tests.
+9. Write a decision-complete plan. Include public behavior, acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, effective automation schedule/config consulted, and continuation preconditions.
+10. Run `skill:bmad-party-mode` again before implementation. Ask it to critique the plan, reject weak assumptions, and revise decisions.
+11. Implement with TDD, one vertical slice at a time, inside the selected BMAD repo target.
+12. Run targeted validation after each slice. If failures remain, fix until green or `max_fix_attempts=5` is reached.
+13. Run `npm ci && npm run quality` on `HEAD` of the exact checkout before local code commit, install, refresh, or continuation.
+14. Run `npm run validate:self-improve-invariants` when policy, automation docs, or `bmad-self-improve` changes.
+15. compile/install updated BMAD skills with the existing installer.
+16. Verify Codex refresh behavior. Request app-server reload if available; else record installed path, manifest row, source/installed SHA-256 hashes, and a fallback refresh status.
+17. Commit passing work locally with a Conventional Commit message. Never push.
+18. Write final checkpoint with branch, commits, gate evidence, install/refresh evidence, and continuation decision.
+19. Allow continuation only when the effective automation schedule/config, latest checkpoint, gates, evidence, lock state, and loop caps allow it.
 
 ## Self-Edit and Policy-Edit Gate
 

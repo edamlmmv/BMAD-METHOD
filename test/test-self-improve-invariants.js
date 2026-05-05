@@ -95,6 +95,43 @@ function testMaxFixAttemptsCannotBeWeakened() {
   assertInvalid(root, 'policy SI-AUTO-006 missing required term: max_fix_attempts=5');
 }
 
+function testDirtyPreflightPorcelainDefinitionCannotDisappear() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'git status --porcelain --untracked-files=all', 'git status');
+  assertInvalid(root, 'policy SI-AUTO-004 missing required term: git status --porcelain --untracked-files=all');
+}
+
+function testDirtyPreflightBranchMutationGuardCannotDisappear() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/self-improvement-automation-policy.md',
+    'abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits',
+    'abort later',
+  );
+  assertInvalid(
+    root,
+    'policy SI-AUTO-004 missing required term: abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits',
+  );
+}
+
+function testFreshBranchCurrentRunDefinitionCannotDisappear() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/self-improvement-automation-policy.md',
+    'created for the current run before improvement edits',
+    'created sometime before edits',
+  );
+  assertInvalid(root, 'policy SI-AUTO-001 missing required term: created for the current run before improvement edits');
+}
+
+function testExactCheckoutGateCannotDisappear() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'on `HEAD` of the exact checkout', 'on the checkout');
+  assertInvalid(root, 'policy SI-AUTO-005 missing required term: on `HEAD` of the exact checkout');
+}
+
 function testContinuationGateCannotBeRemoved() {
   const root = makeFixture();
   replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'install/refresh evidence', 'operator vibes');
@@ -151,6 +188,10 @@ function run() {
     testNeverMainInvariantCannotBeRemoved,
     testNeverPushTermCannotBeRemoved,
     testMaxFixAttemptsCannotBeWeakened,
+    testDirtyPreflightPorcelainDefinitionCannotDisappear,
+    testDirtyPreflightBranchMutationGuardCannotDisappear,
+    testFreshBranchCurrentRunDefinitionCannotDisappear,
+    testExactCheckoutGateCannotDisappear,
     testContinuationGateCannotBeRemoved,
     testScheduleAwarenessCannotBeRemoved,
     testInstallRefreshFailureContractCannotDisappear,

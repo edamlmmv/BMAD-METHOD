@@ -54,20 +54,40 @@ The workflow runs:
 
 1. Repo instruction and CLI verification.
 2. Baseline policy capture and loop lock acquisition.
-3. Fresh non-main branch creation.
-4. Dirty worktree preservation commit when needed.
-5. Party Mode target decision.
-6. Plan.
-7. Party Mode critique.
-8. Revised plan.
-9. TDD implementation.
-10. Targeted validation and fix attempts.
-11. `npm ci && npm run quality`.
-12. BMAD compile/install.
-13. Codex refresh evidence.
-14. Local Conventional Commit.
-15. Final checkpoint.
-16. Continuation decision.
+3. Dirty worktree preflight with `git status --porcelain --untracked-files=all`.
+4. Secret and oversized/generated artifact scan when preservation is needed.
+5. Dirty worktree preservation commit when needed.
+6. Fresh non-main branch creation and freshness verification.
+7. Party Mode target decision.
+8. Plan.
+9. Party Mode critique.
+10. Revised plan.
+11. TDD implementation.
+12. Targeted validation and fix attempts.
+13. `npm ci && npm run quality` on `HEAD` of the exact checkout.
+14. BMAD compile/install.
+15. Codex refresh evidence.
+16. Local Conventional Commit.
+17. Final checkpoint.
+18. Continuation decision.
+
+## Preflight Contract
+
+Before branch creation or improvement edits, run:
+
+```bash
+git status --porcelain --untracked-files=all
+```
+
+If it reports only ignored files or no files, continue to branch creation. If it reports tracked, deleted, or untracked non-ignored files, scan those pending files for suspected secrets and disallowed huge generated artifacts. If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
+
+If the scan passes and the operator prompt requires preservation before branch creation, commit the current checkout with:
+
+```text
+chore: preserve pre-automation worktree state
+```
+
+Then create or switch to a fresh non-main `codex/self-improve-*` branch from the preserved state. Fresh means not `main` or `master`, matching `codex/self-improve-*`, and created for the current run before improvement edits. No implementation, docs, test, install, refresh, or continuation mutation may occur until that branch freshness is verified. Never push.
 
 ## Launch Prompt
 
@@ -86,14 +106,17 @@ max_fix_attempts: 5
 Required policy:
 - Read docs/workspace/self-improvement-automation-policy.md.
 - Capture SELF_IMPROVE_BASE_REF before edits.
+- Run git status --porcelain --untracked-files=all before branch creation.
+- Scan dirty non-ignored files for suspected secrets and huge generated artifacts before preservation.
+- If scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
+- Preserve dirty worktree in a separate commit before branch creation when the operator prompt requires it.
 - Use a fresh codex/self-improve-* branch.
 - Never run implementation work on main.
 - Never push.
 - Use local Conventional Commits only.
-- Preserve dirty worktree in a separate commit before improvement edits.
 - Run Party Mode before plan and before implementation.
 - Use TDD for scoped code/docs/skill changes.
-- Run npm ci && npm run quality before code commit, install, refresh, or continuation.
+- Run npm ci && npm run quality on HEAD of the exact checkout before code commit, install, refresh, or continuation.
 - Run npm run validate:self-improve-invariants for policy or self-edit changes.
 - Install repo-local/test target first, then /Users/edam/.agents when applicable.
 - Actively request Codex skill reload when available; otherwise record fallback evidence.

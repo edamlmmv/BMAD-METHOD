@@ -13,7 +13,9 @@ The deterministic checker owns the non-negotiable invariants. Party Mode owns wo
 
 ### SI-AUTO-001: Fresh Non-Main Branch
 
-Every loop creates a fresh non-main branch from current `HEAD` unless an explicit `base_ref` is supplied. The branch name starts with `codex/self-improve-`.
+Every loop creates a fresh non-main branch from current `HEAD` unless an explicit `base_ref` is supplied. If dirty worktree preservation creates a preservation commit first, the branch is created from that preserved state while the original base SHA remains recorded.
+
+The branch name starts with `codex/self-improve-`. Fresh means the branch is not `main` or `master`, matches `codex/self-improve-*`, and was created for the current run before improvement edits.
 
 ### SI-AUTO-002: Main And Push Guard
 
@@ -25,11 +27,17 @@ The loop may create local commits only. Every loop-created commit uses Conventio
 
 ### SI-AUTO-004: Dirty Worktree Preservation
 
-If tracked, deleted, or untracked non-ignored files are dirty before improvement edits, the loop creates a separate preservation commit with message `chore: preserve pre-automation worktree state`. If the dirty set contains a high-confidence secret or huge generated artifact, the loop stops before preservation.
+Dirty state is defined by `git status --porcelain --untracked-files=all` reporting tracked, deleted, or untracked non-ignored files. Ignored files do not require preservation.
+
+Before any automation mutation, the loop must either prove the non-ignored worktree is clean or preserve the current checkout first. When dirty non-ignored files exist and the operator prompt requires preservation before branch creation, the loop scans the pending files for high-confidence secrets and huge generated artifacts. Huge means a generated or binary-like artifact larger than 5 MiB unless the file is already tracked and intentionally part of the repo.
+
+If the scan reports suspected secrets or disallowed huge generated artifacts, the loop must abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits. If the scan passes, the loop creates a separate preservation commit with message `chore: preserve pre-automation worktree state`, then creates or switches to the fresh non-main `codex/self-improve-*` branch from the preserved state. No improvement edit may occur until current branch freshness is verified.
 
 ### SI-AUTO-005: Full Gates Each Loop
 
-Every successful loop runs full gates before local code commit, install, refresh, or continuation. The full gate command is:
+Every successful loop runs full gates on `HEAD` of the exact checkout before committing automation implementation, docs, or tests, and before any install, refresh, or continuation step that would mutate repo state. If the gate fails, the loop stops for fix attempts or writes a blocked checkpoint after `max_fix_attempts=5`.
+
+The full gate command is:
 
 ```bash
 npm ci && npm run quality
