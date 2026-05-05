@@ -1,4 +1,6 @@
 const ROUTING_SCHEMA_VERSION = 1;
+const ROUTE_RESULT_SCHEMA_VERSION = 'bmad.graphify.route-result.v1';
+const TRUST_GATE_EXIT_CODE = 2;
 
 const ROUTEABLE_MODULE = 'BMad Method';
 const SOURCE_VALUES = new Set(['override', 'deterministic']);
@@ -55,6 +57,13 @@ function routeWorkspace(input = {}) {
   const goal = normalizeText(input.goal);
   const blockers = normalizeBlockers(input.blockers);
   const inputRefs = createInputRefs(input);
+  const advisoryBlock = evaluateAdvisoryRouteHints({
+    catalog,
+    routeHints: input.advisoryRouteHints,
+  });
+  if (advisoryBlock) {
+    throw routeBlockedError(advisoryBlock);
+  }
 
   if (input.workflowOverride) {
     const selected = findCatalogEntry(catalog, input.workflowOverride);
@@ -103,6 +112,56 @@ function routeWorkspace(input = {}) {
     inputRefs,
     blockers,
   });
+}
+
+function evaluateAdvisoryRouteHints({ catalog, routeHints }) {
+  const normalizedHints = normalizeAdvisoryRouteHints(routeHints).filter(
+    (hint) => hint.explicitActionIntent && hint.route && hint.citations.length > 0,
+  );
+  if (normalizedHints.length === 0) {
+    return null;
+  }
+
+  const unknownRoutes = uniqueSorted(normalizedHints.filter((hint) => !findCatalogEntry(catalog, hint.route)).map((hint) => hint.route));
+  if (unknownRoutes.length === 0) {
+    return null;
+  }
+
+  return createBlockedRouteResult({ reason: 'UNKNOWN_ROUTE', unknownRoutes, routeHints: normalizedHints });
+}
+
+function createBlockedRouteResult({ reason, unknownRoutes, routeHints }) {
+  return {
+    schemaVersion: ROUTE_RESULT_SCHEMA_VERSION,
+    status: 'blocked',
+    reason,
+    reasonCodes: [reason],
+    unknownRoutes,
+    evidenceRefs: uniqueSorted(routeHints.flatMap((hint) => hint.citations.map((citation) => citation.path))),
+    trustGate: {
+      status: 'failed',
+      checks: [
+        { id: 'explicitActionIntent', status: 'passed' },
+        { id: 'citedEvidence', status: 'passed' },
+        { id: 'routeKnown', status: 'failed', reason, unknownRoutes },
+      ],
+    },
+    zeroMutationProof: {
+      workflowExecution: 'not-started',
+      liveGraphifyCall: 'not-called',
+      networkCall: 'not-called',
+      repoMutation: 'not-started',
+    },
+    nextManualStep: 'Choose a route from the static BMAD route registry before building a Work Packet.',
+  };
+}
+
+function routeBlockedError(routeResult) {
+  const error = new Error(`${routeResult.reason}: ${routeResult.unknownRoutes.join(', ')}`);
+  error.code = routeResult.reason;
+  error.workspaceResult = routeResult;
+  error.workspaceExitCode = TRUST_GATE_EXIT_CODE;
+  return error;
 }
 
 function validateRoutingDecision(routing, errors, label = 'packet.routing') {
@@ -299,6 +358,44 @@ function createInputRefs(input) {
     artifactRefs: normalizeArtifactRefs(input.artifactRefs),
     setupRefs: normalizeSetupRefs(input.sessionSetup),
   };
+}
+
+function normalizeAdvisoryRouteHints(routeHints) {
+  if (!Array.isArray(routeHints)) {
+    return [];
+  }
+
+  return routeHints.map((hint, index) => ({
+    index,
+    route: firstString(hint?.route, hint?.routeId, hint?.workflow, hint?.recommendedRoute),
+    explicitActionIntent: hint?.explicitActionIntent === true,
+    citations: normalizeCitations(hint),
+  }));
+}
+
+function normalizeCitations(hint) {
+  const citations = [];
+  for (const field of ['citations', 'evidenceRefs', 'sourceFiles']) {
+    if (!Array.isArray(hint?.[field])) {
+      continue;
+    }
+    for (const value of hint[field]) {
+      const citation = typeof value === 'string' ? { path: value } : value;
+      if (typeof citation?.path === 'string' && citation.path.trim() !== '') {
+        citations.push({ path: citation.path.trim() });
+      }
+    }
+  }
+  return citations;
+}
+
+function firstString(...values) {
+  const value = values.find((candidate) => typeof candidate === 'string' && candidate.trim() !== '');
+  return value ? value.trim() : '';
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
 function normalizeSetupRefs(sessionSetup) {

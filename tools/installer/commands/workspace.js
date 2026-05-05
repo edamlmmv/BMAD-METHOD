@@ -48,6 +48,10 @@ module.exports = {
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       }
     } catch (error) {
+      if (error.workspaceResult && Number.isInteger(error.workspaceExitCode)) {
+        process.stdout.write(`${JSON.stringify(error.workspaceResult, null, 2)}\n`);
+        process.exit(error.workspaceExitCode);
+      }
       process.stderr.write(`Workspace ${workspaceCommand} failed: ${error.message}\n`);
       process.stderr.write(
         `Next manual action: ${nextManualActionForError(error.message, { sessionId, runtimeRoot: options.runtimeRoot })}\n`,

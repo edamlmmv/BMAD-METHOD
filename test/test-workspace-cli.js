@@ -1121,6 +1121,67 @@ function runTests() {
     ];
     const graphEvidencePath = path.join(launchOutput.sessionRoot, 'intake', 'graph.json');
 
+    const graphEvidenceBeforeUnknownRoute = readJson(graphEvidencePath);
+    fs.writeFileSync(
+      graphEvidencePath,
+      `${JSON.stringify(
+        {
+          ...graphEvidenceBeforeUnknownRoute,
+          routeHints: [
+            {
+              route: 'bmad-missing-advisory-route',
+              explicitActionIntent: true,
+              citations: [{ path: 'README.md' }],
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const targetBeforeUnknownRoute = fingerprintTree(targetRepo.path);
+    const baseBeforeUnknownRoute = fingerprintTree(baseRepo.path);
+    const sessionBeforeUnknownRoute = fingerprintTree(launchOutput.sessionRoot);
+    const unknownRoutePacket = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
+    const unknownRoutePacketText = `${unknownRoutePacket.stdout}\n${unknownRoutePacket.stderr}`;
+    assert(unknownRoutePacket.status === 2, 'packet unknown advisory route exits trust-gate code 2', unknownRoutePacketText);
+    assert(
+      unknownRoutePacket.stderr === '',
+      'packet unknown advisory route prints JSON without stderr diagnostics',
+      unknownRoutePacketText,
+    );
+    const unknownRouteOutput = JSON.parse(unknownRoutePacket.stdout);
+    assert(unknownRouteOutput.status === 'blocked', 'unknown advisory route returns blocked JSON', unknownRoutePacketText);
+    assert(unknownRouteOutput.reason === 'UNKNOWN_ROUTE', 'unknown advisory route names UNKNOWN_ROUTE', unknownRoutePacketText);
+    assert(!('recommendedRoute' in unknownRouteOutput), 'unknown advisory route omits recommendedRoute', unknownRoutePacketText);
+    assert(
+      unknownRouteOutput.unknownRoutes.includes('bmad-missing-advisory-route'),
+      'unknown advisory route reports missing route id',
+      JSON.stringify(unknownRouteOutput, null, 2),
+    );
+    assert(
+      unknownRouteOutput.zeroMutationProof.workflowExecution === 'not-started' &&
+        unknownRouteOutput.zeroMutationProof.liveGraphifyCall === 'not-called' &&
+        unknownRouteOutput.zeroMutationProof.networkCall === 'not-called' &&
+        unknownRouteOutput.zeroMutationProof.repoMutation === 'not-started',
+      'unknown advisory route reports no workflow, Graphify, network, or repo mutation',
+      JSON.stringify(unknownRouteOutput, null, 2),
+    );
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with unknown advisory route does not write partial packet',
+      unknownRoutePacketText,
+    );
+    assert(targetBeforeUnknownRoute === fingerprintTree(targetRepo.path), 'unknown advisory route does not mutate target repo');
+    assert(baseBeforeUnknownRoute === fingerprintTree(baseRepo.path), 'unknown advisory route does not mutate Workspace Base');
+    assert(
+      sessionBeforeUnknownRoute === fingerprintTree(launchOutput.sessionRoot),
+      'unknown advisory route does not mutate session artifacts',
+    );
+    fs.writeFileSync(graphEvidencePath, `${JSON.stringify(graphEvidenceBeforeUnknownRoute, null, 2)}\n`);
+
     fs.rmSync(graphEvidencePath);
     const missingGraphPacket = runCli(completePacketArgs, {
       cwd: baseRepo.path,

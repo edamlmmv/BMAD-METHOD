@@ -122,6 +122,7 @@ function buildWorkPacket({
     sessionSetup,
     repoIntakeRefs,
     artifactRefs: collectArtifactRefs(instance, sessionSetup),
+    advisoryRouteHints: loadAdvisoryRouteHints({ sessionRoot, repoIntakePath: readiness.repoIntakePath }),
     catalogEntries: loadRouteableCatalogRows(),
     workflowOverride,
   });
@@ -291,6 +292,51 @@ function loadRouteableCatalogRows() {
     columns: true,
     skip_empty_lines: true,
   });
+}
+
+function loadAdvisoryRouteHints({ sessionRoot, repoIntakePath }) {
+  const graphEvidence = readOptionalJson(path.join(sessionRoot, GRAPH_EVIDENCE_REF));
+  if (!Array.isArray(graphEvidence?.routeHints)) {
+    return [];
+  }
+
+  const repoIntake = readOptionalJson(repoIntakePath);
+  const repoRoots = (repoIntake?.repos || []).map((repo) => repo.sourcePath).filter((sourcePath) => typeof sourcePath === 'string');
+  return graphEvidence.routeHints
+    .map((hint) => ({
+      ...hint,
+      citations: normalizeRouteHintCitations(hint).filter((citation) => isValidRepoCitation(citation.path, repoRoots)),
+    }))
+    .filter((hint) => hint.citations.length > 0);
+}
+
+function normalizeRouteHintCitations(hint) {
+  const citations = [];
+  for (const field of ['citations', 'evidenceRefs', 'sourceFiles']) {
+    if (!Array.isArray(hint?.[field])) {
+      continue;
+    }
+    for (const value of hint[field]) {
+      const citation = typeof value === 'string' ? { path: value } : value;
+      if (typeof citation?.path === 'string' && citation.path.trim() !== '') {
+        citations.push({ path: citation.path.trim() });
+      }
+    }
+  }
+  return citations;
+}
+
+function isValidRepoCitation(relativePath, repoRoots) {
+  if (
+    typeof relativePath !== 'string' ||
+    relativePath.trim() === '' ||
+    path.isAbsolute(relativePath) ||
+    relativePath.includes('\\') ||
+    relativePath.split('/').includes('..')
+  ) {
+    return false;
+  }
+  return repoRoots.some((repoRoot) => fs.existsSync(path.join(repoRoot, relativePath)));
 }
 
 function buildSessionSetup({ setupRefs, setupSkips, setupBasePath = process.cwd() }) {
