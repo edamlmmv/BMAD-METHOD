@@ -85,6 +85,22 @@ with `bmad workspace result`. It does not invoke Codex, run shell commands,
 schedule work, activate live adapters, restore, replay, merge, promote, or write
 outside granted roots.
 
+## Workspace Graph Evidence
+
+Workspace graph evidence is session-scoped graph context recorded from existing
+target-repo `graph/*.graph.json` artifacts during Repo Intake. It is exposed at
+`intake/graph.json`; `intake/repo-intake.json` records `graphEvidenceRef` and
+`graphEvidenceState`, while `intake/provenance.json` records graph input hashes
+and validation state.
+
+Graph evidence is advisory: source files remain authority before planning,
+recommendations, edits, or tool calls. It helps BMAD agents and Codex choose
+files, searches, and follow-up checks, but it does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
+
+Graphify is not called ad hoc by Workspace. Missing or invalid graph artifacts
+must not block ordinary Repo Intake; Workspace records the evidence state and
+continues with git intake.
+
 ## Codex Operator Affordances
 
 Codex slash commands, tools, hooks, plugins, and future UI commands are operator

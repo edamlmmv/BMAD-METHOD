@@ -241,6 +241,10 @@ function validateGraph(projectRoot, graphName, errors) {
     return;
   }
 
+  validateNormalizedGraphObject(graph, graphPath, errors);
+}
+
+function validateNormalizedGraphObject(graph, graphPath, errors) {
   if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
     addError(errors, 'GRAPHIFY_GRAPH_BAD_SCHEMA', 'graph must contain nodes[] and edges[]', { file: graphPath });
     return;
@@ -336,5 +340,6 @@ if (require.main === module) {
 
 module.exports = {
   REQUIRED_GRAPHS,
+  validateNormalizedGraphObject,
   validateGraphifyContract,
 };

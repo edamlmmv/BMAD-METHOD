@@ -91,6 +91,50 @@ function createGitRepo(parentDir, name) {
   };
 }
 
+function addMinimalGraphArtifact(repo) {
+  const graphDir = path.join(repo.path, 'graph');
+  fs.mkdirSync(graphDir, { recursive: true });
+  const graph = {
+    metadata: {
+      generated_by: 'test',
+      slice_id: 'repository-knowledge',
+      namespace: 'test',
+    },
+    nodes: [
+      {
+        id: 'test:file:readme',
+        type: 'file',
+        label: 'README.md',
+        namespace: 'test',
+        source: { path: 'README.md' },
+        slice_id: 'repository-knowledge',
+      },
+      {
+        id: 'test:concept:repo',
+        type: 'concept',
+        label: 'Repo Context',
+        namespace: 'test',
+        source: { path: 'README.md' },
+        slice_id: 'repository-knowledge',
+      },
+    ],
+    edges: [
+      {
+        from: 'test:file:readme',
+        to: 'test:concept:repo',
+        relation: 'documents',
+        evidence: [{ path: 'README.md' }],
+        confidence: 'EXTRACTED',
+        slice_id: 'repository-knowledge',
+      },
+    ],
+  };
+  fs.writeFileSync(path.join(graphDir, 'repository-knowledge.graph.json'), `${JSON.stringify(graph, null, 2)}\n`);
+  git(['add', 'graph/repository-knowledge.graph.json'], repo.path);
+  git(['commit', '-m', 'add graph evidence'], repo.path);
+  repo.head = git(['rev-parse', 'HEAD'], repo.path);
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -244,6 +288,7 @@ function runTests() {
   const baseRepo = createGitRepo(tempRoot, 'workspace-base');
   const targetRepo = createGitRepo(tempRoot, 'target-repo');
   const secondTargetRepo = createGitRepo(tempRoot, 'second-target-repo');
+  addMinimalGraphArtifact(targetRepo);
   const goalPath = path.join(tempRoot, 'goal.md');
   const runtimeRoot = path.join(tempRoot, 'runtime');
   fs.writeFileSync(goalPath, 'Fix target repo bug.\n');
@@ -571,6 +616,29 @@ function runTests() {
       'multi-repo launch creates second worktree',
       JSON.stringify(multiRepoPack, null, 2),
     );
+    const multiIntake = runCli(['workspace', 'intake', multiRepoOutput.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const multiIntakeText = `${multiIntake.stdout}\n${multiIntake.stderr}`;
+    assert(multiIntake.status === 0, 'multi-repo intake exits zero', multiIntakeText);
+    const multiIntakeOutput = JSON.parse(multiIntake.stdout);
+    const multiRepoIntake = readJson(multiIntakeOutput.repoIntakePath);
+    assert(
+      multiRepoIntake.graphEvidenceState === 'warning',
+      'multi-repo intake warns when one repo lacks graph evidence',
+      JSON.stringify(multiRepoIntake, null, 2),
+    );
+    const multiGraphEvidence = readJson(path.join(multiRepoOutput.sessionRoot, 'intake', 'graph.json'));
+    assert(
+      multiGraphEvidence.summary.state === 'warning',
+      'multi-repo graph evidence rolls partial missing evidence up to warning',
+      JSON.stringify(multiGraphEvidence, null, 2),
+    );
+    assert(
+      multiGraphEvidence.repos.some((repo) => repo.state === 'valid') && multiGraphEvidence.repos.some((repo) => repo.state === 'missing'),
+      'multi-repo graph evidence records valid and missing repo states',
+      JSON.stringify(multiGraphEvidence, null, 2),
+    );
 
     section('Workspace Grant Guard');
 
@@ -830,25 +898,88 @@ function runTests() {
 
     section('Workspace Intake');
 
+    const targetBeforeIntake = fingerprintTree(targetRepo.path);
+    const baseBeforeIntake = fingerprintTree(baseRepo.path);
     const intake = runCli(['workspace', 'intake', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
     const intakeText = `${intake.stdout}\n${intake.stderr}`;
 
     assert(intake.status === 0, 'intake exits zero', intakeText);
+    assert(targetBeforeIntake === fingerprintTree(targetRepo.path), 'intake does not mutate target repo', intakeText);
+    assert(baseBeforeIntake === fingerprintTree(baseRepo.path), 'intake does not mutate Workspace Base', intakeText);
     const intakeOutput = JSON.parse(intake.stdout);
     assertSessionOutput(intakeOutput, 'intake output');
     assert(fs.existsSync(intakeOutput.repoIntakePath), 'intake writes repo-intake.json', intakeText);
     assert(fs.existsSync(intakeOutput.provenancePath), 'intake writes provenance.json', intakeText);
+    assert(fs.existsSync(path.join(launchOutput.sessionRoot, 'intake', 'graph.json')), 'intake writes graph evidence', intakeText);
 
     const repoIntake = readJson(intakeOutput.repoIntakePath);
     assert(repoIntake.sessionId === launchOutput.sessionId, 'repo intake records session id', JSON.stringify(repoIntake, null, 2));
     assert(repoIntake.repos[0].head === targetRepo.head, 'repo intake records target repo HEAD', JSON.stringify(repoIntake, null, 2));
     assert(repoIntake.scanner.mode === 'code-only', 'repo intake records code-only scanner mode', JSON.stringify(repoIntake, null, 2));
+    assert(
+      repoIntake.graphEvidenceRef === 'intake/graph.json',
+      'repo intake records graph evidence ref',
+      JSON.stringify(repoIntake, null, 2),
+    );
+    assert(
+      repoIntake.graphEvidenceState === 'valid',
+      'repo intake records valid graph evidence state',
+      JSON.stringify(repoIntake, null, 2),
+    );
+
+    const graphEvidence = readJson(path.join(launchOutput.sessionRoot, 'intake', 'graph.json'));
+    assert(graphEvidence.kind === 'bmad-workspace-graph-evidence', 'graph evidence records kind', JSON.stringify(graphEvidence, null, 2));
+    assert(graphEvidence.schemaVersion === 1, 'graph evidence records schema version', JSON.stringify(graphEvidence, null, 2));
+    assert(graphEvidence.sessionId === launchOutput.sessionId, 'graph evidence records session id', JSON.stringify(graphEvidence, null, 2));
+    assert(graphEvidence.summary.state === 'valid', 'graph evidence summary records valid state', JSON.stringify(graphEvidence, null, 2));
+    assert(graphEvidence.summary.artifactCount === 1, 'graph evidence summary counts artifacts', JSON.stringify(graphEvidence, null, 2));
+    const graphArtifact = graphEvidence.repos[0].artifacts[0];
+    assert(
+      graphArtifact.repoRelativePath === 'graph/repository-knowledge.graph.json',
+      'graph evidence records repo-relative path',
+      JSON.stringify(graphEvidence, null, 2),
+    );
+    assert(
+      graphArtifact.sha256 === sha256File(path.join(targetRepo.path, 'graph', 'repository-knowledge.graph.json')),
+      'graph evidence records sha256',
+      JSON.stringify(graphEvidence, null, 2),
+    );
+    assert(graphArtifact.validationState === 'valid', 'graph evidence records validation state', JSON.stringify(graphEvidence, null, 2));
+    assert(graphArtifact.nodeCount === 2, 'graph evidence records node count', JSON.stringify(graphEvidence, null, 2));
+    assert(graphArtifact.edgeCount === 1, 'graph evidence records edge count', JSON.stringify(graphEvidence, null, 2));
+    assert(
+      graphArtifact.sliceIds.includes('repository-knowledge'),
+      'graph evidence records slice ids',
+      JSON.stringify(graphEvidence, null, 2),
+    );
+    assert(graphArtifact.namespaces.includes('test'), 'graph evidence records namespaces', JSON.stringify(graphEvidence, null, 2));
+    assert(
+      Array.isArray(graphArtifact.sourcePathMissing),
+      'graph evidence records missing source list',
+      JSON.stringify(graphEvidence, null, 2),
+    );
 
     const provenance = readJson(intakeOutput.provenancePath);
     assert(provenance.sessionId === launchOutput.sessionId, 'provenance records session id', JSON.stringify(provenance, null, 2));
     assert(provenance.scanner.id === 'workspace.git-intake', 'provenance records scanner id', JSON.stringify(provenance, null, 2));
+    assert(
+      provenance.graphEvidenceRef === 'intake/graph.json',
+      'provenance records graph evidence ref',
+      JSON.stringify(provenance, null, 2),
+    );
+    assert(provenance.graphInputs.length === 1, 'provenance records graph input', JSON.stringify(provenance, null, 2));
+    assert(
+      provenance.graphInputs[0].repoRelativePath === 'graph/repository-knowledge.graph.json',
+      'provenance records graph input path',
+      JSON.stringify(provenance, null, 2),
+    );
+    assert(
+      provenance.graphInputs[0].validationState === 'valid',
+      'provenance records graph validation state',
+      JSON.stringify(provenance, null, 2),
+    );
 
     fs.appendFileSync(path.join(targetRepo.path, 'README.md'), 'More detail.\n');
     git(['add', 'README.md'], targetRepo.path);
@@ -869,6 +1000,9 @@ function runTests() {
     assert(staleStatus.status === 0, 'status with stale intake exits zero', staleStatusText);
     const staleStatusOutput = JSON.parse(staleStatus.stdout);
     assert(staleStatusOutput.status === 'stale', 'status with stale intake reports stale', staleStatusText);
+    assert(staleStatusOutput.intake.graphEvidenceRef === 'intake/graph.json', 'status reports graph evidence ref', staleStatusText);
+    assert(staleStatusOutput.intake.graphEvidenceState === 'valid', 'status reports graph evidence state', staleStatusText);
+    assert(staleStatusOutput.artifacts.graphEvidence.present === true, 'status reports graph evidence artifact', staleStatusText);
     assert(
       staleStatusOutput.checks.some((item) => item.code === 'STALE_INTAKE'),
       'status with stale intake names STALE_INTAKE',
@@ -1126,6 +1260,36 @@ function runTests() {
       'Capability Contract includes manual Codex executor readiness',
       JSON.stringify(capabilityContract, null, 2),
     );
+    const graphCapability = capabilityContract.capabilities.find((capability) => capability.id === 'evidence.graph.repo-intake');
+    assert(
+      graphCapability?.provider === 'graphify',
+      'Capability Contract records Graphify graph provider',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      graphCapability?.interface === 'repo-intake',
+      'Capability Contract keeps repo-intake graph interface',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      graphCapability?.artifactRefs?.includes('intake/graph.json'),
+      'Capability Contract references graph evidence artifact',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      graphCapability?.validationCommand === 'npm run validate:graphify-manifests',
+      'Capability Contract records Graphify validation command',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      graphCapability?.guidance?.bmad?.includes('advisory') &&
+        graphCapability.guidance.codex.includes('verify source files before edits') &&
+        graphCapability.guidance.tools.includes(
+          'does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration',
+        ),
+      'Capability Contract records advisory graph guidance',
+      JSON.stringify(capabilityContract, null, 2),
+    );
 
     const renderedPrompt = fs.readFileSync(packetOutput.renderedPromptPath, 'utf8');
     assert(renderedPrompt.includes('Source of truth: `packets/bmad-work-packet.json`'), 'rendered prompt names packet source');
@@ -1133,6 +1297,15 @@ function runTests() {
     assert(renderedPrompt.includes('Do not mutate Workspace Base'), 'rendered prompt includes packet constraints');
     assert(renderedPrompt.includes('GOAL_QUICK_DEV'), 'rendered prompt includes routing reason code');
     assert(renderedPrompt.includes('packets/executor-contract.json'), 'rendered prompt references executor contract');
+    assert(renderedPrompt.includes('## Graph Evidence'), 'rendered prompt includes graph evidence section');
+    assert(renderedPrompt.includes('intake/graph.json'), 'rendered prompt references graph evidence artifact');
+    assert(renderedPrompt.includes('Graph evidence is advisory'), 'rendered prompt marks graph evidence advisory');
+    assert(renderedPrompt.includes('verify source files before edits'), 'rendered prompt requires source verification');
+    assert(
+      renderedPrompt.includes('does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration'),
+      'rendered prompt preserves graph boundary',
+      renderedPrompt,
+    );
 
     const packetEvidenceBefore = fingerprintTree(launchOutput.sessionRoot);
     const packetEvidence = runCli(['workspace', 'evidence', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
@@ -1151,6 +1324,13 @@ function runTests() {
     assert(
       packetEvidenceOutput.artifacts.some((item) => item.kind === 'executor-contract' && item.validationState === 'valid'),
       'evidence records executor contract state',
+      packetEvidenceText,
+    );
+    assert(
+      packetEvidenceOutput.artifacts.some(
+        (item) => item.kind === 'graph-evidence' && item.ref === 'intake/graph.json' && item.validationState === 'valid',
+      ),
+      'evidence records graph evidence artifact',
       packetEvidenceText,
     );
     assert(
@@ -2367,6 +2547,11 @@ function runTests() {
       archiveText,
     );
     assert(
+      fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'intake', 'graph.json')),
+      'archive copies graph evidence',
+      archiveText,
+    );
+    assert(
       fs.existsSync(path.join(archiveRoot, 'session-artifacts', 'review', 'summary.json')),
       'archive copies review summary',
       archiveText,
@@ -2413,6 +2598,11 @@ function runTests() {
     assert(
       manifest.artifacts.executorContract.present === true,
       'archive manifest records executor contract artifact',
+      JSON.stringify(manifest, null, 2),
+    );
+    assert(
+      manifest.artifacts.graphEvidence.present === true,
+      'archive manifest records graph evidence artifact',
       JSON.stringify(manifest, null, 2),
     );
     assert(
@@ -2469,6 +2659,11 @@ function runTests() {
     assert(
       archivedEvidence.artifacts.some((item) => item.kind === 'review-manifest' && item.sha256),
       'archive evidence preserves review manifest checksum',
+      JSON.stringify(archivedEvidence, null, 2),
+    );
+    assert(
+      archivedEvidence.artifacts.some((item) => item.kind === 'graph-evidence' && item.sha256),
+      'archive evidence preserves graph evidence checksum',
       JSON.stringify(archivedEvidence, null, 2),
     );
     assert(

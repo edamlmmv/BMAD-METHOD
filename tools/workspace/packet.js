@@ -8,6 +8,14 @@ const { validateCapabilityContract, validateWorkPacket } = require('./contracts'
 const { EXECUTOR_CONTRACT_REF, buildExecutorContract, validateExecutorContract } = require('./executor-contract');
 const { routeWorkspace } = require('./routing');
 
+const GRAPH_EVIDENCE_REF = 'intake/graph.json';
+const GRAPHIFY_VALIDATION_COMMAND = 'npm run validate:graphify-manifests';
+const GRAPH_EVIDENCE_GUIDANCE = Object.freeze({
+  bmad: 'Graph evidence is advisory Workspace context for BMAD planning; source files remain authority.',
+  codex: 'Use graph evidence to choose files, searches, and tool calls, then verify source files before edits.',
+  tools: 'Graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.',
+});
+
 function cleanGitEnv() {
   const env = { ...process.env };
   for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX']) {
@@ -349,7 +357,7 @@ function createCapabilityContract(workspaceBasePath) {
       {
         id: 'evidence.graph.repo-intake',
         group: 'evidence.graph',
-        provider: 'workspace.git-intake',
+        provider: 'graphify',
         interface: 'repo-intake',
         allowedInNormalSession: true,
         allowedInBaseImprovement: true,
@@ -357,6 +365,9 @@ function createCapabilityContract(workspaceBasePath) {
         writes: ['workspace-session/intake'],
         forbiddenWrites: ['workspace-base'],
         outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
+        artifactRefs: [GRAPH_EVIDENCE_REF],
+        validationCommand: GRAPHIFY_VALIDATION_COMMAND,
+        guidance: GRAPH_EVIDENCE_GUIDANCE,
         upstreamGapProofRequired: false,
       },
       {
@@ -409,6 +420,12 @@ ${packet.bmadWorkflow}
 
 ## Evidence
 ${packet.repoIntakeRefs.map((reference) => `- ${reference}`).join('\n')}
+
+## Graph Evidence
+- ${GRAPH_EVIDENCE_REF}
+- Graph evidence is advisory.
+- Use graph evidence to choose files, searches, and tool calls, then verify source files before edits.
+- Graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
 
 ## Constraints
 ${packet.constraints.map((constraint) => `- ${constraint}`).join('\n')}

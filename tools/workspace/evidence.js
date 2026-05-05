@@ -68,6 +68,12 @@ function collectEvidenceArtifacts({ status, checks }) {
     ref: status.artifacts.intake.ref || 'intake/repo-intake.json',
     sourceCommand: 'bmad workspace intake',
   });
+  add({
+    stage: 'intake',
+    kind: 'graph-evidence',
+    ref: status.artifacts.graphEvidence.ref || status.intake.graphEvidenceRef || 'intake/graph.json',
+    sourceCommand: 'bmad workspace intake',
+  });
   add({ stage: 'packet', kind: 'work-packet', ref: 'packets/bmad-work-packet.json', sourceCommand: 'bmad workspace packet' });
   add({ stage: 'packet', kind: 'capability-contract', ref: 'capabilities.json', sourceCommand: 'bmad workspace packet' });
   add({ stage: 'packet', kind: 'rendered-prompt', ref: 'packets/rendered-prompt.md', sourceCommand: 'bmad workspace packet' });

@@ -236,6 +236,41 @@ function testSelfImproveRunbookExposesCheckpointResumeWorkflow() {
   }
 }
 
+function testSelfImproveConsumesWorkspaceGraphEvidenceOnly() {
+  const surfaces = {
+    runbook: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8'),
+    prompt: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'), 'utf8'),
+    workspaceSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace', 'SKILL.md'), 'utf8'),
+    selfImproveSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8'),
+  };
+
+  for (const [surface, content] of Object.entries(surfaces)) {
+    for (const requiredText of [
+      'Workspace graph evidence',
+      'intake/graph.json',
+      'Graph evidence is advisory',
+      'source files remain authority',
+      'does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration',
+    ]) {
+      assert(content.includes(requiredText), `${surface} exposes Workspace graph evidence boundary: ${requiredText}`);
+    }
+  }
+
+  for (const [surface, content] of Object.entries({
+    runbook: surfaces.runbook,
+    prompt: surfaces.prompt,
+    selfImproveSkill: surfaces.selfImproveSkill,
+  })) {
+    for (const requiredText of [
+      'Self-Improve consumes Workspace graph evidence only',
+      'must not call Graphify ad hoc',
+      'must not silently regenerate graph artifacts',
+    ]) {
+      assert(content.includes(requiredText), `${surface} keeps Self-Improve on Workspace graph evidence: ${requiredText}`);
+    }
+  }
+}
+
 function testRequiredInvariantIdsExist() {
   const ids = REQUIRED_INVARIANTS.map((item) => item.id);
   assert.equal(ids.length, 13);
@@ -707,6 +742,7 @@ function run() {
   const tests = [
     testCurrentRepoValidates,
     testSelfImproveRunbookExposesCheckpointResumeWorkflow,
+    testSelfImproveConsumesWorkspaceGraphEvidenceOnly,
     testRequiredInvariantIdsExist,
     testMissingRequiredFileReportsStableError,
     testCliMissingRequiredFileUsesInvariantPrefix,

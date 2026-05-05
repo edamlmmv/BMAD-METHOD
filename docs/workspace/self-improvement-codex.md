@@ -59,6 +59,16 @@ Self-Improve consumes these shared capabilities when its run needs them:
 - `capability:ubiquitous-language` `ubiquitous-language` aligns terms across skills, docs, prompts, module help, and code-facing names.
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
 
+## Workspace Graph Evidence
+
+Self-Improve consumes Workspace graph evidence only. Use `intake/graph.json`,
+`intake/repo-intake.json`, and `intake/provenance.json` from BMAD Workspace as
+session evidence; must not call Graphify ad hoc and must not silently regenerate graph artifacts.
+
+Graph evidence is advisory. It may guide repo topology analysis, docs/code link
+checks, and agent/tool boundary work, but source files remain authority before
+any recommendation or edit. Workspace graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
+
 ## Codex Advanced Configuration
 
 Codex Advanced Configuration is optional operator-local setup. It can change

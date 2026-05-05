@@ -198,6 +198,7 @@ function copySessionArtifacts({ sessionRoot, status, archiveRoot }) {
     grants: copyIfPresent(sessionRoot, archiveRoot, 'grants.json'),
     capabilityContract: copyIfPresent(sessionRoot, archiveRoot, 'capabilities.json'),
     intake: copyIfPresent(sessionRoot, archiveRoot, status.artifacts.intake.ref),
+    graphEvidence: copyIfPresent(sessionRoot, archiveRoot, status.artifacts.graphEvidence?.ref),
     packet: copyIfPresent(sessionRoot, archiveRoot, 'packets/bmad-work-packet.json'),
     renderedPrompt: copyIfPresent(sessionRoot, archiveRoot, 'packets/rendered-prompt.md'),
     executorContract: copyIfPresent(sessionRoot, archiveRoot, status.executorContract?.ref),

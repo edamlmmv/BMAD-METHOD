@@ -49,6 +49,7 @@ function readSessionStatus({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT }) {
     repoPack: artifactStatus(sessionRoot, 'repo-pack.json'),
     grants: artifactStatus(sessionRoot, 'grants.json'),
     intake: { present: false },
+    graphEvidence: { present: false },
     packet: artifactStatus(sessionRoot, 'packets/bmad-work-packet.json'),
     executorContract: artifactStatus(sessionRoot, 'packets/executor-contract.json'),
     review: artifactStatus(sessionRoot, 'review/summary.json'),
@@ -161,6 +162,8 @@ function readIntakeStatus({ instance, sessionRoot, status, checks }) {
     state: 'fresh',
     ref: instance.repoIntakeRef,
     path: repoIntakePath,
+    graphEvidenceRef: repoIntake.graphEvidenceRef || null,
+    graphEvidenceState: repoIntake.graphEvidenceState || 'missing',
     repos: (repoIntake.repos || []).map((repo) => ({
       id: repo.id,
       sourcePath: repo.sourcePath,
@@ -169,6 +172,9 @@ function readIntakeStatus({ instance, sessionRoot, status, checks }) {
       stale: false,
     })),
   };
+  if (repoIntake.graphEvidenceRef) {
+    status.artifacts.graphEvidence = artifactStatus(sessionRoot, repoIntake.graphEvidenceRef);
+  }
 
   for (const repo of status.intake.repos) {
     try {
