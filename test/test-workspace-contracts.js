@@ -1445,6 +1445,18 @@ function runTests() {
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
     }
+    for (const text of [
+      'Validator Owner And Manual Review Map',
+      'Workspace Graph Evidence',
+      'Route Trust And Advisory Evidence',
+      'Planning Capabilities',
+      'Capability Contract',
+      'Self-Improve Safety Loop',
+      'Exact Release Gate',
+      'manual-review note',
+    ]) {
+      assert(releaseReadiness.includes(text), `release checklist maps validator owner for ${text}`, releaseReadiness);
+    }
 
     const capabilityContract = fs.readFileSync(path.join(workspaceDocsRoot, 'capability-contract.md'), 'utf8');
     for (const text of ['operator.codex.affordance', 'features.goals', 'features.multi_agent', 'features.codex_hooks']) {

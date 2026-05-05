@@ -26,6 +26,30 @@ Use this checklist before pushing Workspace changes.
 - Confirm runnable docs examples are tested or backed by captured output, and
   pseudo examples are marked `# PSEUDO`.
 
+## Validator Owner And Manual Review Map
+
+Durable trust claims need a validator owner or a manual-review note before a
+Workspace release:
+
+- Workspace Graph Evidence: owner is `npm run validate:graphify-manifests`
+  plus `npm run test:workspace`; manual-review note checks source files remain
+  authority and Graphify is not run live by Workspace.
+- Route Trust And Advisory Evidence: owner is `npm run test:workspace`;
+  manual-review note checks the static route registry remains authority and
+  advisory evidence cannot create fuzzy, alias, fallback, or synthesized routes.
+- Planning Capabilities: owner is
+  `npm run validate:bmad-planning-capabilities`; manual-review note checks the
+  registry stays closed and operator-invoked only.
+- Capability Contract: owner is `npm run test:workspace`; manual-review note
+  checks provider metadata grants no writes, route authority, live adapter
+  activation, scheduler behavior, or base mutation.
+- Self-Improve Safety Loop: owner is
+  `npm run validate:self-improve-invariants`; manual-review note checks
+  continuation remains evidence-gated and cannot self-authorize hidden action.
+- Exact Release Gate: owner is this checklist, `package.json`, and
+  `.github/workflows/quality.yaml`; manual-review note checks the pre-push gate
+  remains `npm ci && npm run quality` on the exact checkout being pushed.
+
 ## Current Workspace Assertions
 
 - `bmad workspace review` writes `review/review-manifest.json`.
