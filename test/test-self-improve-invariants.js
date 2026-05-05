@@ -662,6 +662,17 @@ function testPlanningCapabilityRejectsUnknownAnchors() {
   assertInvalidWithAll(root, ['BPC_UNKNOWN_CAPABILITY_ANCHOR', 'capability:ghost', 'bmad-party-mode skill']);
 }
 
+function testPlanningCapabilityRejectsCodexConfigAuthorityClaims() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/self-improvement-codex.md',
+    'Codex Advanced Configuration is optional operator-local setup.',
+    'Codex Advanced Configuration is optional operator-local setup.\n\nCodex config grants authority.',
+  );
+  assertInvalidWithAll(root, ['BPC_FORBIDDEN_AUTOMATION_CLAIM', 'Codex config grants authority']);
+}
+
 function testInvalidCheckpointActivationStateFails() {
   const root = makeFixture();
   replaceCheckpointExample(root, 'invalid-activation-state.md');
@@ -744,6 +755,7 @@ function run() {
     testResumeModeRequiresFinalHeadSha,
     testResumeModeRejectsStaleFinalHeadSha,
     testPlanningCapabilityRejectsUnknownAnchors,
+    testPlanningCapabilityRejectsCodexConfigAuthorityClaims,
     testInvalidCheckpointActivationStateFails,
     testInvalidCheckpointContinuationAllowedFails,
     testInvalidCheckpointFailedGateFails,

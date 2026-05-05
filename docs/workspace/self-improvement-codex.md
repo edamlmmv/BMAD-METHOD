@@ -59,12 +59,36 @@ Self-Improve consumes these shared capabilities when its run needs them:
 - `capability:ubiquitous-language` `ubiquitous-language` aligns terms across skills, docs, prompts, module help, and code-facing names.
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
 
-Optional Codex advanced integration notes, reviewed on 2026-05-05:
+## Codex Advanced Configuration
 
-- Codex `skills.config` can enable skill paths for operators.
-- Project `.codex/config.toml` loads only for trusted projects.
+Codex Advanced Configuration is optional operator-local setup. It can change
+local tool behavior, but BMAD authority still comes from user approval, story
+scope, BMAD Work Packets, grants, and repository process. Use the official Codex
+docs as references only: [Advanced Configuration](https://developers.openai.com/codex/config-advanced),
+[Configuration Reference](https://developers.openai.com/codex/config-reference),
+and [Sandbox Defaults](https://developers.openai.com/codex/concepts/sandboxing#configure-defaults).
+
+BMAD-relevant Codex configuration notes, reviewed on 2026-05-05:
+
+- User configuration lives in `~/.codex/config.toml`.
+- Project configuration can live in `.codex/config.toml`, but it loads only for
+  trusted projects; relative paths inside that file resolve from `.codex/`.
+- Profiles and hooks are experimental. Do not rely on them for BMAD invariants,
+  approval, refresh authority, hidden execution, schedulers, or Workspace writes.
 - Hooks require `features.codex_hooks`; this workflow does not require hooks.
-- Multi-agent features are normally available, with documented defaults of `max_threads=6` and `max_depth=1` when unset.
+- `[agents]` configuration is optional subagent role tuning only. It does not
+  create story authority, grants, acceptance criteria, or delegation authority.
+- The lower-risk local automation preset is
+  `sandbox_mode = "workspace-write"` with `approval_policy = "on-request"`.
+- The full-access preset, `sandbox_mode = "danger-full-access"` with
+  `approval_policy = "never"`, is high-risk trusted-local behavior documented
+  for awareness, not the recommended default.
+- `openai_base_url` can route Codex through a configured OpenAI-compatible
+  endpoint or proxy when supported; verify behavior against official docs and
+  organization policy. It does not grant BMAD authority or create compliance
+  guarantees.
+- Multi-agent features are normally available, with documented defaults of
+  `max_threads=6` and `max_depth=1` when unset.
 
 ## What It Does
 

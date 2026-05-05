@@ -50,6 +50,19 @@
 | **Documentation Evidence Adapter** | An Adapter that retrieves trusted current documentation only when freshness affects the mission. | Freshness crawler, doc memory |
 | **Git Adapter** | An Adapter that provides worktrees, diffs, status, commits, provenance, and rollback evidence. | File sync, patch tool |
 
+## Codex operator environment
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Operator-Local Configuration** | Codex configuration that tunes local tool behavior without changing BMAD authority. | Workspace authority, grant, policy |
+| **Tool Affordance** | A Codex UI, command, hook, plugin, subagent, or config hint that helps an operator work but is not BMAD evidence by itself. | Approval, authority, Workspace command |
+| **Trusted Project** | A project whose Codex project-local configuration layer is allowed to load. | Safe repo, approved workspace |
+| **Hook** | A Codex lifecycle command configured to react to tool events when enabled. | Approval gate, scheduler |
+| **Subagent** | A spawned Codex agent thread used for bounded parallel perspective or work. | Decision-maker, authority |
+| **Profile** | A named Codex configuration set selected for a session or CLI run. | Mode, Workspace policy |
+| **Approval Policy** | A Codex setting that controls when Codex pauses for human or automatic review before actions. | BMAD grant, repository approval |
+| **Sandbox Mode** | A Codex setting that limits command filesystem and network access. | Security proof, grant |
+
 ## Relationships
 
 - A **BMAD Workspace** creates zero or more **Workspace Sessions**.
@@ -62,6 +75,9 @@
 - A **Base Improvement Session** may change the **BMAD Workspace** only through a **Base Mutation Grant**.
 - **Promotion** requires a **Worktree Review** and must be explicit.
 - **Session State** dies with the **Workspace Session** unless retained for **Worktree Review**.
+- **Operator-Local Configuration** may expose **Tool Affordances**, but **Grant** and **BMAD Work Packet** remain the authority records.
+- A **Hook**, **Subagent**, or **Profile** is a **Tool Affordance** when used with BMAD.
+- **Approval Policy** and **Sandbox Mode** constrain Codex execution but do not replace a **Grant**.
 
 ## Example dialogue
 
@@ -69,8 +85,8 @@
 > **Domain expert:** "Only if you start a **Base Improvement Session**. A normal **Session** writes the **Target Repo**, not the **BMAD Workspace**."
 > **Dev:** "So the **Rendered Prompt** is not the source of truth?"
 > **Domain expert:** "Correct. The **BMAD Work Packet** is the source of truth; the **Rendered Prompt** is derived for the **Codex Executor**."
-> **Dev:** "Where do OpenClaw, Hermes, and Graphify fit?"
-> **Domain expert:** "They are **Adapters** behind the **Capability Contract**. BMAD still owns routing, artifacts, gates, and review."
+> **Dev:** "Can a **Profile** or **Hook** approve Workspace changes?"
+> **Domain expert:** "No. Those are **Tool Affordances** from **Operator-Local Configuration**. They can help the operator, but **Grant** and **BMAD Work Packet** remain the authority records."
 > **Dev:** "What proves a base change is valid?"
 > **Domain expert:** "A **BMAD Artifact**, a **Base Mutation Grant**, and a **Worktree Review**."
 
@@ -83,3 +99,7 @@
 - "memory" can mean adapter storage, graph evidence, session cache, or durable rules. Use **Session State** for disposable data and **Standing Order** for durable rules.
 - "self-improvement" can imply automatic base mutation. Use **Base Improvement Session** and require a **Base Mutation Grant**.
 - "promotion" can mean merging target repo changes or improving the base. Use **Promotion** only for explicit integration into the **BMAD Workspace**.
+- "configuration" can mean BMAD process policy or local Codex settings. Use **Operator-Local Configuration** for local Codex settings.
+- "hook" can imply an approval gate or background worker. Use **Hook** only for Codex lifecycle commands and never for BMAD authority.
+- "agent" can mean the **Codex Executor**, a BMAD named role, or a **Subagent**. Use the precise term for the thread or role involved.
+- "trusted" can imply safe code or approved business scope. Use **Trusted Project** only for Codex project-local configuration loading.

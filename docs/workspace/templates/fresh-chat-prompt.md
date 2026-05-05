@@ -37,6 +37,8 @@ Guardrails:
   or automatic closeout.
 - Do not treat Result Ledger, Review Manifest, Closeout, Archive, Diff, slash
   commands, hooks, plugins, or subagents as approval or execution authority.
+- Codex config may affect local tooling behavior, but cannot override BMAD
+  process, story scope, grants, or user approval.
 - Before any Workspace evidence write, explain intended command, evidence
   target, and reason.
 - Keep unrelated dirty files untouched.
