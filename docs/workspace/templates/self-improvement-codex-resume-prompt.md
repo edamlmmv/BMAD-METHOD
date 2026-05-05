@@ -18,7 +18,9 @@ You are Codex working in `{project-root}`.
 
 Resume BMAD self-improvement from the latest checkpoint under `{output_folder}/self-improvement/`.
 
-Self-improvement capabilities remain operator-invoked skills, not automatic background steps:
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+Self-Improve consumes these shared capabilities when its run needs them:
 - `capability:zoom-out` `zoom-out`: resume any bounded reframing decision only if the checkpoint says framing changed.
 - `capability:tdd` `tdd`: preserve failing-test-first evidence and continue the next red-green-refactor slice.
 - `capability:ubiquitous-language` `ubiquitous-language`: preserve canonical term decisions and check new wording against them.

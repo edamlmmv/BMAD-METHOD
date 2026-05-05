@@ -28,6 +28,19 @@ When this skill completes, the user should:
 - **Project knowledge**: If `project_knowledge` resolves to an existing path, read it for grounding context. Never fabricate project-specific details.
 - **Module docs**: Rows with `_meta` in the `skill` column carry a URL or path in `output-location` pointing to the module's documentation (e.g., llms.txt). Fetch and use these to answer general questions about that module.
 
+## Shared BMAD Planning Capabilities
+
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+When a user asks which capability fits their current planning problem, recommend the relevant capability by intent:
+
+| Capability | Recommend when |
+| --- | --- |
+| `capability:zoom-out` `zoom-out` | They need to reframe the problem, constraints, alternatives, or chosen path. |
+| `capability:tdd` `tdd` | They need failing-test-first implementation guidance or risk control before coding. |
+| `capability:ubiquitous-language` `ubiquitous-language` | Terms drift across docs, prompts, module help, agents, or code-facing names. |
+| `capability:grill-me` `grill-me` | They want a challenge round or checkpoint objections with changed/deferred decisions. |
+
 ## CSV Interpretation
 
 The catalog uses this format:

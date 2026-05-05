@@ -48,9 +48,11 @@ Mode: hosted orchestrator adapter
 
 The hosted adapter mode is documentation-only for now. It must wrap the same policy, invariant checker, install, refresh, and checkpoint contract.
 
-## Self-Improvement Capabilities
+## Shared BMAD Planning Capabilities
 
-Self-improvement capabilities are explicit operator-invoked skills, not automatic background steps.
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+Self-Improve consumes these shared capabilities when its run needs them:
 
 - `capability:zoom-out` `zoom-out` runs one bounded reframing pass for problem, constraints, alternatives, and chosen path.
 - `capability:tdd` `tdd` produces failing-test-first implementation guidance when implementation risk warrants it.

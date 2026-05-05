@@ -18,7 +18,9 @@ You are Codex working in `{project-root}`.
 
 Run local Codex automation-capable BMAD self-improvement.
 
-Self-improvement capabilities are explicit operator-invoked skills, not automatic background steps:
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+Self-Improve consumes these shared capabilities when its run needs them:
 - `capability:zoom-out` `zoom-out`: run one bounded reframing pass for problem, constraints, alternatives, and chosen path.
 - `capability:tdd` `tdd`: produce failing-test-first implementation guidance when implementation risk warrants it.
 - `capability:ubiquitous-language` `ubiquitous-language`: align terms across skills, docs, prompts, module help, and code-facing names.

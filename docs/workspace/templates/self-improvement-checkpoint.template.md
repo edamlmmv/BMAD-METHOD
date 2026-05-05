@@ -71,7 +71,9 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 
 -
 
-## Self-Improvement Capabilities
+## Shared BMAD Planning Capabilities
+
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
 
 - `capability:zoom-out` reframing summary:
 - `capability:tdd` failing-test-first evidence:

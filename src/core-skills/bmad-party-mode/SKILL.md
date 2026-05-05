@@ -50,9 +50,11 @@ Party Mode is an orchestration contract, not a claim that Codex can force runtim
 - The injected expectation is: propose one failing behavior test first, prefer public behavior checks, implement the smallest green change, refactor only after green, and use red-green-refactor language.
 - Party Mode surfaces TDD expectations; it does not prove runtime enforcement. Evidence still comes from tests, quality gates, install/refresh results, and checkpoints.
 
-### Self-improvement capability rounds
+### Shared BMAD planning capability rounds
 
-Party Mode may use these as named rounds during BMAD self-improvement. They are operator-invoked capabilities, not automatic background steps.
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+Party Mode may use these as named rounds when discussion needs the capability:
 
 - `capability:zoom-out` `zoom-out`: reframe the problem, constraints, alternatives, and chosen path.
 - `capability:tdd` `tdd`: produce implementation-ready failing-test-first guidance when requested or when implementation risk warrants it.

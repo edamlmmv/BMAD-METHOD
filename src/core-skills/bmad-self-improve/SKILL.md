@@ -69,9 +69,11 @@ Future mode: hosted orchestrator adapter. Vercel Workflow WDK may wrap the same 
 - Continuation decision.
 - Checkpoint under `{output_folder}/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
 
-## Self-Improvement Capabilities
+## Shared BMAD Planning Capabilities
 
-These are explicit operator-invoked self-improvement capabilities, not automatic background behavior.
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
+Self-Improve consumes these shared capabilities when its run needs them:
 
 - `capability:zoom-out` `zoom-out` runs one bounded reframing pass for problem, constraints, alternatives, and chosen path.
 - `capability:tdd` `tdd` produces failing-test-first implementation guidance when implementation risk warrants it.

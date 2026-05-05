@@ -187,6 +187,8 @@ restore, replay, schedule, watch, merge, promote, or call live adapters.
 
 ## Setup Gate
 
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+
 Every BMAD Work Packet requires setup entries for:
 
 - zoom-out
@@ -197,6 +199,16 @@ Every BMAD Work Packet requires setup entries for:
 Internal packet refs remain `zoomOut`, `ubiquitousLanguage`,
 `grillDecisions`, and `tddPlan`; these refs are stable Workspace evidence
 fields, not separate CLI commands.
+
+Use shared BMAD planning capabilities to produce or check setup evidence when
+the Workspace goal needs them:
+
+| Capability | Use when | Workspace ref |
+| --- | --- | --- |
+| `capability:zoom-out` `zoom-out` | Reframe problem, constraints, alternatives, and chosen path. | `zoomOut` |
+| `capability:tdd` `tdd` | Plan failing-test-first implementation guidance. | `tddPlan` |
+| `capability:ubiquitous-language` `ubiquitous-language` | Align terms across docs, prompts, help, and code-facing names. | `ubiquitousLanguage` |
+| `capability:grill-me` `grill-me` | Challenge a plan at checkpoint and record changed/deferred decisions. | `grillDecisions` |
 
 Each setup entry must be complete with a ref or skipped with an explicit reason.
 Use `--skip-setup <step=reason>` only when the user accepts the skip.
