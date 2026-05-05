@@ -1182,6 +1182,65 @@ function runTests() {
     );
     fs.writeFileSync(graphEvidencePath, `${JSON.stringify(graphEvidenceBeforeUnknownRoute, null, 2)}\n`);
 
+    const graphEvidenceBeforeFuzzyRoute = readJson(graphEvidencePath);
+    fs.writeFileSync(
+      graphEvidencePath,
+      `${JSON.stringify(
+        {
+          ...graphEvidenceBeforeFuzzyRoute,
+          routeHints: [
+            {
+              route: 'bmad-create-prdd',
+              explicitActionIntent: true,
+              citations: [{ path: 'README.md' }],
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const targetBeforeFuzzyRoute = fingerprintTree(targetRepo.path);
+    const baseBeforeFuzzyRoute = fingerprintTree(baseRepo.path);
+    const sessionBeforeFuzzyRoute = fingerprintTree(launchOutput.sessionRoot);
+    const fuzzyRoutePacket = runCli(completePacketArgs, {
+      cwd: baseRepo.path,
+    });
+    const fuzzyRoutePacketText = `${fuzzyRoutePacket.stdout}\n${fuzzyRoutePacket.stderr}`;
+    assert(fuzzyRoutePacket.status === 2, 'packet fuzzy advisory route exits trust-gate code 2', fuzzyRoutePacketText);
+    assert(fuzzyRoutePacket.stderr === '', 'packet fuzzy advisory route prints JSON without stderr diagnostics', fuzzyRoutePacketText);
+    const fuzzyRouteOutput = JSON.parse(fuzzyRoutePacket.stdout);
+    assert(fuzzyRouteOutput.status === 'blocked', 'fuzzy advisory route returns blocked JSON', fuzzyRoutePacketText);
+    assert(fuzzyRouteOutput.reason === 'UNKNOWN_ROUTE', 'fuzzy advisory route names UNKNOWN_ROUTE', fuzzyRoutePacketText);
+    assert(!('recommendedRoute' in fuzzyRouteOutput), 'fuzzy advisory route omits recommendedRoute', fuzzyRoutePacketText);
+    assert(
+      fuzzyRouteOutput.unknownRoutes.includes('bmad-create-prdd'),
+      'fuzzy advisory route reports raw hinted route id',
+      JSON.stringify(fuzzyRouteOutput, null, 2),
+    );
+    assert(
+      fuzzyRouteOutput.evidenceRefs.includes('README.md'),
+      'fuzzy advisory route reports cited evidence refs',
+      JSON.stringify(fuzzyRouteOutput, null, 2),
+    );
+    assert(
+      fuzzyRouteOutput.zeroMutationProof.workflowExecution === 'not-started' &&
+        fuzzyRouteOutput.zeroMutationProof.liveGraphifyCall === 'not-called' &&
+        fuzzyRouteOutput.zeroMutationProof.networkCall === 'not-called' &&
+        fuzzyRouteOutput.zeroMutationProof.repoMutation === 'not-started',
+      'fuzzy advisory route reports no workflow, Graphify, network, or repo mutation',
+      JSON.stringify(fuzzyRouteOutput, null, 2),
+    );
+    assert(
+      !fs.existsSync(path.join(launchOutput.sessionRoot, 'packets', 'bmad-work-packet.json')),
+      'packet with fuzzy advisory route does not write partial packet',
+      fuzzyRoutePacketText,
+    );
+    assert(targetBeforeFuzzyRoute === fingerprintTree(targetRepo.path), 'fuzzy advisory route does not mutate target repo');
+    assert(baseBeforeFuzzyRoute === fingerprintTree(baseRepo.path), 'fuzzy advisory route does not mutate Workspace Base');
+    assert(sessionBeforeFuzzyRoute === fingerprintTree(launchOutput.sessionRoot), 'fuzzy advisory route does not mutate session artifacts');
+    fs.writeFileSync(graphEvidencePath, `${JSON.stringify(graphEvidenceBeforeFuzzyRoute, null, 2)}\n`);
+
     fs.rmSync(graphEvidencePath);
     const missingGraphPacket = runCli(completePacketArgs, {
       cwd: baseRepo.path,
