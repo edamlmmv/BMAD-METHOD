@@ -60,9 +60,9 @@ operator decisions, evidence refs, review manifest refs, closeout, and archive
 verification for a real engagement.
 
 Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
-when Codex should improve BMAD itself with a manual operator-run or bounded
-one-shot foreground run, Party Mode planning, TDD execution, compile/install
-evidence, and refresh checks.
+when Codex should improve BMAD itself with a local automation-capable loop or
+foreground operator run, Party Mode planning, TDD execution, compile/install
+evidence, refresh checks, and checkpointed continuation.
 
 ## Doctrine
 

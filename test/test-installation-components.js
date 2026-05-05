@@ -3531,9 +3531,11 @@ async function runTests() {
     const sourceSkill45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
     const sourceHelp45 = path.join(projectRoot, 'src', 'core-skills', 'module-help.csv');
     const guide45 = path.join(projectRoot, 'docs', 'workspace', 'self-improvement-codex.md');
+    const policy45 = path.join(projectRoot, 'docs', 'workspace', 'self-improvement-automation-policy.md');
     const prompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md');
     const resumePrompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md');
     const checkpointTemplate45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md');
+    const validator45 = path.join(projectRoot, 'tools', 'validate-self-improve-invariants.js');
 
     assert(await fs.pathExists(sourceSkill45), 'bmad-self-improve source skill exists');
 
@@ -3556,67 +3558,92 @@ async function runTests() {
       skillContent45.includes('{output_folder}/self-improvement'),
       'bmad-self-improve records checkpoints under output_folder self-improvement',
     );
-    assert(
-      /does not create or run scheduler,\s+watcher,\s+daemon,\s+hidden executor,\s+live adapter,\s+or auto-promotion loop/.test(
-        skillContent45,
-      ),
-      'bmad-self-improve forbids hidden automation surfaces',
-    );
-    assert(
-      skillContent45.includes('operator-invoked BMAD skill, not Codex automation'),
-      'bmad-self-improve states it is not Codex automation',
-    );
-    assert(skillContent45.includes('missing automation is expected'), 'bmad-self-improve explains missing automation');
-    assert(
-      skillContent45.includes('foreground, operator-started, one-shot unassisted run'),
-      'bmad-self-improve bounds one-shot unassisted mode',
-    );
-    for (const requiredInput45 of ['repo_path', 'branch', 'scope', 'target_skill_or_files', 'stop_condition']) {
+    for (const automationTerm45 of [
+      'local Codex automation loop',
+      'fresh non-main branch',
+      'Never push',
+      'max_fix_attempts=5',
+      'npm ci && npm run quality',
+      'npm run validate:self-improve-invariants',
+      'Party Mode consensus',
+      'Vercel Workflow WDK',
+    ]) {
+      assert(skillContent45.includes(automationTerm45), `bmad-self-improve documents ${automationTerm45}`);
+    }
+    for (const retiredPhrase45 of [
+      'operator-invoked BMAD skill, not Codex automation',
+      'Missing automation is expected',
+      'does not create or run scheduler',
+      'Cron or recurring automation',
+      'bmad-loop remains observe/coordination only; no execution authority',
+    ]) {
+      assert(!skillContent45.includes(retiredPhrase45), `bmad-self-improve removed retired phrase: ${retiredPhrase45}`);
+    }
+    for (const requiredInput45 of ['repo_path', 'base_ref', 'scope', 'stop_condition', 'max_iterations', 'daily_cap', 'max_fix_attempts']) {
       assert(skillContent45.includes(requiredInput45), `bmad-self-improve requires ${requiredInput45}`);
     }
     assert(
-      skillContent45.includes('bmad-loop remains observe/coordination only; no execution authority'),
-      'bmad-self-improve keeps bmad-loop observe-only',
-    );
-    assert(
-      skillContent45.includes('stop condition is missing or not finite'),
-      'bmad-self-improve stops on missing or non-finite stop condition',
+      skillContent45.includes('Required input or finite stop condition is missing'),
+      'bmad-self-improve stops on missing input or non-finite stop condition',
     );
 
     const helpContent45 = await fs.readFile(sourceHelp45, 'utf8');
     assert(helpContent45.includes('Core,bmad-self-improve,'), 'module-help.csv routes bmad-self-improve');
+    assert(
+      helpContent45.includes('local Codex automation-capable BMAD self-improvement'),
+      'module-help.csv describes automation-capable self-improvement',
+    );
 
-    for (const docPath45 of [guide45, prompt45, resumePrompt45, checkpointTemplate45]) {
+    for (const docPath45 of [guide45, policy45, prompt45, resumePrompt45, checkpointTemplate45, validator45]) {
       assert(await fs.pathExists(docPath45), `${path.basename(docPath45)} exists`);
     }
+    const policyContent45 = (await fs.pathExists(policy45)) ? await fs.readFile(policy45, 'utf8') : '';
+    for (const invariantId45 of [
+      'SI-AUTO-001',
+      'SI-AUTO-002',
+      'SI-AUTO-003',
+      'SI-AUTO-004',
+      'SI-AUTO-005',
+      'SI-AUTO-006',
+      'SI-AUTO-007',
+      'SI-AUTO-008',
+      'SI-AUTO-009',
+      'SI-AUTO-010',
+      'SI-AUTO-011',
+      'SI-AUTO-012',
+      'SI-AUTO-013',
+    ]) {
+      assert(policyContent45.includes(invariantId45), `self-improvement policy includes ${invariantId45}`);
+    }
+    assert(policyContent45.includes('Vercel Workflow WDK'), 'self-improvement policy documents WDK future adapter boundary');
+
     const guideContent45 = (await fs.pathExists(guide45)) ? await fs.readFile(guide45, 'utf8') : '';
-    assert(
-      guideContent45.includes('https://developers.openai.com/codex/app-server#skills'),
-      'self-improvement guide cites Codex skills refresh documentation',
-    );
-    assert(guideContent45.includes('global install remains out of scope'), 'self-improvement guide keeps global install out of scope');
-    assert(
-      guideContent45.includes('Manual `bmad-self-improve` Operator Runbook'),
-      'self-improvement guide exposes manual operator runbook',
-    );
-    assert(guideContent45.includes('Missing automation is expected'), 'self-improvement guide explains why no automation exists');
-    assert(
-      guideContent45.includes('bmad-loop remains observe/coordination only; no execution authority'),
-      'self-improvement guide documents bmad-loop boundary',
-    );
+    assert(guideContent45.includes('local Codex automation loop'), 'self-improvement guide documents local Codex automation loop');
+    assert(guideContent45.includes('Self-Improvement Automation Policy'), 'self-improvement guide links automation policy');
+    assert(guideContent45.includes('Vercel Workflow WDK'), 'self-improvement guide documents WDK future adapter boundary');
 
     const promptContent45 = (await fs.pathExists(prompt45)) ? await fs.readFile(prompt45, 'utf8') : '';
-    assert(promptContent45.includes('Mode: manual operator-run'), 'self-improvement prompt includes manual mode');
-    assert(
-      promptContent45.includes('Mode: one-shot unassisted foreground run'),
-      'self-improvement prompt documents one-shot unassisted mode',
-    );
-    for (const requiredInput45 of ['Branch:', 'Scope:', 'Target skill or files:', 'Stop condition:']) {
+    assert(promptContent45.includes('Mode: local Codex automation loop'), 'self-improvement prompt includes automation mode');
+    for (const requiredInput45 of ['Base ref:', 'Scope:', 'Stop condition:', 'max_iterations:', 'daily_cap:', 'max_fix_attempts:']) {
       assert(promptContent45.includes(requiredInput45), `self-improvement prompt includes ${requiredInput45}`);
     }
+    assert(promptContent45.includes('Vercel Workflow WDK is not part of this run'), 'self-improvement prompt excludes WDK from Phase 1/2');
 
     const checkpointContent45 = (await fs.pathExists(checkpointTemplate45)) ? await fs.readFile(checkpointTemplate45, 'utf8') : '';
-    for (const checkpointField45 of ['Mode and Inputs', 'Changed Files', 'Pass/Fail Output', 'Next Operator Decision']) {
+    for (const checkpointField45 of [
+      'Mode and Inputs',
+      'Baseline Evidence',
+      'Lock Evidence',
+      'Branch Evidence',
+      'Dirty Worktree Preservation',
+      'Policy Consensus Evidence',
+      'Changed Files',
+      'Pass/Fail Output',
+      'Full Gate Output',
+      'Continuation Decision',
+      'Resume Command',
+      'Next Operator Decision',
+    ]) {
       assert(checkpointContent45.includes(checkpointField45), `self-improvement checkpoint records ${checkpointField45}`);
     }
 

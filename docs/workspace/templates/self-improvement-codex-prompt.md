@@ -1,12 +1,11 @@
 ---
 title: "Self-Improvement Codex Prompt"
-description: Prompt template for operator-run BMAD self-improvement in Codex
+description: Prompt template for local Codex automation-capable BMAD self-improvement
 ---
 
 # Self-Improvement Codex Prompt
 
-Use this prompt to improve BMAD-METHOD itself from Codex. Replace placeholders
-before running.
+Use this prompt to improve BMAD-METHOD itself from Codex. Replace placeholders before running.
 
 ```md
 [$caveman]({skill-root}/caveman/SKILL.md)
@@ -17,55 +16,52 @@ before running.
 
 You are Codex working in `{project-root}`.
 
-Improve BMAD-METHOD itself. `bmad-self-improve` is an operator-invoked BMAD
-skill, not Codex automation. Missing automation is expected.
+Run local Codex automation-capable BMAD self-improvement.
 
-Run mode and required inputs:
+Mode: local Codex automation loop
+Repo path: `{project-root}`
+Base ref: current HEAD
+Scope: any BMAD repo target selected by Party Mode
+Stop condition: checkpoint written or max caps reached
+Automation schedule/config: read effective value from Codex automation metadata or operator-provided params; do not assume cadence from name or prompt text
+max_iterations: 3
+daily_cap: 3
+max_fix_attempts: 5
 
-Mode: manual operator-run
-Branch: [EXPECTED BRANCH]
-Scope: [NARROW IMPROVEMENT BOUNDARY]
-Target skill or files: [SPECIFIC SKILL/DOCS/CODE AREA]
-Stop condition: [FINITE ENDPOINT]
+Required policy:
 
-Allowed alternate mode:
+1. Read `docs/workspace/self-improvement-automation-policy.md`.
+2. Capture `SELF_IMPROVE_BASE_REF=$(git rev-parse HEAD)` and baseline policy hash before edits.
+3. Acquire `{output_folder}/self-improvement/automation.lock`; stale lock needs checkpointed failure evidence before continuation.
+4. Create a fresh `codex/self-improve-YYYYMMDD-HHMM-<slug>` branch from current `HEAD` unless I provide an explicit base ref.
+5. Read effective automation schedule/config, explicit operator parameters, and latest checkpoint. If continuation is blocked, stop before branch creation unless I explicitly clear or override the block.
+6. Never run implementation work on `main`; never push.
+7. If the worktree is dirty, preserve non-ignored dirty state in a separate local commit before improvement edits: `chore: preserve pre-automation worktree state`.
+8. Stop before preservation if dirty files contain high-confidence secrets or huge generated artifacts.
+9. Run `skill:bmad-party-mode` before writing any plan. Party Mode may choose any BMAD repo target.
+10. Write a decision-complete plan with acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, and continuation preconditions.
+11. Run `skill:bmad-party-mode` again before implementation to critique the plan.
+12. Implement with TDD, one vertical slice at a time.
+13. Attempt fixes until green or `max_fix_attempts=5`.
+14. Run `npm ci && npm run quality` before local code commit, install, refresh, or continuation.
+15. Run `npm run validate:self-improve-invariants` when policy, `bmad-self-improve`, or automation docs change.
+16. For policy edits, record Party Mode consensus from at least three BMAD voices, including Developer and Architect.
+17. compile/install updated BMAD skills with the existing installer.
+18. Install repo-local/test target first, then `/Users/edam/.agents` when applicable.
+19. Actively request Codex skill reload when available; otherwise record installed path, manifest row, source/installed SHA-256 hashes, and fallback refresh status.
+20. Commit passing work locally with a Conventional Commit message. Never push.
+21. Write checkpoint evidence under `{output_folder}/self-improvement/`.
+22. Allow continuation only after gates, commit, install/refresh evidence, checkpoint, lock release, effective schedule/config, and caps pass.
 
-Mode: one-shot unassisted foreground run
+Failure behavior:
 
-Use the alternate only when I explicitly ask for it. It must be foreground,
-operator-started, fixed-scope, and end at checkpoint. It must not recur.
+- After five failed fix attempts, leave the branch dirty for inspection, write checkpoint, and mark continuation blocked.
+- If quality passes but install or refresh fails, commit code and checkpoint, then mark continuation blocked.
+- If policy weakening is detected or cannot be classified, fail closed for human review: no install, no refresh, continuation blocked.
 
-If I give no specific target, Party Mode chooses the highest-value target inside
-repo rules, tests, evidence gates, and the declared scope.
+Future hosted adapter:
 
-Required sequence:
-
-1. Read repo instructions and current git state.
-2. Verify `bmad --version` and `bmad workspace --help`.
-3. Validate branch, scope, target files, and finite stop condition.
-4. Run Party Mode before writing any plan.
-5. Produce a decision-complete plan with acceptance criteria and TDD slices.
-6. Run Party Mode again before implementation to critique the plan.
-7. Revise the plan from Party Mode output.
-8. Implement with TDD, one vertical slice at a time.
-9. Run targeted validation.
-10. compile/install updated BMAD skills with the existing installer.
-11. Verify Codex refresh behavior.
-12. Write checkpoint evidence under `{output_folder}/self-improvement/`.
-
-Guardrails:
-
-- No scheduler, watcher, daemon, hidden executor, live adapter, or
-  auto-promotion loop.
-- No cron or recurring automation.
-- `bmad-loop` remains observe/coordination only; no execution authority.
-- No global `~/.codex/skills` install for v1.
-- No claim of Codex hot reload unless verified.
-- Keep unrelated dirty files untouched.
-- Stop if the stop condition is missing or not finite.
-- Stop on branch mismatch, scope escape, or unrelated dirty files that would
-  need edits.
-- Before push, run `npm ci && npm run quality` on exact `HEAD`.
+- Vercel Workflow WDK is not part of this run. It may become a future optional hosted orchestrator adapter only after the local Codex loop proves value.
 
 Task:
 
