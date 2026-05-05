@@ -12,4 +12,5 @@ description: Index of BMAD Workspace templates
 - **[base-mutation-grant.template.json](./base-mutation-grant.template.json)** - Scoped base mutation grant example
 - **[bmad-work-packet.template.json](./bmad-work-packet.template.json)** - Base improvement packet example
 - **[fresh-chat-prompt.md](./fresh-chat-prompt.md)** - Workspace-aware Codex starter prompt
+- **[workspace-runbook.md](./workspace-runbook.md)** - Manual engagement runbook for evidence refs and closeout
 - **[worktree-review-checklist.md](./worktree-review-checklist.md)** - Explicit promotion review checklist

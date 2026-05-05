@@ -12,7 +12,11 @@ live adapters.
 
 ## Manual Flow
 
+**PSEUDO:** Replace placeholders before running. These commands show order, not
+copy-paste-ready values.
+
 ```bash
+# PSEUDO
 bmad workspace launch --repo <target-repo> --goal <goal-file> --runtime-root <root>
 bmad workspace intake <session-id> --runtime-root <root>
 bmad workspace packet <session-id> --runtime-root <root> --workflow <skill[:action]> \

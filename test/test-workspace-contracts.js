@@ -17,9 +17,10 @@ const { REVIEW_MANIFEST_FORBIDDEN_ACTIONS, validateReviewManifest } = require('.
 const { scanForSecrets, validateResultArtifact } = require('../tools/workspace/result');
 const { createRouteableCatalog, routeWorkspace } = require('../tools/workspace/routing');
 const { validateBaseImprovementSessionKit, validateVendorSnapshots } = require('../tools/workspace/templates');
+const { WORKSPACE_COMMANDS, WORKSPACE_COMMAND_NAMES, WORKSPACE_OPTIONS } = require('../tools/workspace/command-registry');
 
 const repoRoot = path.join(__dirname, '..');
-const WORKSPACE_COMMANDS = [
+const EXPECTED_WORKSPACE_COMMAND_NAMES = [
   'launch',
   'intake',
   'packet',
@@ -1120,6 +1121,7 @@ function runTests() {
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
     const yarnLockPath = path.join(repoRoot, 'yarn.lock');
     const workspaceCommandPath = path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js');
+    const workspaceCommandRegistryPath = path.join(repoRoot, 'tools', 'workspace', 'command-registry.js');
     const buildDocsPath = path.join(repoRoot, 'tools', 'build-docs.mjs');
 
     for (const docName of [
@@ -1129,10 +1131,12 @@ function runTests() {
       'guardrails.md',
       'release-checklist.md',
       'command-contract.md',
+      'operator-quickstart.md',
       'operator-guide.md',
       'architecture.md',
       'prd.md',
       'capability-contract.md',
+      'release-note-6.6.0.md',
     ]) {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
     }
@@ -1161,9 +1165,11 @@ function runTests() {
       './guardrails.md',
       './release-checklist.md',
       './command-contract.md',
+      './operator-quickstart.md',
       './operator-guide.md',
       './architecture.md',
       './capability-contract.md',
+      './release-note-6.6.0.md',
       './history/index.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
@@ -1195,12 +1201,12 @@ function runTests() {
     ]) {
       assert(architecture.includes(`\`${lifecycle}\``), `architecture documents lifecycle ${lifecycle}`, architecture);
     }
-    for (const command of WORKSPACE_COMMANDS) {
+    for (const command of WORKSPACE_COMMAND_NAMES) {
       assert(architecture.includes(`bmad workspace ${command}`), `architecture documents command ${command}`, architecture);
     }
 
     const commandContract = fs.readFileSync(commandContractPath, 'utf8');
-    for (const command of WORKSPACE_COMMANDS) {
+    for (const command of WORKSPACE_COMMAND_NAMES) {
       assert(commandContract.includes(`\`${command}\``), `command contract documents ${command}`, commandContract);
     }
     for (const text of [
@@ -1208,6 +1214,8 @@ function runTests() {
       'every other command writes JSON',
       'Filesystem Effect',
       'Stable Error Families',
+      'tools/workspace/command-registry.js',
+      'command classes',
       'Current contract does not add `workspace run`',
       'Review Manifest Shape',
       'ARCHIVE_REVIEW_MANIFEST_INVALID',
@@ -1232,6 +1240,13 @@ function runTests() {
       'affordances, not Workspace subcommands',
     ]) {
       assert(commandContract.includes(text), `command contract includes ${text}`, commandContract);
+    }
+    for (const command of WORKSPACE_COMMANDS) {
+      assert(
+        commandContract.includes(`| \`${command.name}\` | \`${command.class}\` |`),
+        `command contract records ${command.name} class ${command.class}`,
+        commandContract,
+      );
     }
 
     const historyIndex = fs.readFileSync(path.join(historyRoot, 'index.md'), 'utf8');
@@ -1281,6 +1296,12 @@ function runTests() {
       'verify-archive',
       'package-lock.json',
       'yarn.lock',
+      'tools/workspace/command-registry.js',
+      'command classes',
+      'Read-only commands leave Workspace Session artifacts unchanged',
+      'unsafe archive paths',
+      'Release Note 6.6.0',
+      'manual, evidence-only',
       'hidden execution',
       'live adapter activation',
       'Historical delivery notes are compiled under',
@@ -1297,6 +1318,42 @@ function runTests() {
     const operatorGuide = fs.readFileSync(path.join(workspaceDocsRoot, 'operator-guide.md'), 'utf8');
     for (const text of ['Codex Goals and Slash Commands', '`/goal`', 'goal file passed to', 'manual evidence']) {
       assert(operatorGuide.includes(text), `operator guide includes ${text}`, operatorGuide);
+    }
+    assert(operatorGuide.includes('# PSEUDO'), 'operator guide labels pseudo command sequence', operatorGuide);
+
+    const operatorQuickstart = fs.readFileSync(path.join(workspaceDocsRoot, 'operator-quickstart.md'), 'utf8');
+    for (const text of [
+      'codex/bmad-workspace',
+      '`codex/workspace` branch is absent',
+      '## Runnable',
+      '## PSEUDO',
+      '# PSEUDO',
+      '## Sample Output',
+      '```mermaid',
+      'verify-archive',
+      'manual evidence only',
+    ]) {
+      assert(operatorQuickstart.includes(text), `operator quickstart includes ${text}`, operatorQuickstart);
+    }
+
+    const workspaceRunbook = fs.readFileSync(path.join(workspaceDocsRoot, 'templates', 'workspace-runbook.md'), 'utf8');
+    for (const text of ['# BMAD Workspace Runbook', 'Setup Gate', 'Manual Execution', 'Review Manifest', 'Archive path']) {
+      assert(workspaceRunbook.includes(text), `workspace runbook includes ${text}`, workspaceRunbook);
+    }
+
+    const releaseNote = fs.readFileSync(path.join(workspaceDocsRoot, 'release-note-6.6.0.md'), 'utf8');
+    for (const text of [
+      'BMAD Workspace Release Note 6.6.0',
+      'manual, evidence-only',
+      'does not include a runtime execution engine',
+      'scheduler',
+      'restore/replay',
+      'merge',
+      'promotion',
+      'live adapter activation',
+      'npm ci && npm run quality',
+    ]) {
+      assert(releaseNote.includes(text), `release note includes ${text}`, releaseNote);
     }
 
     const currentState = fs.readFileSync(currentStatePath, 'utf8');
@@ -1342,11 +1399,43 @@ function runTests() {
     }
 
     const workspaceCommand = fs.readFileSync(workspaceCommandPath, 'utf8');
-    for (const command of WORKSPACE_COMMANDS) {
-      assert(workspaceCommand.includes(`'${command}'`), `workspace command inventory includes ${command}`, workspaceCommand);
+    const workspaceCommandRegistry = fs.readFileSync(workspaceCommandRegistryPath, 'utf8');
+    assert(workspaceCommand.includes('renderWorkspaceHelp'), 'workspace CLI uses command registry help', workspaceCommand);
+    assert(workspaceCommand.includes('WORKSPACE_OPTIONS.map'), 'workspace CLI uses registry options', workspaceCommand);
+    assert(workspaceCommand.includes('isWorkspaceCommand'), 'workspace CLI validates commands through registry', workspaceCommand);
+    assert(
+      JSON.stringify(WORKSPACE_COMMAND_NAMES) === JSON.stringify(EXPECTED_WORKSPACE_COMMAND_NAMES),
+      'workspace command registry preserves public command sequence',
+      JSON.stringify(WORKSPACE_COMMAND_NAMES),
+    );
+    for (const command of WORKSPACE_COMMAND_NAMES) {
+      assert(
+        workspaceCommandRegistry.includes(`name: '${command}'`),
+        `workspace command registry includes ${command}`,
+        workspaceCommandRegistry,
+      );
     }
-    assert(!workspaceCommand.includes("'run'"), 'workspace command inventory omits run command', workspaceCommand);
-    assert(!workspaceCommand.includes("'compare'"), 'workspace command inventory omits compare command', workspaceCommand);
+    for (const commandClass of ['read', 'write', 'destructive', 'grant-gated']) {
+      assert(
+        WORKSPACE_COMMANDS.some((command) => command.class === commandClass),
+        `workspace command registry includes ${commandClass} class`,
+        JSON.stringify(WORKSPACE_COMMANDS, null, 2),
+      );
+      assert(commandContract.includes(`\`${commandClass}\``), `command contract documents ${commandClass} class`, commandContract);
+    }
+    for (const option of WORKSPACE_OPTIONS) {
+      assert(
+        workspaceCommandRegistry.includes(option.flags),
+        `workspace command registry includes option ${option.flags}`,
+        workspaceCommandRegistry,
+      );
+    }
+    assert(!workspaceCommandRegistry.includes("name: 'run'"), 'workspace command registry omits run command', workspaceCommandRegistry);
+    assert(
+      !workspaceCommandRegistry.includes("name: 'compare'"),
+      'workspace command registry omits compare command',
+      workspaceCommandRegistry,
+    );
 
     const buildDocs = fs.readFileSync(buildDocsPath, 'utf8');
     assert(buildDocs.includes('workspace/history/'), 'LLM docs exclude Workspace history records', buildDocs);

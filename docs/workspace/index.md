@@ -17,6 +17,7 @@ CLI records reviewable evidence.
 | Product scope and non-goals | [Product Requirements](./prd.md) |
 | Current architecture and artifact model | [Architecture](./architecture.md) |
 | Current command contract and output rules | [Command Contract](./command-contract.md) |
+| First-hour operator path | [Operator Quickstart](./operator-quickstart.md) |
 | Manual operator sequence | [Operator Guide](./operator-guide.md) |
 | Current system summary | [Current State](./current-state.md) |
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
@@ -24,6 +25,7 @@ CLI records reviewable evidence.
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
 | Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
+| Current release note | [Release Note 6.6.0](./release-note-6.6.0.md) |
 | Deferred architecture decisions | [ADR Candidates](./adr-candidates.md) |
 
 ## Canonical Artifact Map
@@ -51,6 +53,10 @@ records are not current operator guidance.
 Use [Fresh-Chat Workspace Prompt](./templates/fresh-chat-prompt.md) to start a
 new Codex chat with Workspace guardrails, BMAD skill routing, and evidence
 expectations already stated.
+
+Use [Workspace Runbook](./templates/workspace-runbook.md) to record manual
+operator decisions, evidence refs, review manifest refs, closeout, and archive
+verification for a real engagement.
 
 ## Doctrine
 

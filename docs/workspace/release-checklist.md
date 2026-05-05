@@ -15,10 +15,16 @@ Use this checklist before pushing Workspace changes.
 - Run `npm run validate:skills`.
 - Run `npm run quality`.
 - Confirm `package-lock.json` exists and `yarn.lock` does not exist.
+- Treat lockfile mismatch as a release blocker unless a documented package
+  manager policy explicitly allows both lockfiles.
 - Confirm Workspace docs, source skill, CLI help, and tests list the same
-  command set.
+  command set, options, and command classes.
+- Confirm `tools/workspace/command-registry.js` remains the source of truth for
+  Workspace command metadata.
 - Confirm docs navigation separates current guidance from historical delivery
   artifacts.
+- Confirm runnable docs examples are tested or backed by captured output, and
+  pseudo examples are marked `# PSEUDO`.
 
 ## Current Workspace Assertions
 
@@ -34,6 +40,22 @@ Use this checklist before pushing Workspace changes.
 - `bmad workspace diff --left <archive-dir> --right <archive-dir>` rejects URL,
   live Session, and Git worktree sources with `DIFF_SOURCE_UNSUPPORTED`.
 - Duplicate archive manifest file paths fail with `ARCHIVE_MANIFEST_INVALID`.
+- Archive verification rejects tampered files, missing `evidence-index.json`,
+  invalid executor contracts, invalid result artifacts, invalid closeout
+  artifacts, invalid Review Manifest artifacts, and unsafe archive paths.
+- Read-only commands leave Workspace Session artifacts unchanged.
+- Destructive and grant-gated commands reject unsafe paths before target
+  mutation.
+
+## Release Note 6.6.0
+
+BMAD Workspace 6.6.0 is a manual, evidence-only Workspace Session CLI. It
+records BMAD Work Packets, Manual Executor Contracts, Result Ledger artifacts,
+Worktree Review, Review Manifest evidence, Manual Closeout, Evidence Index,
+archives, archive verification, and archive diffs. It does not provide a runtime
+execution engine, scheduler, watcher, daemon, restore/replay/import/sync/apply,
+merge, promotion, live adapter activation, hidden subprocess orchestration, or
+automatic action from stored evidence.
 
 ## Forbidden Runtime Audit
 

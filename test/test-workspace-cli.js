@@ -11,6 +11,8 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
 
+const { WORKSPACE_COMMANDS, WORKSPACE_COMMAND_NAMES } = require('../tools/workspace/command-registry');
+
 const colors = {
   reset: '\u001B[0m',
   green: '\u001B[32m',
@@ -215,45 +217,23 @@ function runTests() {
   assert(output.includes('--right <archive-dir>'), 'workspace help lists --right', output);
   assert(output.includes('--result-id <id>'), 'workspace help lists --result-id', output);
   assert(output.includes('--closeout-id <id>'), 'workspace help lists --closeout-id', output);
-  for (const subcommand of [
-    'launch',
-    'intake',
-    'packet',
-    'list',
-    'status',
-    'handoff',
-    'evidence',
-    'diff',
-    'result',
-    'closeout',
-    'archive',
-    'verify-archive',
-    'review',
-    'destroy',
-    'authorize',
-  ]) {
+  for (const subcommand of WORKSPACE_COMMAND_NAMES) {
     assert(output.includes(subcommand), `workspace help lists ${subcommand}`, output);
+  }
+  for (const command of WORKSPACE_COMMANDS) {
+    assert(output.includes(command.class), `workspace help lists ${command.name} class ${command.class}`, output);
   }
 
   const commandContract = fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'command-contract.md'), 'utf8');
-  for (const subcommand of [
-    'launch',
-    'intake',
-    'packet',
-    'list',
-    'status',
-    'handoff',
-    'evidence',
-    'diff',
-    'result',
-    'closeout',
-    'archive',
-    'verify-archive',
-    'review',
-    'destroy',
-    'authorize',
-  ]) {
+  for (const subcommand of WORKSPACE_COMMAND_NAMES) {
     assert(commandContract.includes(`\`${subcommand}\``), `command contract lists ${subcommand}`, commandContract);
+  }
+  for (const command of WORKSPACE_COMMANDS) {
+    assert(
+      commandContract.includes(`| \`${command.name}\` | \`${command.class}\` |`),
+      `command contract lists ${command.name} class ${command.class}`,
+      commandContract,
+    );
   }
   assert(commandContract.includes('handoff` writes Markdown'), 'command contract states handoff output type', commandContract);
   assert(commandContract.includes('every other command writes JSON'), 'command contract states JSON output type', commandContract);
@@ -607,6 +587,34 @@ function runTests() {
     const allowedWriteOutput = JSON.parse(allowedWrite.stdout);
     assertSessionOutput(allowedWriteOutput, 'Grant Guard allowed output');
     assert(allowedWriteOutput.allowed === true, 'Grant Guard reports allowed target write', allowedWriteText);
+
+    const symlinkEscapeRoot = path.join(tempRoot, 'grant-symlink-escape');
+    fs.mkdirSync(symlinkEscapeRoot, { recursive: true });
+    const symlinkInsideWorktree = path.join(guardRepoPack.repos[0].worktreePath, 'escape-link');
+    fs.symlinkSync(symlinkEscapeRoot, symlinkInsideWorktree, 'dir');
+    const symlinkDeniedWrite = runCli(
+      [
+        'workspace',
+        'authorize',
+        launchOutput.sessionId,
+        '--write-path',
+        path.join(symlinkInsideWorktree, 'outside.txt'),
+        '--runtime-root',
+        runtimeRoot,
+      ],
+      {
+        cwd: baseRepo.path,
+      },
+    );
+    const symlinkDeniedWriteText = `${symlinkDeniedWrite.stdout}\n${symlinkDeniedWrite.stderr}`;
+    assert(symlinkDeniedWrite.status !== 0, 'Grant Guard denies symlink escape from target worktree', symlinkDeniedWriteText);
+    assert(
+      symlinkDeniedWriteText.includes('write-outside-session-boundary'),
+      'Grant Guard symlink escape names boundary denial',
+      symlinkDeniedWriteText,
+    );
+    fs.rmSync(symlinkInsideWorktree);
+    fs.rmSync(path.join(launchOutput.sessionRoot, 'violations'), { recursive: true, force: true });
 
     const baseWritePath = path.join(baseRepo.path, 'BMAD.md');
     const deniedWrite = runCli(
@@ -1963,11 +1971,14 @@ function runTests() {
     assert(listedResultSession?.results.count === 1, 'list reports result count', resultListText);
     assert(listedResultSession?.results.latest.resultId === 'result-001', 'list reports latest result', resultListText);
 
+    const packetHandoffBefore = fingerprintTree(runtimeRoot);
     const packetHandoff = runCli(['workspace', 'handoff', launchOutput.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });
+    const packetHandoffAfter = fingerprintTree(runtimeRoot);
     const packetHandoffText = `${packetHandoff.stdout}\n${packetHandoff.stderr}`;
     assert(packetHandoff.status === 0, 'handoff after packet exits zero', packetHandoffText);
+    assert(packetHandoffBefore === packetHandoffAfter, 'handoff after packet is read-only', packetHandoffText);
     assert(packetHandoff.stdout.startsWith('# BMAD Workspace Handoff'), 'handoff emits raw Markdown heading', packetHandoffText);
     assert(!packetHandoff.stdout.trim().startsWith('{'), 'handoff is not JSON output', packetHandoffText);
     for (const heading of [
@@ -2737,6 +2748,20 @@ function runTests() {
       invalidEvidenceArchiveText,
     );
 
+    const missingEvidenceArchiveRoot = path.join(tempRoot, 'missing-evidence-archive');
+    copyTree(archiveRoot, missingEvidenceArchiveRoot);
+    fs.rmSync(path.join(missingEvidenceArchiveRoot, 'evidence-index.json'));
+    const missingEvidenceArchive = runCli(['workspace', 'verify-archive', missingEvidenceArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const missingEvidenceArchiveText = `${missingEvidenceArchive.stdout}\n${missingEvidenceArchive.stderr}`;
+    assert(missingEvidenceArchive.status !== 0, 'verify-archive missing evidence index exits nonzero', missingEvidenceArchiveText);
+    assert(
+      missingEvidenceArchiveText.includes('ARCHIVE_FILE_MISSING') && missingEvidenceArchiveText.includes('evidence-index.json'),
+      'verify-archive missing evidence index names stable error',
+      missingEvidenceArchiveText,
+    );
+
     const invalidReviewManifestArchiveRoot = path.join(tempRoot, 'invalid-review-manifest-archive');
     copyTree(archiveRoot, invalidReviewManifestArchiveRoot);
     const invalidArchivedReviewManifestPath = path.join(
@@ -2813,6 +2838,31 @@ function runTests() {
     assert(unsafeArchive.status !== 0, 'verify-archive unsafe path exits nonzero', unsafeArchiveText);
     assert(unsafeArchiveText.includes('ARCHIVE_UNSAFE_PATH'), 'verify-archive unsafe path names ARCHIVE_UNSAFE_PATH', unsafeArchiveText);
 
+    const symlinkUnsafeArchiveRoot = path.join(tempRoot, 'symlink-unsafe-archive');
+    copyTree(archiveRoot, symlinkUnsafeArchiveRoot);
+    const symlinkArchiveEscapeRoot = path.join(tempRoot, 'archive-symlink-escape');
+    fs.mkdirSync(symlinkArchiveEscapeRoot, { recursive: true });
+    fs.writeFileSync(path.join(symlinkArchiveEscapeRoot, 'outside.txt'), 'outside archive boundary\n');
+    fs.symlinkSync(symlinkArchiveEscapeRoot, path.join(symlinkUnsafeArchiveRoot, 'escape-link'), 'dir');
+    const symlinkUnsafeManifest = readJson(path.join(symlinkUnsafeArchiveRoot, 'manifest.json'));
+    symlinkUnsafeManifest.files.push({
+      path: 'escape-link/outside.txt',
+      sha256: sha256File(path.join(symlinkArchiveEscapeRoot, 'outside.txt')),
+      bytes: fs.statSync(path.join(symlinkArchiveEscapeRoot, 'outside.txt')).size,
+    });
+    symlinkUnsafeManifest.files.sort((left, right) => left.path.localeCompare(right.path));
+    fs.writeFileSync(path.join(symlinkUnsafeArchiveRoot, 'manifest.json'), `${JSON.stringify(symlinkUnsafeManifest, null, 2)}\n`);
+    const symlinkUnsafeArchive = runCli(['workspace', 'verify-archive', symlinkUnsafeArchiveRoot], {
+      cwd: baseRepo.path,
+    });
+    const symlinkUnsafeArchiveText = `${symlinkUnsafeArchive.stdout}\n${symlinkUnsafeArchive.stderr}`;
+    assert(symlinkUnsafeArchive.status !== 0, 'verify-archive symlink escape exits nonzero', symlinkUnsafeArchiveText);
+    assert(
+      symlinkUnsafeArchiveText.includes('ARCHIVE_UNSAFE_PATH'),
+      'verify-archive symlink escape names ARCHIVE_UNSAFE_PATH',
+      symlinkUnsafeArchiveText,
+    );
+
     section('Workspace Destroy');
 
     const cleanDestroyLaunch = runCli(
@@ -2825,6 +2875,22 @@ function runTests() {
     assert(cleanDestroyLaunch.status === 0, 'destroy fixture launch exits zero', cleanDestroyLaunchText);
     const cleanDestroySession = JSON.parse(cleanDestroyLaunch.stdout);
     assertSessionOutput(cleanDestroySession, 'destroy fixture launch output');
+    const cleanDestroyRepoPackPath = path.join(cleanDestroySession.sessionRoot, 'repo-pack.json');
+    const cleanDestroyRepoPack = readJson(cleanDestroyRepoPackPath);
+    const originalDestroyRepoPack = JSON.stringify(cleanDestroyRepoPack, null, 2);
+    const outsideDestroyRoot = path.join(tempRoot, 'outside-destroy-root');
+    fs.mkdirSync(outsideDestroyRoot, { recursive: true });
+    cleanDestroyRepoPack.repos[0].worktreePath = outsideDestroyRoot;
+    fs.writeFileSync(cleanDestroyRepoPackPath, `${JSON.stringify(cleanDestroyRepoPack, null, 2)}\n`);
+    const unsafeDestroy = runCli(['workspace', 'destroy', cleanDestroySession.sessionId, '--runtime-root', runtimeRoot], {
+      cwd: baseRepo.path,
+    });
+    const unsafeDestroyText = `${unsafeDestroy.stdout}\n${unsafeDestroy.stderr}`;
+    assert(unsafeDestroy.status !== 0, 'destroy rejects worktree path outside session root', unsafeDestroyText);
+    assert(unsafeDestroyText.includes('DESTROY_UNSAFE_PATH'), 'destroy unsafe worktree names DESTROY_UNSAFE_PATH', unsafeDestroyText);
+    assert(fs.existsSync(cleanDestroySession.sessionRoot), 'destroy unsafe worktree keeps session root', unsafeDestroyText);
+    assert(fs.existsSync(outsideDestroyRoot), 'destroy unsafe worktree preserves outside path', unsafeDestroyText);
+    fs.writeFileSync(cleanDestroyRepoPackPath, `${originalDestroyRepoPack}\n`);
     const destroy = runCli(['workspace', 'destroy', cleanDestroySession.sessionId, '--runtime-root', runtimeRoot], {
       cwd: baseRepo.path,
     });

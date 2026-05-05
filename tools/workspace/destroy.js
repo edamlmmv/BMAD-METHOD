@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { assertPathInside } = require('./path-safety');
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -34,8 +35,10 @@ function destroySession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, keepRev
   assertSessionId(sessionId);
 
   const resolvedRuntimeRoot = path.resolve(runtimeRoot);
+  const sessionsRoot = path.join(resolvedRuntimeRoot, 'sessions');
   const sessionRoot = path.join(resolvedRuntimeRoot, 'sessions', sessionId);
   const repoPackPath = path.join(sessionRoot, 'repo-pack.json');
+  assertPathInside(sessionRoot, sessionsRoot, 'DESTROY_UNSAFE_PATH');
 
   if (!fs.existsSync(sessionRoot) || !fs.existsSync(repoPackPath)) {
     throw new Error(`session artifacts not found for ${sessionId}`);
@@ -45,7 +48,7 @@ function destroySession({ sessionId, runtimeRoot = DEFAULT_RUNTIME_ROOT, keepRev
   const repoPack = readJson(repoPackPath);
 
   for (const repo of repoPack.repos || []) {
-    removeWorktree(repo);
+    removeWorktree(repo, sessionRoot);
   }
 
   fs.rmSync(sessionRoot, { recursive: true, force: true });
@@ -65,6 +68,7 @@ function retainReview({ sessionId, sessionRoot, runtimeRoot }) {
   }
 
   const retainedReviewPath = path.join(runtimeRoot, 'retained-reviews', sessionId);
+  assertPathInside(retainedReviewPath, path.join(runtimeRoot, 'retained-reviews'), 'DESTROY_UNSAFE_PATH');
   fs.rmSync(retainedReviewPath, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(retainedReviewPath), { recursive: true });
   copyDirectory(reviewRoot, retainedReviewPath);
@@ -86,11 +90,12 @@ function copyDirectory(source, target) {
   }
 }
 
-function removeWorktree(repo) {
+function removeWorktree(repo, sessionRoot) {
   if (!repo.sourcePath || !repo.worktreePath || !fs.existsSync(repo.worktreePath)) {
     return;
   }
 
+  assertPathInside(repo.worktreePath, sessionRoot, 'DESTROY_UNSAFE_PATH');
   git(['worktree', 'remove', '--force', repo.worktreePath], repo.sourcePath);
 }
 

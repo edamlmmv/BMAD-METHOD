@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { isPathInside } = require('./path-safety');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -15,30 +16,6 @@ function assertSessionId(sessionId) {
   if (!sessionId || !/^[a-zA-Z0-9._-]+$/.test(sessionId)) {
     throw new Error('session id may only contain letters, numbers, dots, underscores, and dashes');
   }
-}
-
-function isPathInside(candidatePath, rootPath) {
-  const relativePath = path.relative(canonicalPath(rootPath), canonicalPath(candidatePath));
-  return relativePath === '' || (relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath));
-}
-
-function canonicalPath(candidatePath) {
-  let currentPath = path.resolve(candidatePath);
-  if (fs.existsSync(currentPath)) {
-    return fs.realpathSync.native(currentPath);
-  }
-
-  const missingSegments = [];
-  while (!fs.existsSync(currentPath)) {
-    const parentPath = path.dirname(currentPath);
-    if (parentPath === currentPath) {
-      return path.resolve(candidatePath);
-    }
-    missingSegments.unshift(path.basename(currentPath));
-    currentPath = parentPath;
-  }
-
-  return path.join(fs.realpathSync.native(currentPath), ...missingSegments);
 }
 
 function resolveGrantPath(basePath, grantPath) {

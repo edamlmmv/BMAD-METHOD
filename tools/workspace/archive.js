@@ -10,6 +10,7 @@ const { validateExecutorContract } = require('./executor-contract');
 const { REVIEW_MANIFEST_REF, validateReviewManifest } = require('./review-manifest');
 const { scanForSecrets, validateResultArtifact } = require('./result');
 const { validateCloseoutArtifact } = require('./closeout');
+const { assertPathInside, assertSafeRelativePath } = require('./path-safety');
 
 const ARCHIVE_VERSION = 2;
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -140,6 +141,7 @@ function verifyArchive({ archivePath }) {
   for (const file of manifest.files) {
     assertSafeArchivePath(file.path);
     const filePath = path.join(archiveRoot, file.path);
+    assertPathInside(filePath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
     if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
       throw new Error(`ARCHIVE_FILE_MISSING: ${file.path}`);
     }
@@ -248,6 +250,7 @@ function copyIfPresent(sessionRoot, archiveRoot, sessionRef) {
   }
   assertSafeArchivePath(sessionRef);
   const source = path.join(sessionRoot, sessionRef);
+  assertPathInside(source, sessionRoot, 'ARCHIVE_UNSAFE_PATH');
   if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
     return {
       present: false,
@@ -258,6 +261,7 @@ function copyIfPresent(sessionRoot, archiveRoot, sessionRef) {
   const destinationRef = path.posix.join('session-artifacts', toPosix(sessionRef));
   assertSafeArchivePath(destinationRef);
   const destination = path.join(archiveRoot, destinationRef);
+  assertPathInside(destination, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(source, destination);
   return {
@@ -432,7 +436,9 @@ function validateManifestShape(manifest) {
 function validateControlFiles(archiveRoot, manifest) {
   const requiredPaths = ['checksums.sha256', 'status.json', 'handoff.md', 'closeout.md', 'evidence-index.json'];
   for (const requiredPath of requiredPaths) {
+    assertSafeArchivePath(requiredPath);
     const absolutePath = path.join(archiveRoot, requiredPath);
+    assertPathInside(absolutePath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
       throw new Error(`ARCHIVE_FILE_MISSING: ${requiredPath}`);
     }
@@ -442,6 +448,7 @@ function validateControlFiles(archiveRoot, manifest) {
 function validateArchivedEvidenceIndex(archiveRoot, manifest) {
   assertSafeArchivePath(manifest.evidenceIndexRef);
   const evidencePath = path.join(archiveRoot, manifest.evidenceIndexRef);
+  assertPathInside(evidencePath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
@@ -456,6 +463,7 @@ function validateArchivedEvidenceIndex(archiveRoot, manifest) {
 
 function validateChecksumFile(archiveRoot, files) {
   const checksumPath = path.join(archiveRoot, 'checksums.sha256');
+  assertPathInside(checksumPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
   const expected = renderChecksums(files);
   const actual = fs.readFileSync(checksumPath, 'utf8');
   if (actual !== expected) {
@@ -469,7 +477,9 @@ function validateArchivedExecutorContract(archiveRoot, manifest) {
     return;
   }
 
-  const packet = readOptionalJson(path.join(archiveRoot, packetArtifact.archiveRef));
+  const packetPath = path.join(archiveRoot, packetArtifact.archiveRef);
+  assertPathInside(packetPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
+  const packet = readOptionalJson(packetPath);
   const packetValidation = validateWorkPacket(packet);
   if (!packetValidation.ok) {
     throw new Error(`ARCHIVE_PACKET_INVALID: ${packetArtifact.archiveRef}: ${packetValidation.errors.join('; ')}`);
@@ -482,7 +492,9 @@ function validateArchivedExecutorContract(archiveRoot, manifest) {
 
   let contract;
   try {
-    contract = JSON.parse(fs.readFileSync(path.join(archiveRoot, contractArtifact.archiveRef), 'utf8'));
+    const contractPath = path.join(archiveRoot, contractArtifact.archiveRef);
+    assertPathInside(contractPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
+    contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
   } catch (error) {
     throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_INVALID: ${contractArtifact.archiveRef}: ${error.message}`);
   }
@@ -499,6 +511,7 @@ function validateArchivedExecutorContract(archiveRoot, manifest) {
   for (const ref of [contract.packetRef, contract.renderedPromptRef]) {
     const archivedRef = path.posix.join('session-artifacts', toPosix(ref));
     const archivedPath = path.join(archiveRoot, archivedRef);
+    assertPathInside(archivedPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
     if (!fs.existsSync(archivedPath) || !fs.statSync(archivedPath).isFile()) {
       throw new Error(`ARCHIVE_EXECUTOR_CONTRACT_REF_MISSING: ${ref}`);
     }
@@ -513,7 +526,9 @@ function validateArchivedReviewManifest(archiveRoot, manifest) {
 
   let reviewManifest;
   try {
-    reviewManifest = JSON.parse(fs.readFileSync(path.join(archiveRoot, reviewManifestArtifact.archiveRef), 'utf8'));
+    const reviewManifestPath = path.join(archiveRoot, reviewManifestArtifact.archiveRef);
+    assertPathInside(reviewManifestPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
+    reviewManifest = JSON.parse(fs.readFileSync(reviewManifestPath, 'utf8'));
   } catch (error) {
     throw new Error(`ARCHIVE_REVIEW_MANIFEST_INVALID: ${reviewManifestArtifact.archiveRef}: ${error.message}`);
   }
@@ -578,6 +593,7 @@ function validateArchivedCloseoutFile(filePath, archiveRef, archiveRoot) {
     }
     const archivedRef = path.posix.join('session-artifacts', toPosix(ref));
     const archivedPath = path.join(archiveRoot, archivedRef);
+    assertPathInside(archivedPath, archiveRoot, 'ARCHIVE_UNSAFE_PATH');
     if (!fs.existsSync(archivedPath) || !fs.statSync(archivedPath).isFile()) {
       throw new Error(`ARCHIVE_CLOSEOUT_REF_MISSING: ${ref}`);
     }
@@ -585,13 +601,9 @@ function validateArchivedCloseoutFile(filePath, archiveRef, archiveRoot) {
 }
 
 function assertSafeArchivePath(relativePath) {
-  if (
-    typeof relativePath !== 'string' ||
-    relativePath.trim() === '' ||
-    path.isAbsolute(relativePath) ||
-    relativePath.includes('\\') ||
-    relativePath.split('/').includes('..')
-  ) {
+  try {
+    assertSafeRelativePath(relativePath, 'ARCHIVE_UNSAFE_PATH');
+  } catch {
     throw new Error(`ARCHIVE_UNSAFE_PATH: ${relativePath}`);
   }
 }

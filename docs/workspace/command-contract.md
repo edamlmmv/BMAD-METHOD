@@ -39,25 +39,32 @@ capability discovery when explicitly supplied by the operator, such as
 `features.goals`, `features.multi_agent`, or `features.codex_hooks`, but it is
 not Workspace authority and must not be required for deterministic tests.
 
+## Command Registry
+
+`tools/workspace/command-registry.js` is the source of truth for Workspace
+command names, descriptions, and command classes. CLI help, docs parity checks,
+and contract tests use that registry so current surfaces cannot drift silently.
+Public command names and options are frozen for this contract.
+
 ## Commands
 
-| Command | Output | Filesystem Effect | Stable Contract |
-| --- | --- | --- | --- |
-| `launch` | JSON | Creates session runtime, repo worktrees, grants, and `instance.json`. | Requires `--repo`, `--goal`, and optional `--session-id`. |
-| `intake` | JSON | Writes `intake/repo-intake.json` and provenance. | Fails when session is missing or invalid. |
-| `packet` | JSON | Writes active packet bundle under `packets/`. | Requires fresh intake and complete or explicitly skipped Setup Gate. |
-| `status` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
-| `list` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
-| `handoff` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
-| `evidence` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
-| `diff` | JSON | Read-only. | Compares two verified Workspace archive bundles. |
-| `result` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
-| `review` | JSON | Writes review summary, Review Manifest, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
-| `closeout` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
-| `archive` | JSON | Creates the exact output directory. | Copies evidence artifacts only, never worktrees or setup source files. |
-| `verify-archive` | JSON | Read-only. | Validates archive manifest, checksums, refs, results, closeouts, and executor contract. |
-| `destroy` | JSON | Removes session runtime; optional review retention. | Preserves target repo source and commits. |
-| `authorize` | JSON | Writes violation evidence only on denial. | Validates requested durable write path against grants. |
+| Command | Class | Output | Filesystem Effect | Stable Contract |
+| --- | --- | --- | --- | --- |
+| `launch` | `write` | JSON | Creates session runtime, repo worktrees, grants, and `instance.json`. | Requires `--repo`, `--goal`, and optional `--session-id`. |
+| `intake` | `write` | JSON | Writes `intake/repo-intake.json` and provenance. | Fails when session is missing or invalid. |
+| `packet` | `write` | JSON | Writes active packet bundle under `packets/`. | Requires fresh intake and complete or explicitly skipped Setup Gate. |
+| `list` | `read` | JSON | Read-only. | Lists explicit sessions under runtime root; no latest-session inference. |
+| `status` | `read` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
+| `handoff` | `read` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
+| `evidence` | `read` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
+| `diff` | `read` | JSON | Read-only. | Compares two verified Workspace archive bundles. |
+| `result` | `write` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
+| `closeout` | `write` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
+| `archive` | `write` | JSON | Creates the exact output directory. | Copies evidence artifacts only, never worktrees or setup source files. |
+| `verify-archive` | `read` | JSON | Read-only. | Validates archive manifest, checksums, refs, results, closeouts, and executor contract. |
+| `review` | `write` | JSON | Writes review summary, Review Manifest, per-repo status, and patch refs. | Reads Git worktrees and preserves target repo state. |
+| `destroy` | `destructive` | JSON | Removes session runtime; optional review retention. | Preserves target repo source and commits. |
+| `authorize` | `grant-gated` | JSON | Writes violation evidence only on denial. | Validates requested durable write path against grants before target mutation. |
 
 ## Stable Error Families
 
