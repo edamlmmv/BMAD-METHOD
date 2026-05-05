@@ -124,6 +124,27 @@ Every checkpoint records stable fenced YAML for `activation_state`, `resume_cont
 
 `session_identity.classification` records whether a supplied id is a BMAD Workspace Session id, Codex thread id, missing session, or unknown. Codex thread ids are not BMAD Workspace Session ids, so `SESSION_NOT_FOUND` from a Codex thread id is classification evidence, not missing-run evidence.
 
+## Foreground Resume Quickstart
+
+Use this when a foreground operator run resumes from an existing checkpoint.
+Record evidence in the checkpoint before continuing implementation work.
+
+1. Read `docs/workspace/self-improvement-automation-policy.md`.
+2. Open the latest checkpoint at `_bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
+3. Check `_bmad-output/self-improvement/automation.lock` and record whether the lock is current, stale with evidence, or absent.
+4. Confirm current branch and diff, then run `git status --porcelain --untracked-files=all`.
+5. Read checkpoint sections `Party Mode Decision` and `Party Mode Critique`; do not claim Party Mode evidence unless those sections name the voices, decision, critique, and unresolved objections.
+6. Read `capability:tdd` or TDD evidence in the checkpoint; continue only from a named red-green-refactor slice with one failing public behavior test, smallest green change, and validation command.
+7. Inspect `compile/install Evidence` and `Refresh Evidence`; separate repo-local install readiness from active user skill readiness.
+8. Update `Activation State`, `Resume Contract`, `Session Identity`, and `Next Operator Decision` before continuing or stopping.
+9. Before any commit, install, refresh, or continuation claim, run `npm ci && npm run quality` on `HEAD` of the exact checkout and record the output.
+
+Checkpoint examples that need machine validation store one evidence block with
+the exact info string `yaml self_improvement_checkpoint`. The block must record
+`activation_state`, `resume_contract`, `session_identity`, and `evidence_gates`.
+`resume_contract.continuation_allowed` may be true only when all activation
+state fields and matching evidence gates prove readiness.
+
 ## Launch Prompt
 
 ```text

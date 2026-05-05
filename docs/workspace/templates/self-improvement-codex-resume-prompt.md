@@ -18,6 +18,8 @@ You are Codex working in `{project-root}`.
 
 Resume BMAD self-improvement from the latest checkpoint under `{output_folder}/self-improvement/`.
 
+Use the Foreground Resume Quickstart in `docs/workspace/self-improvement-codex.md`.
+
 Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
 
 Self-Improve consumes these shared capabilities when its run needs them:
@@ -71,5 +73,6 @@ Before final response, record:
 - Session Identity
 - local commit SHAs
 - continuation decision
+- next operator decision
 - remaining risks
 ```

@@ -28,6 +28,7 @@ const validatorPath = path.join(repoRoot, 'tools', 'validate-self-improve-invari
  * AC-SI-007 package wiring: package scripts, quality path fixture mutations.
  * AC-SI-008 Party Mode contract: thread lifecycle, Codex agent budget/config boundary, and TDD voice injection.
  * AC-SI-009 shared BMAD planning capabilities: registry, setup refs, public surface anchors, and vendored snapshots.
+ * AC-SI-010 operator-safe resume evidence: runbook quickstart, checkpoint example, and unsafe continuation gates.
  */
 
 function copyDir(source, target) {
@@ -54,6 +55,7 @@ function makeFixture() {
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
+    'docs/workspace/templates/self-improvement-checkpoint.example.md',
     'src/core-skills/bmad-help/SKILL.md',
     'src/core-skills/bmad-party-mode/SKILL.md',
     'src/core-skills/bmad-workspace/SKILL.md',
@@ -114,9 +116,52 @@ function runValidatorCli(root) {
   });
 }
 
+function replaceCheckpointExample(root, fixtureName) {
+  const sourcePath = path.join(repoRoot, 'test', 'fixtures', 'self-improve', fixtureName);
+  const targetPath = path.join(root, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.example.md');
+  fs.copyFileSync(sourcePath, targetPath);
+}
+
 function testCurrentRepoValidates() {
   const result = validate(repoRoot);
   assert.deepEqual(result, { ok: true, errors: [] });
+}
+
+function testSelfImproveRunbookExposesCheckpointResumeWorkflow() {
+  const runbook = fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8');
+  const resumePrompt = fs.readFileSync(
+    path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md'),
+    'utf8',
+  );
+
+  for (const requiredRunbookText of [
+    '## Foreground Resume Quickstart',
+    '_bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md',
+    'automation.lock',
+    'git status --porcelain --untracked-files=all',
+    'Party Mode Decision',
+    'Party Mode Critique',
+    'red-green-refactor',
+    'compile/install Evidence',
+    'Refresh Evidence',
+    'npm ci && npm run quality',
+    'on `HEAD` of the exact checkout',
+    'yaml self_improvement_checkpoint',
+  ]) {
+    assert(runbook.includes(requiredRunbookText), `runbook exposes checkpoint-resume marker: ${requiredRunbookText}`);
+  }
+
+  for (const requiredPromptText of [
+    'Foreground Resume Quickstart',
+    'latest checkpoint under `{output_folder}/self-improvement/`',
+    '`{output_folder}/self-improvement/automation.lock`',
+    'Activation State',
+    'Resume Contract',
+    'Session Identity',
+    'next operator decision',
+  ]) {
+    assert(resumePrompt.includes(requiredPromptText), `resume prompt exposes checkpoint-resume marker: ${requiredPromptText}`);
+  }
 }
 
 function testRequiredInvariantIdsExist() {
@@ -263,6 +308,28 @@ function testCheckpointRequiresFinalHeadSha() {
   const root = makeFixture();
   replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', '- Final HEAD SHA:', '- Final SHA:');
   assertInvalidWithAll(root, ['SI_CHECKPOINT_CONTRACT', 'Final HEAD SHA']);
+}
+
+function testValidCheckpointExampleParses() {
+  const result = validate(repoRoot);
+  assert.equal(result.ok, true, result.errors.join('\n'));
+}
+
+function testCheckpointExampleRequiresLabeledEvidenceBlock() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.example.md', '```yaml self_improvement_checkpoint', '```yaml');
+  assertInvalidWithAll(root, ['SI_CHECKPOINT_EVIDENCE_MISSING', 'self-improvement-checkpoint.example.md']);
+}
+
+function testCheckpointExampleRejectsDuplicateLabeledEvidenceBlocks() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-checkpoint.example.md',
+    '```yaml self_improvement_checkpoint',
+    '```yaml self_improvement_checkpoint\nactivation_state: {}\n```\n\n```yaml self_improvement_checkpoint',
+  );
+  assertInvalidWithAll(root, ['SI_CHECKPOINT_EVIDENCE_MALFORMED', 'self-improvement-checkpoint.example.md']);
 }
 
 function testPromptRejectsUnknownPlaceholders() {
@@ -448,9 +515,40 @@ function testPlanningCapabilityVendorManifestEntryRequired() {
   assertInvalidWithAll(root, ['BPC_VENDOR', 'grill-me']);
 }
 
+function testInvalidCheckpointActivationStateFails() {
+  const root = makeFixture();
+  replaceCheckpointExample(root, 'invalid-activation-state.md');
+  const result = runValidatorCli(root);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_INVALID_ENUM'), output);
+  assert(output.includes('repo_quality'), output);
+}
+
+function testInvalidCheckpointContinuationAllowedFails() {
+  const root = makeFixture();
+  replaceCheckpointExample(root, 'invalid-continuation-allowed.md');
+  const result = runValidatorCli(root);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_UNSAFE_CONTINUATION'), output);
+  assert(output.includes('resume_contract.continuation_allowed'), output);
+}
+
+function testInvalidCheckpointFailedGateFails() {
+  const root = makeFixture();
+  replaceCheckpointExample(root, 'invalid-gate-failed.md');
+  const result = runValidatorCli(root);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.notEqual(result.status, 0, output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_UNSAFE_CONTINUATION'), output);
+  assert(output.includes('evidence_gates.quality_gate'), output);
+}
+
 function run() {
   const tests = [
     testCurrentRepoValidates,
+    testSelfImproveRunbookExposesCheckpointResumeWorkflow,
     testRequiredInvariantIdsExist,
     testMissingRequiredFileReportsStableError,
     testCliMissingRequiredFileUsesInvariantPrefix,
@@ -468,6 +566,9 @@ function run() {
     testActiveHashMismatchBlocksContinuation,
     testSessionIdentityClassifiesCodexThreads,
     testCheckpointRequiresFinalHeadSha,
+    testValidCheckpointExampleParses,
+    testCheckpointExampleRequiresLabeledEvidenceBlock,
+    testCheckpointExampleRejectsDuplicateLabeledEvidenceBlocks,
     testPromptRejectsUnknownPlaceholders,
     testResumePromptRejectsUnbalancedMarkdownFences,
     testRequiredSequenceOrderCannotRegress,
@@ -491,6 +592,9 @@ function run() {
     testPlanningCapabilitySetupRefMismatchFails,
     testPlanningCapabilityModuleHelpRowsRequired,
     testPlanningCapabilityVendorManifestEntryRequired,
+    testInvalidCheckpointActivationStateFails,
+    testInvalidCheckpointContinuationAllowedFails,
+    testInvalidCheckpointFailedGateFails,
   ];
 
   for (const test of tests) {

@@ -7,6 +7,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const yaml = require('yaml');
 const { validateBmadPlanningCapabilities } = require('./validate-bmad-planning-capabilities');
 
 const CONTRACT_FILES = {
@@ -37,6 +38,10 @@ const CONTRACT_FILES = {
   checkpoint: {
     label: 'checkpoint template',
     relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md'),
+  },
+  checkpointExample: {
+    label: 'checkpoint example',
+    relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-checkpoint.example.md'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -275,6 +280,34 @@ const FORBIDDEN_SELF_IMPROVE_PHRASES = [
 ];
 
 const ALLOWED_TEMPLATE_PLACEHOLDERS = new Set(['skill-root', 'project-root', 'output_folder']);
+const CHECKPOINT_EVIDENCE_INFO_STRING = 'yaml self_improvement_checkpoint';
+const CHECKPOINT_EVIDENCE_TOP_LEVEL_KEYS = Object.freeze(['activation_state', 'resume_contract', 'session_identity', 'evidence_gates']);
+const CHECKPOINT_EVIDENCE_ENUMS = Object.freeze({
+  'activation_state.repo_quality': ['pass', 'fail', 'unknown'],
+  'activation_state.repo_local_install': ['pass', 'fail', 'unknown'],
+  'activation_state.active_user_install': ['pass', 'fail', 'blocked', 'unknown'],
+  'activation_state.active_skill_hash': ['match', 'mismatch', 'unknown'],
+  'activation_state.refresh_state': ['known_good', 'failed', 'blocked', 'unknown'],
+  'session_identity.classification': ['valid_workspace_session', 'codex_thread_only', 'session_not_found', 'unknown'],
+  'evidence_gates.quality_gate': ['pass', 'fail', 'unknown'],
+  'evidence_gates.repo_local_install_gate': ['pass', 'fail', 'unknown'],
+  'evidence_gates.active_user_install_gate': ['pass', 'fail', 'blocked', 'unknown'],
+  'evidence_gates.hash_gate': ['match', 'mismatch', 'unknown'],
+  'evidence_gates.refresh_gate': ['known_good', 'failed', 'blocked', 'unknown'],
+});
+
+const CHECKPOINT_CONTINUATION_PASSING_VALUES = Object.freeze({
+  'activation_state.repo_quality': 'pass',
+  'activation_state.repo_local_install': 'pass',
+  'activation_state.active_user_install': 'pass',
+  'activation_state.active_skill_hash': 'match',
+  'activation_state.refresh_state': 'known_good',
+  'evidence_gates.quality_gate': 'pass',
+  'evidence_gates.repo_local_install_gate': 'pass',
+  'evidence_gates.active_user_install_gate': 'pass',
+  'evidence_gates.hash_gate': 'match',
+  'evidence_gates.refresh_gate': 'known_good',
+});
 
 const REQUIRED_SEQUENCE_CONTRACTS = [
   {
@@ -528,6 +561,111 @@ function validateOrderedSequence(content, contract, sourceName, fileLabel, error
   }
 }
 
+function getPathValue(object, fieldPath) {
+  return fieldPath.split('.').reduce((value, key) => {
+    if (value && typeof value === 'object' && Object.hasOwn(value, key)) {
+      return value[key];
+    }
+    return;
+  }, object);
+}
+
+function validateCheckpointEvidence(content, sourceName, fileLabel, errors) {
+  const blocks = [...content.matchAll(/^```yaml self_improvement_checkpoint[ \t]*\r?\n([\s\S]*?)^```[ \t]*$/gm)].map((match) => match[1]);
+
+  if (blocks.length === 0) {
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MISSING', `${sourceName} missing ${CHECKPOINT_EVIDENCE_INFO_STRING} block`, {
+      file: fileLabel,
+      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+    });
+    return;
+  }
+
+  if (blocks.length > 1) {
+    addError(
+      errors,
+      'SI_CHECKPOINT_EVIDENCE_MALFORMED',
+      `${sourceName} must contain exactly one ${CHECKPOINT_EVIDENCE_INFO_STRING} block`,
+      {
+        file: fileLabel,
+        field: CHECKPOINT_EVIDENCE_INFO_STRING,
+      },
+    );
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = yaml.parse(blocks[0]);
+  } catch (error) {
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence YAML is invalid: ${error.message}`, {
+      file: fileLabel,
+      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+    });
+    return;
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence must be a YAML mapping`, {
+      file: fileLabel,
+      field: CHECKPOINT_EVIDENCE_INFO_STRING,
+    });
+    return;
+  }
+
+  for (const key of CHECKPOINT_EVIDENCE_TOP_LEVEL_KEYS) {
+    if (!parsed[key] || typeof parsed[key] !== 'object' || Array.isArray(parsed[key])) {
+      addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} checkpoint evidence missing mapping: ${key}`, {
+        file: fileLabel,
+        field: key,
+      });
+    }
+  }
+
+  for (const [fieldPath, allowedValues] of Object.entries(CHECKPOINT_EVIDENCE_ENUMS)) {
+    const value = getPathValue(parsed, fieldPath);
+    if (!allowedValues.includes(value)) {
+      addError(
+        errors,
+        'SI_CHECKPOINT_INVALID_ENUM',
+        `${sourceName} checkpoint evidence ${fieldPath} must be one of: ${allowedValues.join('|')}`,
+        {
+          file: fileLabel,
+          field: fieldPath,
+        },
+      );
+    }
+  }
+
+  const continuationAllowed = getPathValue(parsed, 'resume_contract.continuation_allowed');
+  if (typeof continuationAllowed !== 'boolean') {
+    addError(errors, 'SI_CHECKPOINT_EVIDENCE_MALFORMED', `${sourceName} resume_contract.continuation_allowed must be boolean`, {
+      file: fileLabel,
+      field: 'resume_contract.continuation_allowed',
+    });
+    return;
+  }
+
+  if (!continuationAllowed) {
+    return;
+  }
+
+  for (const [fieldPath, expectedValue] of Object.entries(CHECKPOINT_CONTINUATION_PASSING_VALUES)) {
+    const actualValue = getPathValue(parsed, fieldPath);
+    if (actualValue !== expectedValue) {
+      addError(
+        errors,
+        'SI_CHECKPOINT_UNSAFE_CONTINUATION',
+        `${sourceName} resume_contract.continuation_allowed requires ${fieldPath}=${expectedValue}`,
+        {
+          file: fileLabel,
+          field: fieldPath,
+        },
+      );
+    }
+  }
+}
+
 function validateSelfImproveInvariants(options = {}) {
   const projectRoot = options.projectRoot ? path.resolve(options.projectRoot) : path.resolve(__dirname, '..');
   const errors = [];
@@ -549,7 +687,7 @@ function validateSelfImproveInvariants(options = {}) {
     return { ok: false, errors };
   }
 
-  const { policy, skill, partyMode, guide, prompt, resume, checkpoint, moduleHelp } = contents;
+  const { policy, skill, partyMode, guide, prompt, resume, checkpoint, checkpointExample, moduleHelp } = contents;
   let packageJson = {};
   try {
     packageJson = JSON.parse(contents.packageJson);
@@ -609,6 +747,7 @@ function validateSelfImproveInvariants(options = {}) {
     [
       'local Codex automation loop',
       'Self-Improvement Automation Policy',
+      'Foreground Resume Quickstart',
       'Activation State',
       'Resume Contract',
       'Session Identity',
@@ -618,9 +757,18 @@ function validateSelfImproveInvariants(options = {}) {
     errors,
     files.guide.relativePath,
   );
+  validateCheckpointEvidence(checkpointExample, 'checkpoint example', files.checkpointExample.relativePath, errors);
   requireTerms(
     resume,
-    ['automation.lock', 'max_fix_attempts=5', 'continuation state', 'Activation State', 'Resume Contract', 'Session Identity'],
+    [
+      'Foreground Resume Quickstart',
+      'automation.lock',
+      'max_fix_attempts=5',
+      'continuation state',
+      'Activation State',
+      'Resume Contract',
+      'Session Identity',
+    ],
     'resume prompt',
     errors,
     files.resume.relativePath,
@@ -634,17 +782,17 @@ function validateSelfImproveInvariants(options = {}) {
   );
   requireConceptGroups(partyMode, REQUIRED_PARTY_MODE_CONTRACTS, 'bmad-party-mode skill', errors, files.partyMode.relativePath);
 
-  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
+  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'checkpointExample', 'moduleHelp']) {
     validatePlaceholders(contents[key], files[key].label, files[key].relativePath, errors);
   }
-  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint']) {
+  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'checkpointExample']) {
     validateFenceBalance(contents[key], files[key].label, files[key].relativePath, errors);
   }
   for (const contract of REQUIRED_SEQUENCE_CONTRACTS) {
     const definition = files[contract.sourceKey];
     validateOrderedSequence(contents[contract.sourceKey], contract, definition.label, definition.relativePath, errors);
   }
-  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
+  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'checkpointExample', 'moduleHelp']) {
     requireNoTerms(contents[key], FORBIDDEN_SELF_IMPROVE_PHRASES, files[key].label, errors, files[key].relativePath);
   }
 
