@@ -64,6 +64,7 @@ Future mode: hosted orchestrator adapter. Vercel Workflow WDK may wrap the same 
 - Test results and full gate output.
 - compile/install evidence for generated BMAD skills.
 - Codex refresh result or fallback refresh status.
+- Activation State, Resume Contract, and Session Identity evidence.
 - Local commit SHA values.
 - Continuation decision.
 - Checkpoint under `{output_folder}/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
@@ -81,6 +82,9 @@ Stop and report when any condition appears:
 - Secret or huge generated file appears in dirty preservation scope.
 - Quality gate or targeted test fails after `max_fix_attempts=5`.
 - Install or refresh fails after quality passes; commit code and checkpoint, then mark continuation blocked.
+- Active user install is failed or blocked after repo-local install passes.
+- Active skill hash mismatches expected.
+- Refresh state is unknown, failed, or blocked.
 - Policy change weakens a non-negotiable invariant.
 - Deterministic invariant checker cannot classify a policy change.
 - Party Mode decision conflicts with repo rules, policy, or tests.
@@ -105,9 +109,12 @@ Stop and report when any condition appears:
 14. Run `npm run validate:self-improve-invariants` when policy, automation docs, or `bmad-self-improve` changes.
 15. compile/install updated BMAD skills with the existing installer.
 16. Verify Codex refresh behavior. Request app-server reload if available; else record installed path, manifest row, source/installed SHA-256 hashes, and a fallback refresh status.
-17. Commit passing work locally with a Conventional Commit message. Never push.
-18. Write final checkpoint with branch, commits, gate evidence, install/refresh evidence, and continuation decision.
-19. Allow continuation only when the effective automation schedule/config, latest checkpoint, gates, evidence, lock state, and loop caps allow it.
+17. Record Activation State with `repo_quality`, `repo_local_install`, `active_user_install`, `active_skill_hash`, and `refresh_state`.
+18. Record Resume Contract with `continuation_allowed`, `reason`, and `required_before_resume`.
+19. Record Session Identity with `codex_thread_id`, `workspace_session_id`, and `classification`.
+20. Commit passing work locally with a Conventional Commit message. Never push.
+21. Write final checkpoint with branch, commits, gate evidence, install/refresh evidence, Activation State, Resume Contract, Session Identity, and continuation decision.
+22. Allow continuation only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, refresh state is known_good, and the effective automation schedule/config, latest checkpoint, evidence, lock state, and loop caps allow it.
 
 ## Self-Edit and Policy-Edit Gate
 
@@ -170,7 +177,20 @@ If app-server access is unavailable, record:
 - installed `SKILL.md` path
 - manifest row
 - source and installed SHA-256 hashes
-- one of `refresh: live`, `refresh: requires new chat`, `refresh: requires Codex restart`, or `refresh: unknown`
+- `refresh_state` as `known_good`, `failed`, `blocked`, or `unknown`
+
+`refresh_state: unknown` never allows continuation. A repo-local install pass with stale active user skill hash means the repo may be ready while active continuation remains blocked.
+
+## Session Identity
+
+Classify any supplied id before treating BMAD Workspace evidence as authoritative:
+
+- `valid_workspace_session`
+- `codex_thread_only`
+- `session_not_found`
+- `unknown`
+
+Codex thread ids are not BMAD Workspace Session ids. Treat `SESSION_NOT_FOUND` from a Codex thread id as Session Identity evidence, not missing-run evidence.
 
 Do not claim hot reload unless the run verifies it.
 

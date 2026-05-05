@@ -132,6 +132,68 @@ function testExactCheckoutGateCannotDisappear() {
   assertInvalid(root, 'policy SI-AUTO-005 missing required term: on `HEAD` of the exact checkout');
 }
 
+function testCheckpointRequiresActivationStateContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', '## Activation State', '## Runtime State');
+  assertInvalid(root, 'checkpoint template missing required term: Activation State');
+}
+
+function testCheckpointRequiresResumeContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', 'resume_contract:', 'resume_next:');
+  assertInvalid(root, 'checkpoint template missing required term: resume_contract:');
+}
+
+function testRefreshUnknownCannotAllowContinuation() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-checkpoint.template.md',
+    'refresh_state: known_good|failed|blocked|unknown',
+    'refresh: unknown',
+  );
+  assertInvalid(root, 'checkpoint template missing required term: refresh_state: known_good|failed|blocked|unknown');
+}
+
+function testActiveHashMismatchBlocksContinuation() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-checkpoint.template.md',
+    'active_skill_hash: match|mismatch|unknown',
+    'active_skill_hash: match|unknown',
+  );
+  assertInvalid(root, 'checkpoint template missing required term: active_skill_hash: match|mismatch|unknown');
+}
+
+function testSessionIdentityClassifiesCodexThreads() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-checkpoint.template.md',
+    'classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
+    'classification: valid_workspace_session|unknown',
+  );
+  assertInvalid(
+    root,
+    'checkpoint template missing required term: classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
+  );
+}
+
+function testContinuationRequiresAllActivationGates() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/self-improvement-automation-policy.md',
+    'Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.',
+    'Continuation is allowed when quality passes.',
+  );
+  assertInvalid(
+    root,
+    'policy SI-AUTO-008 missing required term: Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.',
+  );
+}
+
 function testContinuationGateCannotBeRemoved() {
   const root = makeFixture();
   replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'install/refresh evidence', 'operator vibes');
@@ -192,6 +254,12 @@ function run() {
     testDirtyPreflightBranchMutationGuardCannotDisappear,
     testFreshBranchCurrentRunDefinitionCannotDisappear,
     testExactCheckoutGateCannotDisappear,
+    testCheckpointRequiresActivationStateContract,
+    testCheckpointRequiresResumeContract,
+    testRefreshUnknownCannotAllowContinuation,
+    testActiveHashMismatchBlocksContinuation,
+    testSessionIdentityClassifiesCodexThreads,
+    testContinuationRequiresAllActivationGates,
     testContinuationGateCannotBeRemoved,
     testScheduleAwarenessCannotBeRemoved,
     testInstallRefreshFailureContractCannotDisappear,

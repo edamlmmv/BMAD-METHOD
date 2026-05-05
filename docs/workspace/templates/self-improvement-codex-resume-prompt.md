@@ -28,6 +28,9 @@ First read:
 - `git status --porcelain --untracked-files=all` output from the checkpoint
 - dirty preflight scan result
 - targeted test or validation output named in the checkpoint
+- Activation State
+- Resume Contract
+- Session Identity
 
 Resume from the next exact task. Do not restart discovery unless the checkpoint says the plan is invalid. Preserve Party Mode decisions unless they conflict with repo rules, tests, policy, or safety.
 
@@ -41,6 +44,12 @@ Before continuing, verify:
 - baseline policy hash or baseline ref is recorded
 - `max_fix_attempts=5`
 - continuation state is not blocked, or the operator explicitly cleared or overrode the block
+- `activation_state.repo_quality` is `pass` before repo-ready claims
+- `activation_state.repo_local_install` is `pass` before install-ready claims
+- `activation_state.active_skill_hash` is `match` before active-ready claims
+- `activation_state.refresh_state` is `known_good` before continuation
+- `resume_contract.continuation_allowed` is true only when all Activation State gates pass
+- `session_identity.classification` distinguishes Codex thread ids from BMAD Workspace Session ids
 
 Before final response, record:
 
@@ -49,6 +58,9 @@ Before final response, record:
 - `npm ci && npm run quality` result on `HEAD` of the exact checkout if reached
 - compile/install result
 - Codex refresh result
+- Activation State
+- Resume Contract
+- Session Identity
 - local commit SHAs
 - continuation decision
 - remaining risks

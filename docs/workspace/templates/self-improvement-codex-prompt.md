@@ -52,9 +52,14 @@ Required policy:
 20. compile/install updated BMAD skills with the existing installer.
 21. Install repo-local/test target first, then `/Users/edam/.agents` when applicable.
 22. Actively request Codex skill reload when available; otherwise record installed path, manifest row, source/installed SHA-256 hashes, and fallback refresh status.
-23. Commit passing work locally with a Conventional Commit message. Never push.
-24. Write checkpoint evidence under `{output_folder}/self-improvement/`.
-25. Allow continuation only after gates, commit, install/refresh evidence, checkpoint, lock release, effective schedule/config, and caps pass.
+23. Record Activation State, Resume Contract, and Session Identity in the checkpoint.
+24. In Activation State, record `repo_quality`, `repo_local_install`, `active_user_install`, `active_skill_hash`, and `refresh_state`.
+25. In Resume Contract, record `continuation_allowed`, `reason`, and `required_before_resume`.
+26. In Session Identity, classify any provided id as `valid_workspace_session`, `codex_thread_only`, `session_not_found`, or `unknown`.
+27. refresh_state: unknown never allows continuation. `SESSION_NOT_FOUND` for a Codex thread id is classification evidence, not missing-run evidence.
+28. Commit passing work locally with a Conventional Commit message. Never push.
+29. Write checkpoint evidence under `{output_folder}/self-improvement/`.
+30. Allow continuation only after quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, refresh state is known_good, checkpoint exists, lock is released, effective schedule/config allows it, and caps pass.
 
 Failure behavior:
 

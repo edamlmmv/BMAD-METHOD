@@ -67,9 +67,10 @@ The workflow runs:
 13. `npm ci && npm run quality` on `HEAD` of the exact checkout.
 14. BMAD compile/install.
 15. Codex refresh evidence.
-16. Local Conventional Commit.
-17. Final checkpoint.
-18. Continuation decision.
+16. Activation State, Resume Contract, and Session Identity evidence.
+17. Local Conventional Commit.
+18. Final checkpoint.
+19. Continuation decision.
 
 ## Preflight Contract
 
@@ -88,6 +89,22 @@ chore: preserve pre-automation worktree state
 ```
 
 Then create or switch to a fresh non-main `codex/self-improve-*` branch from the preserved state. Fresh means not `main` or `master`, matching `codex/self-improve-*`, and created for the current run before improvement edits. No implementation, docs, test, install, refresh, or continuation mutation may occur until that branch freshness is verified. Never push.
+
+## Activation And Resume Contract
+
+Every checkpoint records stable fenced YAML for `activation_state`, `resume_contract`, and `session_identity`.
+
+`activation_state` separates repo readiness from active user skill readiness:
+
+- `repo_quality`: `pass`, `fail`, or `unknown`
+- `repo_local_install`: `pass`, `fail`, or `unknown`
+- `active_user_install`: `pass`, `fail`, `blocked`, or `unknown`
+- `active_skill_hash`: `match`, `mismatch`, or `unknown`
+- `refresh_state`: `known_good`, `failed`, `blocked`, or `unknown`
+
+`resume_contract.continuation_allowed` is true only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good. `refresh_state: unknown` never allows continuation.
+
+`session_identity.classification` records whether a supplied id is a BMAD Workspace Session id, Codex thread id, missing session, or unknown. Codex thread ids are not BMAD Workspace Session ids, so `SESSION_NOT_FOUND` from a Codex thread id is classification evidence, not missing-run evidence.
 
 ## Launch Prompt
 
@@ -120,8 +137,11 @@ Required policy:
 - Run npm run validate:self-improve-invariants for policy or self-edit changes.
 - Install repo-local/test target first, then /Users/edam/.agents when applicable.
 - Actively request Codex skill reload when available; otherwise record fallback evidence.
+- Record Activation State, Resume Contract, and Session Identity.
+- Treat `/Users/edam` sandbox failure as active install readiness blocker, not repo failure.
+- Treat `SESSION_NOT_FOUND` for Codex thread ids as Session Identity evidence, not missing-run evidence.
 - Write checkpoint under _bmad-output/self-improvement/.
-- Allow continuation only after gates, commit, install/refresh evidence, checkpoint, effective schedule/config, and caps pass.
+- Allow continuation only after quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, refresh state is known_good, checkpoint, effective schedule/config, and caps pass.
 
 Task:
 [PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]
@@ -145,6 +165,8 @@ Stop and report before continuing when:
 - Dirty state contains a secret or huge generated artifact.
 - Tests or quality still fail after `max_fix_attempts=5`.
 - Install or refresh fails after quality passes.
+- Active skill hash mismatches expected after repo-local install passes.
+- Refresh state is `unknown`, `failed`, or `blocked`.
 - Party Mode conflicts with repo rules, tests, or policy.
 - Policy change weakens a non-negotiable invariant.
 - The invariant checker cannot classify a policy change.
@@ -159,4 +181,4 @@ Write checkpoints under:
 _bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md
 ```
 
-Each checkpoint records objective, question, mode and inputs, effective automation schedule/config, base SHA, baseline policy hash, branch, dirty preservation commit, Party Mode decision and critique, policy consensus evidence, plan status, changed files, tests run, pass/fail output, full gate output, compile/install evidence, refresh evidence, local commit SHAs, lock result, continuation decision, resume command, unresolved risks, and next operator decision.
+Each checkpoint records objective, question, mode and inputs, effective automation schedule/config, base SHA, baseline policy hash, branch, dirty preservation commit, Party Mode decision and critique, policy consensus evidence, plan status, changed files, tests run, pass/fail output, full gate output, compile/install evidence, refresh evidence, Activation State, Resume Contract, Session Identity, local commit SHAs, lock result, continuation decision, resume command, unresolved risks, and next operator decision.

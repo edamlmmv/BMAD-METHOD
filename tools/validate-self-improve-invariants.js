@@ -54,6 +54,8 @@ const REQUIRED_INVARIANTS = [
       'install/refresh evidence',
       'checkpoint',
       'continuation',
+      'Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.',
+      'refresh_state: unknown never allows continuation',
     ],
   },
   {
@@ -92,6 +94,11 @@ const REQUIRED_SKILL_TERMS = [
   'npm run validate:self-improve-invariants',
   'Party Mode consensus',
   'effective automation schedule/config',
+  'Activation State',
+  'Resume Contract',
+  'Session Identity',
+  'active skill hash matches expected',
+  'refresh state is known_good',
   'Vercel Workflow WDK',
 ];
 
@@ -105,6 +112,10 @@ const REQUIRED_PROMPT_TERMS = [
   'chore: preserve pre-automation worktree state',
   'npm ci && npm run quality',
   'npm run validate:self-improve-invariants',
+  'Activation State',
+  'Resume Contract',
+  'Session Identity',
+  'refresh_state: unknown never allows continuation',
   'Vercel Workflow WDK is not part of this run',
 ];
 
@@ -120,6 +131,22 @@ const REQUIRED_CHECKPOINT_TERMS = [
   'Full Gate Output',
   'source SHA-256',
   'installed SHA-256',
+  'Activation State',
+  'activation_state:',
+  'repo_quality: pass|fail|unknown',
+  'repo_local_install: pass|fail|unknown',
+  'active_user_install: pass|fail|blocked|unknown',
+  'active_skill_hash: match|mismatch|unknown',
+  'refresh_state: known_good|failed|blocked|unknown',
+  'Resume Contract',
+  'resume_contract:',
+  'continuation_allowed: true|false',
+  'required_before_resume:',
+  'Session Identity',
+  'session_identity:',
+  'codex_thread_id: string|null',
+  'workspace_session_id: string|null',
+  'classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
   'Continuation Decision',
   'Resume Command',
 ];
@@ -239,8 +266,25 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(skill, REQUIRED_SKILL_TERMS, 'bmad-self-improve skill', errors);
   requireTerms(prompt, REQUIRED_PROMPT_TERMS, 'self-improvement prompt', errors);
   requireTerms(checkpoint, REQUIRED_CHECKPOINT_TERMS, 'checkpoint template', errors);
-  requireTerms(guide, ['local Codex automation loop', 'Self-Improvement Automation Policy', 'Vercel Workflow WDK'], 'runbook', errors);
-  requireTerms(resume, ['automation.lock', 'max_fix_attempts=5', 'continuation state'], 'resume prompt', errors);
+  requireTerms(
+    guide,
+    [
+      'local Codex automation loop',
+      'Self-Improvement Automation Policy',
+      'Activation State',
+      'Resume Contract',
+      'Session Identity',
+      'Vercel Workflow WDK',
+    ],
+    'runbook',
+    errors,
+  );
+  requireTerms(
+    resume,
+    ['automation.lock', 'max_fix_attempts=5', 'continuation state', 'Activation State', 'Resume Contract', 'Session Identity'],
+    'resume prompt',
+    errors,
+  );
   requireTerms(moduleHelp, ['local Codex automation-capable BMAD self-improvement', 'continuation'], 'module-help.csv', errors);
   requireNoTerms([skill, guide, prompt].join('\n'), FORBIDDEN_SELF_IMPROVE_PHRASES, 'self-improvement docs', errors);
 

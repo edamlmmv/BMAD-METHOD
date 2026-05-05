@@ -57,9 +57,15 @@ At invocation start, the loop reads the effective automation schedule/config and
 
 The loop also reads the latest checkpoint before branch creation. It allows continuation only after gates pass, a local code commit exists when code changed, install/refresh evidence is recorded, a checkpoint is written, the lock is releasable, and iteration caps allow continuation. If the checkpoint marks continuation blocked, later scheduled invocations stop early unless the operator explicitly clears or overrides the block.
 
+Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good. refresh_state: unknown never allows continuation.
+
+Checkpoints separate repo readiness from active user skill readiness through `activation_state` and `resume_contract`. A sandbox-blocked `/Users/edam` install may leave the repo ready while active continuation remains blocked.
+
 ### SI-AUTO-009: Install And Refresh Evidence
 
 The loop installs repo-local or test targets first. When applicable and gates pass, it updates `/Users/edam/.agents` with the existing installer. It actively requests Codex skill reload when available. If reload is unavailable, it records installed path, manifest row, source and installed SHA-256 hashes, and refresh status.
+
+The loop records Session Identity before treating Workspace evidence as authoritative. Codex thread ids are not BMAD Workspace Session ids; `SESSION_NOT_FOUND` from a Codex thread id is classification evidence, not missing-run evidence.
 
 ### SI-AUTO-010: Self-Edit And Policy-Edit Baseline Gate
 
@@ -87,6 +93,8 @@ Vercel Workflow WDK is a future optional hosted orchestrator adapter. It is not 
 | `npm ci && npm run quality` fails after fixes | Leave branch dirty, checkpoint, continuation blocked |
 | Install fails after quality passes | Commit code and checkpoint, continuation blocked |
 | Codex refresh cannot be verified | Commit code and checkpoint, record fallback refresh status, continuation blocked |
+| Active user skill hash is stale | Commit code and checkpoint, continuation blocked |
+| Codex thread id is not a Workspace Session | Record session identity, continue using Codex thread and git evidence |
 | Policy change weakens invariant | Stop, checkpoint, no install, no refresh, continuation blocked |
 | Checker cannot classify policy change | Fail closed for human review |
 | Lock is stale without evidence | Stop until checkpointed failure evidence exists |
@@ -104,6 +112,9 @@ Each checkpoint records:
 - targeted test output and full gate output
 - install target and evidence
 - Codex refresh attempt and result
+- Activation State with repo quality, repo-local install, active user install, active skill hash, and refresh_state
+- Resume Contract with continuation_allowed, reason, and required_before_resume
+- Session Identity with Codex thread id, Workspace session id, and classification
 - local commit SHAs
 - effective automation schedule/config consulted
 - continuation decision and remaining cap values
