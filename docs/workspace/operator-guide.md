@@ -53,6 +53,15 @@ Codex thread should begin with Workspace guardrails, BMAD skill routing, and an
 evidence plan before action. The prompt is an operator aid only; it does not
 authorize hidden execution or Workspace mutation.
 
+## Self-Improvement Prompt
+
+Use [Codex Self-Improvement Automation](./self-improvement-codex.md) when Codex
+is improving BMAD skills, prompts, Workspace templates, or Codex integration.
+The workflow requires Party Mode before planning, Party Mode again before
+implementation, TDD, compile/install evidence, and Codex refresh evidence. It is
+operator-run automation only; it does not authorize hidden execution, a
+scheduler, watcher, daemon, live adapter, or auto-promotion loop.
+
 ## Evidence Index
 
 Use `evidence` when deciding what to inspect next. It reports artifact presence,

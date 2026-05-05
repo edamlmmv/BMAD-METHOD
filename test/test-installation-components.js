@@ -3521,6 +3521,95 @@ async function runTests() {
   console.log('');
 
   // ============================================================
+  // Test Suite 45: Codex Self-Improvement Skill
+  // ============================================================
+  console.log(`${colors.yellow}Test Suite 45: Codex Self-Improvement Skill${colors.reset}\n`);
+
+  let tempRoot45;
+  let tempProjectDir45;
+  try {
+    const sourceSkill45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
+    const sourceHelp45 = path.join(projectRoot, 'src', 'core-skills', 'module-help.csv');
+    const guide45 = path.join(projectRoot, 'docs', 'workspace', 'self-improvement-codex.md');
+    const prompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md');
+    const resumePrompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md');
+    const checkpointTemplate45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md');
+
+    assert(await fs.pathExists(sourceSkill45), 'bmad-self-improve source skill exists');
+
+    const skillContent45 = (await fs.pathExists(sourceSkill45)) ? await fs.readFile(sourceSkill45, 'utf8') : '';
+    const firstPartyModeIndex45 = skillContent45.indexOf('Run `skill:bmad-party-mode` before writing any plan');
+    const secondPartyModeIndex45 = skillContent45.indexOf('Run `skill:bmad-party-mode` again before implementation');
+    assert(firstPartyModeIndex45 !== -1, 'bmad-self-improve requires Party Mode before plan');
+    assert(secondPartyModeIndex45 !== -1, 'bmad-self-improve requires second Party Mode before implementation');
+    assert(
+      firstPartyModeIndex45 !== -1 && secondPartyModeIndex45 > firstPartyModeIndex45,
+      'bmad-self-improve orders second Party Mode after first Party Mode',
+    );
+    assert(skillContent45.includes('TDD'), 'bmad-self-improve requires TDD implementation');
+    assert(skillContent45.includes('compile/install'), 'bmad-self-improve requires compile/install evidence');
+    assert(
+      skillContent45.includes('skills/list') && skillContent45.includes('forceReload: true'),
+      'bmad-self-improve documents Codex forceReload refresh probe',
+    );
+    assert(
+      skillContent45.includes('{output_folder}/self-improvement'),
+      'bmad-self-improve records checkpoints under output_folder self-improvement',
+    );
+    assert(
+      /does not create or run scheduler,\s+watcher,\s+daemon,\s+hidden executor,\s+live adapter,\s+or auto-promotion loop/.test(
+        skillContent45,
+      ),
+      'bmad-self-improve forbids hidden automation surfaces',
+    );
+
+    const helpContent45 = await fs.readFile(sourceHelp45, 'utf8');
+    assert(helpContent45.includes('Core,bmad-self-improve,'), 'module-help.csv routes bmad-self-improve');
+
+    for (const docPath45 of [guide45, prompt45, resumePrompt45, checkpointTemplate45]) {
+      assert(await fs.pathExists(docPath45), `${path.basename(docPath45)} exists`);
+    }
+    const guideContent45 = (await fs.pathExists(guide45)) ? await fs.readFile(guide45, 'utf8') : '';
+    assert(
+      guideContent45.includes('https://developers.openai.com/codex/app-server#skills'),
+      'self-improvement guide cites Codex skills refresh documentation',
+    );
+    assert(guideContent45.includes('global install remains out of scope'), 'self-improvement guide keeps global install out of scope');
+
+    tempRoot45 = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-self-improve-source-'));
+    const bmadDir45 = path.join(tempRoot45, '_bmad');
+    await fs.ensureDir(bmadDir45);
+    await fs.copy(path.join(projectRoot, 'src', 'core-skills'), path.join(bmadDir45, 'core'));
+
+    const generator45 = new ManifestGenerator();
+    await generator45.generateManifests(bmadDir45, ['core'], [], { ides: ['codex'], moduleConfigs: { core: {} } });
+
+    const generatedCsv45 = await fs.readFile(path.join(bmadDir45, '_config', 'skill-manifest.csv'), 'utf8');
+    assert(generatedCsv45.includes('"bmad-self-improve"'), 'generated skill-manifest.csv includes bmad-self-improve');
+
+    tempProjectDir45 = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-self-improve-codex-'));
+    const ideManager45 = new IdeManager();
+    await ideManager45.ensureInitialized();
+    const setupResult45 = await ideManager45.setup('codex', tempProjectDir45, bmadDir45, {
+      silent: true,
+      selectedModules: ['core'],
+    });
+
+    assert(setupResult45.success === true, 'Codex setup succeeds for generated bmad-self-improve fixture');
+    assert(
+      await fs.pathExists(path.join(tempProjectDir45, '.agents', 'skills', 'bmad-self-improve', 'SKILL.md')),
+      'Codex install copies bmad-self-improve SKILL.md into .agents/skills',
+    );
+  } catch (error) {
+    assert(false, 'Codex self-improvement skill test succeeds', error.message);
+  } finally {
+    if (tempProjectDir45) await fs.remove(tempProjectDir45).catch(() => {});
+    if (tempRoot45) await fs.remove(tempRoot45).catch(() => {});
+  }
+
+  console.log('');
+
+  // ============================================================
   // Summary
   // ============================================================
   console.log(`${colors.cyan}========================================`);

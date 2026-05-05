@@ -19,6 +19,7 @@ CLI records reviewable evidence.
 | Current command contract and output rules | [Command Contract](./command-contract.md) |
 | First-hour operator path | [Operator Quickstart](./operator-quickstart.md) |
 | Manual operator sequence | [Operator Guide](./operator-guide.md) |
+| Codex self-improvement workflow | [Codex Self-Improvement Automation](./self-improvement-codex.md) |
 | Current system summary | [Current State](./current-state.md) |
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
@@ -57,6 +58,10 @@ expectations already stated.
 Use [Workspace Runbook](./templates/workspace-runbook.md) to record manual
 operator decisions, evidence refs, review manifest refs, closeout, and archive
 verification for a real engagement.
+
+Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
+when Codex should improve BMAD itself with Party Mode planning, TDD execution,
+compile/install evidence, and refresh checks.
 
 ## Doctrine
 
