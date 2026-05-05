@@ -10,8 +10,8 @@ This archive replaces the scattered per-release BMAD planning files that previou
 ## Compilation Scope
 
 - Source artifacts compiled: 67
-- Release groups compiled: 20
-- Compact entries compiled: 3
+- Release groups compiled: 21
+- Compact entries compiled: 4
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -494,6 +494,34 @@ This archive replaces the scattered per-release BMAD planning files that previou
 - Acceptance anchors: prompt-builder-surface-removed, workspace-foundation-preserved, current-template-routing, full-quality-green
 - Traceability markers: Evidence, Test Target
 
+### V23
+
+- Compiled artifacts: Consensus Plan, Implementation, Contract Tests, Operator Docs, Release Gate
+- Consensus Plan: Release-hardening plan for `codex/bmad-workspace`, with the requested `codex/workspace` ref recorded as absent
+- Implementation: Workspace command metadata now has one registry source, path containment is shared across safety-sensitive flows, and archive/destroy/grant boundaries reject unsafe paths before mutation
+- Contract Tests: CLI help, docs tables, source skill guidance, command classes, forbidden surfaces, path containment, read-only commands, archive verification failures, and lifecycle contracts are checked together
+- Operator Docs: Quickstart, runbook template, release checklist, and 6.6.0 release note preserve manual evidence-only doctrine while labeling examples as Runnable, PSEUDO, or sample output
+- Release Gate: `npm ci && npm run quality` passed on the exact checkout after implementation, including Workspace tests, refs, skills, docs, lint, markdown lint, install, and URL checks
+- Overview: V23 hardens Workspace for review and merge without expanding capability. It keeps the current public command surface fixed, makes command classifications machine-checkable, proves unsafe paths and grant violations are rejected before mutation, and documents the release as manual evidence-only.
+- Goals:
+  - Create one Workspace command metadata source of truth for CLI help, docs, and tests.
+  - Preserve all public command names and options.
+  - Add shared path containment checks for traversal, absolute escapes, symlink escapes, temp paths, and platform case quirks where applicable.
+  - Guard destructive and grant-gated commands before mutation.
+  - Prove read-only commands do not mutate session artifacts or known output dirs.
+  - Add golden lifecycle and contract assertions for Work Packet, Executor Contract, Result Ledger, Review Manifest, Handoff, Archive Manifest, Evidence Index, and Archive Diff.
+  - Keep `packetVersion: 4` and `archiveVersion: 2`.
+  - Improve command-first operator docs and release hygiene without adding runtime behavior.
+- Non-goals:
+  - No new Workspace command.
+  - No command rename, removal, or option removal.
+  - No execution engine.
+  - No scheduler, watcher, daemon, or background worker.
+  - No restore, replay, merge, promotion, or live adapter behavior.
+  - No automatic mutation from evidence, result, review, closeout, handoff, archive, or diff flows.
+- Acceptance anchors: command-registry-parity, path-containment-guard, destructive-refusal-before-mutation, read-only-mutation-proof, golden-lifecycle-contracts, forbidden-surface-guard, operator-doc-labels, clean-install-smoke, package-manager-policy, full-quality-green
+- Traceability markers: Evidence, Test Target
+
 ## Old Artifact Removal
 
-The individual per-release history files were removed after this archive was generated. Future history additions should prefer a compact compiled entry unless a detailed artifact is explicitly needed for review.
+The individual per-release history files were removed after this archive was generated. V23 was compiled directly into this archive, and no standalone per-release BMAD history files remain. Future history additions should prefer a compact compiled entry unless a detailed artifact is explicitly needed for review.
