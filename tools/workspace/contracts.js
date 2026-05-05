@@ -32,6 +32,12 @@ const ALLOWED_PACKET_FIELDS_V5 = new Set([...REQUIRED_PACKET_FIELDS_V5, 'repoInt
 const ALLOWED_EVIDENCE_GATE_FIELDS = new Set(['id', 'requiredCapabilityIds', 'required', 'evidenceRefIds', 'freshnessPolicy', 'message']);
 const ALLOWED_EVIDENCE_REF_FIELDS = new Set(['id', 'capability', 'artifactRef', 'sha256', 'generatedAt', 'sourceFiles']);
 const ALLOWED_EVIDENCE_SOURCE_FIELDS = new Set(['path', 'sha256']);
+const CAPABILITY_REQUEST_KIND = 'bmad-workspace-capability-request';
+const CAPABILITY_VERDICT_KIND = 'bmad-workspace-capability-verdict';
+const CAPABILITY_REQUEST_SCHEMA_VERSION = 1;
+const ALLOWED_CAPABILITY_REQUEST_FIELDS = new Set(['kind', 'schemaVersion', 'request', 'capabilities', 'observations']);
+const ALLOWED_CAPABILITY_USAGE_FIELDS = new Set(['id', 'sessionType', 'group', 'provider', 'interface', 'writes', 'outputs']);
+const VALID_CAPABILITY_SESSION_TYPES = new Set(['normal', 'base-improvement']);
 
 const REQUIRED_CAPABILITY_FIELDS = [
   'id',
@@ -340,6 +346,257 @@ function validateCapabilityContract(contract) {
   return result(errors);
 }
 
+function verifyCapabilityRequest(capabilityRequest) {
+  const verdict = createCapabilityVerdict(capabilityRequest);
+  const requestErrors = validateCapabilityRequestDocument(capabilityRequest);
+  if (requestErrors.length > 0) {
+    verdict.ok = false;
+    verdict.errors.push(...requestErrors);
+    return verdict;
+  }
+
+  verdict.request = { ...capabilityRequest.request };
+  if (Array.isArray(capabilityRequest.request.writes)) {
+    verdict.request.writes = [...capabilityRequest.request.writes];
+  }
+  if (Array.isArray(capabilityRequest.request.outputs)) {
+    verdict.request.outputs = [...capabilityRequest.request.outputs];
+  }
+  verdict.observations.push(...normalizeCapabilityObservations(capabilityRequest.observations));
+
+  const matches = capabilityRequest.capabilities.filter((capability) => capability?.id === capabilityRequest.request.id);
+  if (matches.length === 0) {
+    verdict.ok = false;
+    verdict.errors.push(capabilityIssue('CAPABILITY_NOT_DECLARED', 'Capability is not declared by exact id.', '$.request.id'));
+    return verdict;
+  }
+  if (matches.length > 1) {
+    verdict.ok = false;
+    verdict.errors.push(
+      capabilityIssue('CAPABILITY_ID_DUPLICATE', 'Capability id is declared more than once.', '$.capabilities', {
+        id: capabilityRequest.request.id,
+      }),
+    );
+    return verdict;
+  }
+
+  const declaration = matches[0];
+  verdict.matchedDeclaration = projectMatchedDeclaration(declaration);
+  const constraintErrors = validateCapabilityConstraints(capabilityRequest.request, declaration);
+  if (constraintErrors.length > 0) {
+    verdict.ok = false;
+    verdict.errors.push(...constraintErrors);
+    return verdict;
+  }
+
+  verdict.ok = true;
+  verdict.observations.push(
+    capabilityIssue('CAPABILITY_DECLARATION_MATCHED', 'Capability request matched a declared capability.', '$.request.id'),
+  );
+  if (declaration.requiresGrant === true) {
+    verdict.observations.push(
+      capabilityIssue(
+        'CAPABILITY_REQUIRES_GRANT',
+        'Matched capability requires Grant Guard authorization before durable writes.',
+        '$.matchedDeclaration.requiresGrant',
+      ),
+    );
+  }
+  return verdict;
+}
+
+function createCapabilityVerdict(capabilityRequest) {
+  return {
+    kind: CAPABILITY_VERDICT_KIND,
+    schemaVersion: CAPABILITY_REQUEST_SCHEMA_VERSION,
+    ok: false,
+    request: isObject(capabilityRequest?.request) ? { ...capabilityRequest.request } : null,
+    matchedDeclaration: null,
+    errors: [],
+    warnings: [],
+    observations: [],
+  };
+}
+
+function validateCapabilityRequestDocument(capabilityRequest) {
+  const errors = [];
+  if (!isObject(capabilityRequest)) {
+    return [capabilityIssue('REQUEST_INVALID', 'Capability request must be an object.', '$')];
+  }
+
+  collectUnknownFields(capabilityRequest, ALLOWED_CAPABILITY_REQUEST_FIELDS, '$', errors);
+  if (capabilityRequest.kind !== CAPABILITY_REQUEST_KIND) {
+    errors.push(capabilityIssue('REQUEST_INVALID', `Capability request kind must be ${CAPABILITY_REQUEST_KIND}.`, '$.kind'));
+  }
+  if (capabilityRequest.schemaVersion !== CAPABILITY_REQUEST_SCHEMA_VERSION) {
+    errors.push(
+      capabilityIssue(
+        'REQUEST_INVALID',
+        `Capability request schemaVersion must be ${CAPABILITY_REQUEST_SCHEMA_VERSION}.`,
+        '$.schemaVersion',
+      ),
+    );
+  }
+  validateCapabilityUsageRequest(capabilityRequest.request, errors);
+  if (!Array.isArray(capabilityRequest.capabilities) || capabilityRequest.capabilities.length === 0) {
+    errors.push(capabilityIssue('REQUEST_INVALID', 'Capability request capabilities must be a non-empty array.', '$.capabilities'));
+  }
+  if ('observations' in capabilityRequest && !Array.isArray(capabilityRequest.observations)) {
+    errors.push(capabilityIssue('REQUEST_INVALID', 'Capability request observations must be an array when present.', '$.observations'));
+  }
+  return errors;
+}
+
+function validateCapabilityUsageRequest(request, errors) {
+  if (!isObject(request)) {
+    errors.push(capabilityIssue('REQUEST_INVALID', 'Capability request request must be an object.', '$.request'));
+    return;
+  }
+
+  collectUnknownFields(request, ALLOWED_CAPABILITY_USAGE_FIELDS, '$.request', errors);
+  requireCapabilityRequestString(request, 'id', errors);
+  if (!VALID_CAPABILITY_SESSION_TYPES.has(request.sessionType)) {
+    errors.push(
+      capabilityIssue('REQUEST_INVALID', 'Capability request sessionType must be normal or base-improvement.', '$.request.sessionType'),
+    );
+  }
+  for (const field of ['group', 'provider', 'interface']) {
+    if (field in request) {
+      requireCapabilityRequestString(request, field, errors);
+    }
+  }
+  for (const field of ['writes', 'outputs']) {
+    if (field in request) {
+      requireStringArray(request, field, errors);
+    }
+  }
+}
+
+function validateCapabilityConstraints(request, declaration) {
+  const errors = [];
+
+  if (request.sessionType === 'normal' && declaration.allowedInNormalSession !== true) {
+    errors.push(capabilityIssue('SESSION_NOT_ALLOWED', 'Capability is not allowed in normal sessions.', '$.request.sessionType'));
+  }
+  if (request.sessionType === 'base-improvement' && declaration.allowedInBaseImprovement !== true) {
+    errors.push(capabilityIssue('SESSION_NOT_ALLOWED', 'Capability is not allowed in base-improvement sessions.', '$.request.sessionType'));
+  }
+
+  for (const field of ['group', 'provider', 'interface']) {
+    if (field in request && request[field] !== declaration[field]) {
+      errors.push(
+        capabilityIssue(`${field.toUpperCase()}_MISMATCH`, `Capability ${field} does not match declared ${field}.`, `$.request.${field}`, {
+          expected: declaration[field],
+          actual: request[field],
+        }),
+      );
+    }
+  }
+
+  for (const write of request.writes || []) {
+    if (!arrayIncludes(declaration.writes, write)) {
+      errors.push(
+        capabilityIssue('WRITE_NOT_DECLARED', 'Requested write target is not declared for this capability.', '$.request.writes', { write }),
+      );
+    }
+    if (arrayIncludes(declaration.forbiddenWrites, write)) {
+      errors.push(
+        capabilityIssue('WRITE_FORBIDDEN', 'Requested write target is forbidden for this capability.', '$.request.writes', { write }),
+      );
+    }
+  }
+
+  for (const output of request.outputs || []) {
+    if (!arrayIncludes(declaration.outputs, output)) {
+      errors.push(
+        capabilityIssue('OUTPUT_NOT_DECLARED', 'Requested output is not declared for this capability.', '$.request.outputs', { output }),
+      );
+    }
+  }
+
+  return errors;
+}
+
+function projectMatchedDeclaration(declaration) {
+  return {
+    id: declaration.id,
+    group: declaration.group,
+    provider: declaration.provider,
+    interface: declaration.interface,
+    allowedInNormalSession: declaration.allowedInNormalSession,
+    allowedInBaseImprovement: declaration.allowedInBaseImprovement,
+    requiresGrant: declaration.requiresGrant,
+    writes: Array.isArray(declaration.writes) ? [...declaration.writes] : [],
+    forbiddenWrites: Array.isArray(declaration.forbiddenWrites) ? [...declaration.forbiddenWrites] : [],
+    outputs: Array.isArray(declaration.outputs) ? [...declaration.outputs] : [],
+  };
+}
+
+function normalizeCapabilityObservations(observations) {
+  if (!Array.isArray(observations)) {
+    return [];
+  }
+  return observations.map((observation, index) => {
+    if (isObject(observation)) {
+      return {
+        code: typeof observation.code === 'string' && observation.code.length > 0 ? observation.code : 'ADVISORY_OBSERVATION',
+        message:
+          typeof observation.message === 'string' && observation.message.length > 0
+            ? observation.message
+            : 'Advisory capability observation supplied by request fixture.',
+        path: typeof observation.path === 'string' && observation.path.length > 0 ? observation.path : `$.observations[${index}]`,
+        ...(isObject(observation.details) ? { details: observation.details } : {}),
+      };
+    }
+    return capabilityIssue(
+      'ADVISORY_OBSERVATION',
+      'Advisory capability observation supplied by request fixture.',
+      `$.observations[${index}]`,
+    );
+  });
+}
+
+function collectUnknownFields(object, allowedFields, label, errors) {
+  for (const field of Object.keys(object)) {
+    if (!allowedFields.has(field)) {
+      errors.push(capabilityIssue('REQUEST_INVALID', `Capability request field ${field} is not allowed.`, `${label}.${field}`));
+    }
+  }
+}
+
+function requireCapabilityRequestString(object, field, errors) {
+  if (typeof object[field] !== 'string' || object[field] === '' || object[field].trim() !== object[field]) {
+    errors.push(capabilityIssue('REQUEST_INVALID', `Capability request ${field} must be a non-empty exact string.`, `$.request.${field}`));
+  }
+}
+
+function requireStringArray(object, field, errors) {
+  if (!Array.isArray(object[field])) {
+    errors.push(capabilityIssue('REQUEST_INVALID', `Capability request ${field} must be an array.`, `$.request.${field}`));
+    return;
+  }
+  for (const [index, value] of object[field].entries()) {
+    if (typeof value !== 'string' || value === '' || value.trim() !== value) {
+      errors.push(
+        capabilityIssue(
+          'REQUEST_INVALID',
+          `Capability request ${field} entries must be non-empty exact strings.`,
+          `$.request.${field}[${index}]`,
+        ),
+      );
+    }
+  }
+}
+
+function capabilityIssue(code, message, issuePath, details) {
+  return {
+    code,
+    message,
+    ...(issuePath ? { path: issuePath } : {}),
+    ...(details ? { details } : {}),
+  };
+}
+
 function validateCapability(capability, index, errors) {
   const label = `contract.capabilities[${index}]`;
 
@@ -448,4 +705,5 @@ function result(errors) {
 module.exports = {
   validateCapabilityContract,
   validateWorkPacket,
+  verifyCapabilityRequest,
 };

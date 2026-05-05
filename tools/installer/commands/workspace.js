@@ -12,6 +12,7 @@ const { recordSessionResult } = require('../../workspace/result');
 const { recordSessionCloseout } = require('../../workspace/closeout');
 const { readEvidenceIndex } = require('../../workspace/evidence');
 const { diffWorkspaceArchives } = require('../../workspace/diff');
+const { assertCapabilityVerified, verifyCapabilityInput } = require('../../workspace/capability-verifier');
 const { nextManualActionForError } = require('../../workspace/next-action');
 const { WORKSPACE_OPTIONS, isWorkspaceCommand, renderWorkspaceHelp } = require('../../workspace/command-registry');
 
@@ -122,6 +123,14 @@ function runWorkspaceCommand(workspaceCommand, sessionId, options) {
       sessionId,
       runtimeRoot: options.runtimeRoot,
     });
+  }
+
+  if (workspaceCommand === 'verify-capability') {
+    return assertCapabilityVerified(
+      verifyCapabilityInput({
+        inputPath: options.input,
+      }),
+    );
   }
 
   if (workspaceCommand === 'diff') {

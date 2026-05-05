@@ -98,6 +98,16 @@ does not make continuation decisions from packet gates, and does not mark gates 
 A later phase may consume packet v5 gates after packet v5 stabilizes and after Party Mode
 consensus plus tests preserve the no-Graphify-runtime boundary.
 
+## Capability Verifier Boundary
+
+`bmad workspace verify-capability` is available as an additive declared-contract compatibility check.
+Self-Improve may use its verdict as planning evidence that a requested capability id is declared
+with compatible Workspace Capability Contract fields.
+It must not treat `ok: true` as runtime availability, write authorization,
+continuation permission, install readiness, quality success, or Evidence Gate
+pass state. Codex/tool observations and checked-in graph references in verifier
+fixtures remain advisory only.
+
 ## Stop Conditions
 
 Stop and report when any condition appears:

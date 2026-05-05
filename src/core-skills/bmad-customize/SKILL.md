@@ -11,6 +11,21 @@ Scope v1: per-skill `[agent]` overrides (`bmad-agent-<role>.toml` / `.user.toml`
 
 When the target's `customize.toml` doesn't expose what the user wants, say so plainly. Don't invent fields.
 
+## Capability Verification Authoring
+
+For Workspace capability verification, use BMad Customize as the authoring and
+education control plane only. Help the user start from
+`docs/workspace/templates/capability-request.template.json`, explain the
+declared capability fields, and route any per-skill behavior changes through the
+normal exposed `customize.toml` surfaces.
+
+Do not make `bmad workspace verify-capability` read `_bmad/custom`, hand-authored
+TOML, local Codex config, app-server APIs, or live Graphify output. The verifier
+accepts a self-contained Capability Request JSON fixture and returns a declared
+contract verdict. If the user wants central capability declaration generation,
+say that central config is outside bmad-customize v1 and point to the Workspace
+Capability Contract docs and the template.
+
 ## Preflight
 
 - No `{project-root}/_bmad/` → BMad isn't installed. Say so, stop.

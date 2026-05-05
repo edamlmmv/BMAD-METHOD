@@ -77,6 +77,15 @@ does not make continuation decisions from packet gates, and does not mark gates 
 A later phase may consume packet v5 gates after packet v5 stabilizes and after Party Mode
 consensus plus tests preserve the no-Graphify-runtime boundary.
 
+## Capability Verifier Boundary
+
+`bmad workspace verify-capability` is a declared-contract compatibility check.
+Self-Improve may cite its verdict as planning evidence that an exact capability
+id and requested contract fields are declared. It must not use `ok: true` as
+runtime tool availability, write authorization, continuation permission, install
+readiness, quality success, or Evidence Gate pass state. Codex/tool observations
+and checked-in graph refs in verifier fixtures remain advisory only.
+
 ## Codex Advanced Configuration
 
 Codex Advanced Configuration is optional operator-local setup. It can change

@@ -1,0 +1,46 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "executor.codex.manual",
+    "sessionType": "normal",
+    "group": "executor.codex",
+    "provider": "codex",
+    "interface": "manual-executor-contract",
+    "writes": ["workspace-session/packets"],
+    "outputs": ["executor-contract.json"]
+  },
+  "capabilities": [
+    {
+      "id": "executor.codex.manual",
+      "group": "executor.codex",
+      "provider": "codex",
+      "interface": "manual-executor-contract",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": ["workspace-session/packets"],
+      "forbiddenWrites": ["workspace-base", "target-repo", "scheduler", "daemon", "live-adapter"],
+      "outputs": ["executor-contract.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CODEX_CONFIG_ADVANCED_DOCS",
+      "message": "Codex advanced configuration docs reviewed for advisory configuration context only.",
+      "details": {
+        "sourceUrl": "https://developers.openai.com/codex/config-advanced",
+        "reviewedAt": "2026-05-05"
+      }
+    },
+    {
+      "code": "CODEX_APP_SERVER_DOCS",
+      "message": "Codex app-server docs reviewed for advisory app-server/tool awareness only.",
+      "details": {
+        "sourceUrl": "https://developers.openai.com/codex/app-server",
+        "reviewedAt": "2026-05-05"
+      }
+    }
+  ]
+}

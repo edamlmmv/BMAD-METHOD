@@ -43,6 +43,9 @@ Workspace release:
 - Capability Contract: owner is `npm run test:workspace`; manual-review note
   checks provider metadata grants no writes, route authority, live adapter
   activation, scheduler behavior, or base mutation.
+- Capability Verifier: owner is `npm run test:workspace`; manual-review note
+  checks `ok: true` means declared-contract compatibility only and cannot
+  replace Evidence Gate, Grant Guard, Self-Improve, install, or quality checks.
 - Self-Improve Safety Loop: owner is
   `npm run validate:self-improve-invariants`; manual-review note checks
   continuation remains evidence-gated and cannot self-authorize hidden action.

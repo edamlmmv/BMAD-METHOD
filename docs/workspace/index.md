@@ -59,6 +59,13 @@ Use [Workspace Runbook](./templates/workspace-runbook.md) to record manual
 operator decisions, evidence refs, review manifest refs, closeout, and archive
 verification for a real engagement.
 
+Use [Capability Request Template](./templates/capability-request.template.json)
+to author a declared-contract compatibility check for
+`bmad workspace verify-capability --input <request-json>`. The verifier accepts
+declared capabilities and advisory observations from the request fixture only;
+it does not inspect `_bmad/custom`, local Codex config, app-server APIs, or live
+Graphify state.
+
 Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
 when Codex should improve BMAD itself with a local automation-capable loop or
 foreground operator run, Party Mode planning, TDD execution, compile/install
@@ -70,6 +77,8 @@ evidence, refresh checks, and checkpointed continuation.
 - Codex is the preferred executor.
 - Review Manifest is typed review evidence, not approval or workflow authority.
 - Evidence Index is inspection evidence, not authority.
+- Capability Verification is declared-contract compatibility, not runtime
+  availability or permission.
 - Workspace Diff compares archive evidence, not live sessions or worktrees.
 - Normal Workspace Sessions do not mutate the BMAD Workspace.
 - Base Improvement Sessions require explicit grants and Worktree Review.

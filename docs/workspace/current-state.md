@@ -17,6 +17,7 @@ review decisions with the human operator.
 | Manual evidence | Result Ledger records `result` execution evidence as inert JSON data. |
 | Review evidence | `review` writes Worktree Review artifacts and Review Manifest evidence at `review/review-manifest.json`. |
 | Session inspection | `status`, `list`, `handoff`, and `evidence` read stored artifacts without repair or execution. |
+| Capability verification | `verify-capability` checks one self-contained request against declared capabilities only. |
 | Closure | `closeout` records a manual final decision and next manual action. |
 | Portability | `archive` writes `archiveVersion: 2` evidence bundles; `verify-archive` validates bundles; `diff` compares verified archives only. |
 | Cleanup | `destroy` removes disposable runtime state while preserving target repo state. |
@@ -27,6 +28,11 @@ review decisions with the human operator.
 Workspace artifacts are evidence. They never become approval, execution,
 restore, replay, merge, promotion, scheduler, watcher, daemon, or live adapter
 input.
+
+Capability verification is a declared-contract check. `ok: true` means the
+request matched a declared capability and existing contract constraints; it does
+not authorize writes, prove runtime tool availability, read `_bmad/custom`, run
+Graphify, inspect local Codex config, or replace existing gates.
 
 ## Release Hygiene
 

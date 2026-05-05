@@ -35,6 +35,11 @@ const WORKSPACE_COMMANDS = Object.freeze([
     description: 'emit read-only evidence index with artifact checksums and next actions',
   },
   {
+    name: 'verify-capability',
+    class: 'read',
+    description: 'verify one declared capability request against supplied contract JSON',
+  },
+  {
     name: 'diff',
     class: 'read',
     description: 'compare two Workspace archive evidence bundles without writing',

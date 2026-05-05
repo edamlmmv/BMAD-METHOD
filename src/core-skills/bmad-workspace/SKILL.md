@@ -21,8 +21,9 @@ bmad workspace --help
 ```
 
 Expected: version `6.6.0` or newer and help for `launch`, `intake`, `packet`,
-`list`, `status`, `handoff`, `evidence`, `diff`, `result`, `closeout`,
-`archive`, `verify-archive`, `review`, `destroy`, and `authorize`.
+`list`, `status`, `handoff`, `evidence`, `verify-capability`, `diff`,
+`result`, `closeout`, `archive`, `verify-archive`, `review`, `destroy`, and
+`authorize`.
 
 Fallback when `PATH` is stale:
 
@@ -49,6 +50,7 @@ bmad workspace list --runtime-root <runtime-root>
 bmad workspace status <session-id> --runtime-root <runtime-root>
 bmad workspace handoff <session-id> --runtime-root <runtime-root>
 bmad workspace evidence <session-id> --runtime-root <runtime-root>
+bmad workspace verify-capability --input <capability-request-json>
 bmad workspace result <session-id> --runtime-root <runtime-root> --input <result-json>
 bmad workspace review <session-id> --runtime-root <runtime-root>
 bmad workspace closeout <session-id> --runtime-root <runtime-root> --input <closeout-json> --closeout-id <id>
@@ -111,6 +113,21 @@ required graph evidence is missing, invalid, or stale.
 `workspace status` and `workspace evidence` recompute gate state as read-only
 projections from the packet and referenced artifacts. They do not persist pass
 or fail status back into the packet.
+
+## Capability Verification
+
+Use `bmad workspace verify-capability --input <capability-request-json>` to
+check one self-contained Capability Request JSON against declared Workspace
+Capability Contract entries. This is a declared-contract compatibility check
+only: exact case-sensitive capability id matching plus existing contract
+constraints for session type, provider, group, interface, writes, and outputs.
+
+`ok: true` never means runtime availability or permission. The verifier does
+not read `_bmad/custom`, local Codex config, app-server APIs, live Graphify
+state, or Workspace Session artifacts. `requiresGrant` is reported as advisory;
+`bmad workspace authorize` remains the grant authority. Use
+`docs/workspace/templates/capability-request.template.json` as the authoring
+example.
 
 ## Codex Operator Affordances
 

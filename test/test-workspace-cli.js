@@ -282,6 +282,98 @@ function runTests() {
   assert(commandContract.includes('handoff` writes Markdown'), 'command contract states handoff output type', commandContract);
   assert(commandContract.includes('every other command writes JSON'), 'command contract states JSON output type', commandContract);
 
+  section('Workspace Capability Verifier CLI');
+
+  {
+    const verifierTempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-capability-verifier-cli-'));
+    try {
+      const validRequestPath = path.join(verifierTempRoot, 'valid-request.json');
+      const missingRequestPath = path.join(verifierTempRoot, 'missing-request.json');
+      const capability = {
+        id: 'evidence.graph.repo-intake',
+        group: 'evidence.graph',
+        provider: 'graphify',
+        interface: 'repo-intake',
+        allowedInNormalSession: true,
+        allowedInBaseImprovement: true,
+        requiresGrant: false,
+        writes: ['workspace-session/intake'],
+        forbiddenWrites: ['workspace-base'],
+        outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
+        upstreamGapProofRequired: false,
+      };
+      fs.writeFileSync(
+        validRequestPath,
+        `${JSON.stringify(
+          {
+            kind: 'bmad-workspace-capability-request',
+            schemaVersion: 1,
+            request: {
+              id: 'evidence.graph.repo-intake',
+              sessionType: 'normal',
+              group: 'evidence.graph',
+              provider: 'graphify',
+              interface: 'repo-intake',
+              writes: ['workspace-session/intake'],
+              outputs: ['graph.json'],
+            },
+            capabilities: [capability],
+            observations: [
+              {
+                code: 'CODEX_DOCS_FIXTURE',
+                message: 'Codex app-server docs reviewed for advisory tool awareness.',
+                details: { sourceUrl: 'https://developers.openai.com/codex/app-server', reviewedAt: '2026-05-05' },
+              },
+            ],
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      fs.writeFileSync(
+        missingRequestPath,
+        `${JSON.stringify(
+          {
+            kind: 'bmad-workspace-capability-request',
+            schemaVersion: 1,
+            request: { id: 'Evidence.Graph.Repo-Intake', sessionType: 'normal' },
+            capabilities: [capability],
+          },
+          null,
+          2,
+        )}\n`,
+      );
+
+      const beforeVerify = fingerprintTree(verifierTempRoot);
+      const valid = runCli(['workspace', 'verify-capability', '--input', validRequestPath]);
+      const validText = `${valid.stdout}\n${valid.stderr}`;
+      const afterVerify = fingerprintTree(verifierTempRoot);
+      assert(valid.status === 0, 'verify-capability valid request exits zero', validText);
+      assert(beforeVerify === afterVerify, 'verify-capability valid request is read-only', validText);
+      const validOutput = JSON.parse(valid.stdout);
+      assert(validOutput.ok === true, 'verify-capability valid request returns ok true', validText);
+      assert(validOutput.matchedDeclaration.id === 'evidence.graph.repo-intake', 'verify-capability records matched id', validText);
+      assert(
+        validOutput.observations.some((observation) => observation.code === 'CODEX_DOCS_FIXTURE'),
+        'verify-capability preserves advisory Codex observations',
+        validText,
+      );
+
+      const missing = runCli(['workspace', 'verify-capability', '--input', missingRequestPath]);
+      const missingText = `${missing.stdout}\n${missing.stderr}`;
+      assert(missing.status === 1, 'verify-capability denied request exits one', missingText);
+      const missingOutput = JSON.parse(missing.stdout);
+      assert(missingOutput.ok === false, 'verify-capability denied request returns ok false', missingText);
+      assert(
+        missingOutput.errors.some((error) => error.code === 'CAPABILITY_NOT_DECLARED'),
+        'verify-capability denied request names CAPABILITY_NOT_DECLARED',
+        missingText,
+      );
+    } finally {
+      fs.rmSync(verifierTempRoot, { recursive: true, force: true });
+    }
+  }
+
   section('Workspace Launch');
 
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-workspace-cli-'));

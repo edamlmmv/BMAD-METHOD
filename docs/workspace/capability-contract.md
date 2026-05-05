@@ -86,6 +86,30 @@ as `~/.codex/config.toml`, but they remain advisory. For example,
 the operator that `/goal`, subagents, or passive hooks may be available. They do
 not authorize Workspace writes or hidden execution.
 
+## Capability Verification
+
+`bmad workspace verify-capability --input <request-json>` is a declared-contract
+compatibility check over one self-contained Capability Request JSON document.
+The request carries the exact capability id, session type, optional requested
+contract fields, declared capability entries, and optional advisory observations.
+
+Version 1 matching is exact and case-sensitive on `request.id`. Aliases, tags,
+descriptions, group fallback, provider fallback, lowercasing, trimming, and
+semantic matching do not grant capability. Requested `writes` and `outputs` are
+exact artifact-class subset checks; no glob, prefix, or path containment rules
+are inferred.
+
+The verifier returns `bmad-workspace-capability-verdict` JSON. `ok: true` means
+declared capability compatibility only. It does not prove runtime availability,
+read `_bmad/custom`, inspect local Codex config, call app-server APIs, run
+Graphify, authorize writes, or replace Evidence Gate v1, Grant Guard,
+Self-Improve invariants, install checks, or quality checks. `requiresGrant` is
+reported as advisory; `authorize` remains the grant authority.
+
+Author request/declaration examples through Workspace docs and BMad Customize
+guidance, then pass the resolved declaration fixture to the verifier. Do not make
+the verifier depend on hand-authored TOML or customization merge internals.
+
 ## Executor Prompt Rule
 
 Rendered prompts should reference capability intent, not provider internals.

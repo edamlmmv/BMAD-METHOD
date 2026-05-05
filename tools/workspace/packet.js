@@ -4,6 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { parse } = require('csv-parse/sync');
 const { DEFAULT_RUNTIME_ROOT } = require('./launch');
+const { GRAPH_EVIDENCE_REF, createCapabilityContract } = require('./capability-contract');
 const { validateCapabilityContract, validateWorkPacket } = require('./contracts');
 const {
   EVIDENCE_GATE_FAILED,
@@ -15,15 +16,8 @@ const {
 const { EXECUTOR_CONTRACT_REF, buildExecutorContract, validateExecutorContract } = require('./executor-contract');
 const { routeWorkspace } = require('./routing');
 
-const GRAPH_EVIDENCE_REF = 'intake/graph.json';
 const REPO_INTAKE_EVIDENCE_GATE_ID = 'repo-intake-graph';
 const REPO_INTAKE_EVIDENCE_REF_ID = 'repo-intake-graph-evidence';
-const GRAPHIFY_VALIDATION_COMMAND = 'npm run validate:graphify-manifests';
-const GRAPH_EVIDENCE_GUIDANCE = Object.freeze({
-  bmad: 'Graph evidence is advisory Workspace context for BMAD planning; source files remain authority.',
-  codex: 'Use graph evidence to choose files, searches, and tool calls, then verify source files before edits.',
-  tools: 'Graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.',
-});
 
 function cleanGitEnv() {
   const env = { ...process.env };
@@ -465,52 +459,6 @@ function loadSession(sessionId, runtimeRoot) {
 
 function readGoal(goalPath) {
   return fs.readFileSync(goalPath, 'utf8').trim();
-}
-
-function createCapabilityContract(workspaceBasePath) {
-  return {
-    schemaVersion: '0.1',
-    workspaceVersion: resolveWorkspaceVersion(workspaceBasePath),
-    capabilities: [
-      {
-        id: 'evidence.graph.repo-intake',
-        group: 'evidence.graph',
-        provider: 'graphify',
-        interface: 'repo-intake',
-        allowedInNormalSession: true,
-        allowedInBaseImprovement: true,
-        requiresGrant: false,
-        writes: ['workspace-session/intake'],
-        forbiddenWrites: ['workspace-base'],
-        outputs: ['repo-intake.json', 'graph.json', 'provenance.json'],
-        artifactRefs: [GRAPH_EVIDENCE_REF],
-        validationCommand: GRAPHIFY_VALIDATION_COMMAND,
-        guidance: GRAPH_EVIDENCE_GUIDANCE,
-        upstreamGapProofRequired: false,
-      },
-      {
-        id: 'executor.codex.manual',
-        group: 'executor.codex',
-        provider: 'codex',
-        interface: 'manual-executor-contract',
-        allowedInNormalSession: true,
-        allowedInBaseImprovement: true,
-        requiresGrant: true,
-        writes: ['workspace-session/packets'],
-        forbiddenWrites: ['workspace-base', 'target-repo', 'scheduler', 'daemon', 'live-adapter'],
-        outputs: ['executor-contract.json'],
-        upstreamGapProofRequired: false,
-      },
-    ],
-  };
-}
-
-function resolveWorkspaceVersion(workspaceBasePath) {
-  try {
-    return git(['rev-parse', 'HEAD'], workspaceBasePath);
-  } catch {
-    return 'unknown';
-  }
 }
 
 function assertValid(label, result) {

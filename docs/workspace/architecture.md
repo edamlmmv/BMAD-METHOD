@@ -12,7 +12,8 @@ manual evidence, and review. Codex executes outside the Workspace CLI. Adapter
 providers supply capabilities behind BMAD-owned interfaces. The current system is a
 manual Workspace Session CLI and filesystem contract backed by Git worktrees,
 release-readiness checks, typed Review Manifest evidence, read-only Evidence
-Index inspection, archive diff inspection, and evidence-only artifacts.
+Index inspection, declared Capability Verification, archive diff inspection, and
+evidence-only artifacts.
 
 ## Zoom-Out Map
 
@@ -32,6 +33,7 @@ Workspace Session
   -> writes typed Review Manifest evidence
   -> accepts Manual Closeout evidence
   -> emits read-only Evidence Index for operator trust
+  -> verifies declared capability requests without runtime probing
   -> compares archives with read-only Workspace Diff
   -> can be archived, verified, destroyed, or retained for review
 ```
@@ -51,6 +53,7 @@ Workspace Session
 | Review Manifest | `review/review-manifest.json` | Record typed checks, findings, source refs, and review capability boundaries. |
 | Manual Closeout | `closeout` | Record final manual session decision and next manual review path. |
 | Evidence Index | `evidence` | Report artifacts, checksums, validation state, and next manual actions without writes. |
+| Capability Verifier | `verify-capability` | Check one Capability Request JSON against declared capabilities without runtime discovery. |
 | Workspace Diff | `diff` | Compare verified archive evidence bundles without writes. |
 | Archive | `archive`, `verify-archive` | Preserve and verify portable evidence bundles without restore or replay. |
 | Status and Handoff | `status`, `list`, `handoff` | Inspect session state and emit continuation context without writes. |
@@ -110,6 +113,7 @@ bmad workspace status <session-id> --runtime-root <root>
 bmad workspace list --runtime-root <root>
 bmad workspace handoff <session-id> --runtime-root <root>
 bmad workspace evidence <session-id> --runtime-root <root>
+bmad workspace verify-capability --input <request-json>
 bmad workspace diff --left <archive-dir> --right <archive-dir>
 bmad workspace result <session-id> --runtime-root <root> --input <result-json> --result-id <id>
 bmad workspace review <session-id> --runtime-root <root>
@@ -137,6 +141,13 @@ derived lifecycle state without persisting workflow authority.
 `evidence` emits a read-only Evidence Index. It reports artifact presence,
 checksums, validation state, and next manual actions. It does not write session
 artifacts.
+
+`verify-capability` checks one self-contained Capability Request JSON against
+declared Workspace Capability Contract entries. It performs exact, case-sensitive
+capability id matching and existing contract constraint checks only. It does not
+infer aliases, inspect `_bmad/custom`, read local Codex config, run Graphify,
+call app-server APIs, authorize writes, or replace Evidence Gate, Grant Guard,
+self-improve, install, or quality checks.
 
 `diff` verifies two archive evidence bundles and emits JSON deltas. It is
 archive-only and does not read live Session paths.

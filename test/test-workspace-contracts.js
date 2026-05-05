@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const { validateCapabilityContract, validateWorkPacket } = require('../tools/workspace/contracts');
+const { validateCapabilityContract, validateWorkPacket, verifyCapabilityRequest } = require('../tools/workspace/contracts');
 const { createEvidenceGateFailure, evaluateEvidenceGates } = require('../tools/workspace/evidence-gates');
 const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
 const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
@@ -30,6 +30,7 @@ const EXPECTED_WORKSPACE_COMMAND_NAMES = [
   'status',
   'handoff',
   'evidence',
+  'verify-capability',
   'diff',
   'result',
   'closeout',
@@ -148,6 +149,35 @@ function validCapabilityContract() {
       },
     ],
   };
+}
+
+function validCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'evidence.graph.repo-intake',
+    sessionType: 'normal',
+    group: 'evidence.graph',
+    provider: 'graphify',
+    interface: 'repo-intake',
+    writes: ['workspace-session/intake'],
+    outputs: ['graph.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || validCapabilityContract().capabilities,
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
 }
 
 function validRouting(workflow = 'bmad-quick-dev') {
@@ -1211,6 +1241,7 @@ function runTests() {
     assert(skillContent.includes('bmad workspace status'), 'source skill documents workspace status');
     assert(skillContent.includes('bmad workspace handoff'), 'source skill documents workspace handoff');
     assert(skillContent.includes('bmad workspace evidence'), 'source skill documents workspace evidence');
+    assert(skillContent.includes('bmad workspace verify-capability'), 'source skill documents workspace verify-capability');
     assert(skillContent.includes('bmad workspace diff'), 'source skill documents workspace diff');
     assert(skillContent.includes('bmad workspace result'), 'source skill documents workspace result');
     assert(skillContent.includes('bmad workspace closeout'), 'source skill documents workspace closeout');
@@ -1221,6 +1252,11 @@ function runTests() {
     assert(skillContent.includes('executionMode: manual'), 'source skill documents manual execution mode');
     assert(skillContent.includes('--workflow <skill[:action]>'), 'source skill documents workflow routing override');
     assert(skillContent.includes('routing.routingSchemaVersion'), 'source skill documents routing schema');
+    assert(skillContent.includes('declared-contract compatibility check'), 'source skill documents capability verifier boundary');
+    assert(
+      skillContent.includes('docs/workspace/templates/capability-request.template.json'),
+      'source skill links capability request template',
+    );
     for (const text of [
       'Codex Operator Affordances',
       '`/goal`',
@@ -1251,6 +1287,9 @@ function runTests() {
     const sessionLifecyclePath = path.join(workspaceDocsRoot, 'session-lifecycle.md');
     const guardrailsPath = path.join(workspaceDocsRoot, 'guardrails.md');
     const releaseChecklistPath = path.join(workspaceDocsRoot, 'release-checklist.md');
+    const selfImprovementCodexPath = path.join(workspaceDocsRoot, 'self-improvement-codex.md');
+    const templateIndexPath = path.join(workspaceDocsRoot, 'templates', 'index.md');
+    const capabilityRequestTemplatePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.template.json');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
@@ -1258,6 +1297,8 @@ function runTests() {
     const workspaceCommandPath = path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js');
     const workspaceCommandRegistryPath = path.join(repoRoot, 'tools', 'workspace', 'command-registry.js');
     const buildDocsPath = path.join(repoRoot, 'tools', 'build-docs.mjs');
+    const customizeSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-customize', 'SKILL.md');
+    const selfImproveSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
 
     for (const docName of [
       'index.md',
@@ -1271,10 +1312,12 @@ function runTests() {
       'architecture.md',
       'prd.md',
       'capability-contract.md',
+      'self-improvement-codex.md',
       'release-note-6.6.0.md',
     ]) {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
     }
+    assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
     const historyArchivePath = path.join(historyRoot, 'compiled-bmads.md');
@@ -1311,9 +1354,16 @@ function runTests() {
     }
     assert(!/\.\/v\d+-/.test(index), 'workspace index keeps version docs out of current flow', index);
     assert(index.includes('not current operator guidance'), 'workspace index labels historical artifacts', index);
+    assert(index.includes('./templates/capability-request.template.json'), 'workspace index links capability request template', index);
+    assert(
+      index.includes('Capability Verification is declared-contract compatibility'),
+      'workspace index defines verifier boundary',
+      index,
+    );
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
     assert(architecture.includes('The current system is'), 'architecture states current system', architecture);
+    assert(architecture.includes('Capability Verifier'), 'architecture documents Capability Verifier module', architecture);
     assert(architecture.includes('## Evidence Index'), 'architecture documents Evidence Index', architecture);
     assert(architecture.includes('## Review Manifest'), 'architecture documents Review Manifest', architecture);
     assert(architecture.includes('## Workspace Diff'), 'architecture documents Workspace Diff', architecture);
@@ -1367,6 +1417,11 @@ function runTests() {
       'EXECUTOR_CONTRACT_INVALID',
       'ROUTE_WORKFLOW_UNKNOWN',
       'RESULT_SECRET_DETECTED',
+      'Capability Verification Shape',
+      'bmad-workspace-capability-verdict',
+      'CAPABILITY_NOT_DECLARED',
+      'CAPABILITY_ID_DUPLICATE',
+      'requiresGrant',
       'Codex Operator Affordances',
       '`/goal`',
       'features.goals',
@@ -1442,6 +1497,7 @@ function runTests() {
       'live adapter activation',
       'Historical delivery notes are compiled under',
       'stable contract names',
+      'Capability Verifier',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
     }
@@ -1459,9 +1515,52 @@ function runTests() {
     }
 
     const capabilityContract = fs.readFileSync(path.join(workspaceDocsRoot, 'capability-contract.md'), 'utf8');
-    for (const text of ['operator.codex.affordance', 'features.goals', 'features.multi_agent', 'features.codex_hooks']) {
+    for (const text of [
+      'operator.codex.affordance',
+      'features.goals',
+      'features.multi_agent',
+      'features.codex_hooks',
+      'Capability Verification',
+      'bmad-workspace-capability-verdict',
+      'requiresGrant',
+      '_bmad/custom',
+    ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
     }
+
+    const templateIndex = fs.readFileSync(templateIndexPath, 'utf8');
+    assert(templateIndex.includes('capability-request.template.json'), 'template index links capability request template', templateIndex);
+
+    const capabilityRequestTemplate = JSON.parse(fs.readFileSync(capabilityRequestTemplatePath, 'utf8'));
+    assert(
+      capabilityRequestTemplate.kind === 'bmad-workspace-capability-request',
+      'Capability Request template uses request kind',
+      JSON.stringify(capabilityRequestTemplate, null, 2),
+    );
+    assert(capabilityRequestTemplate.schemaVersion === 1, 'Capability Request template uses schema version 1');
+    assert(
+      capabilityRequestTemplate.observations.every((observation) => observation.details?.reviewedAt === '2026-05-05'),
+      'Capability Request template pins reviewed date',
+      JSON.stringify(capabilityRequestTemplate.observations, null, 2),
+    );
+    for (const sourceUrl of ['https://developers.openai.com/codex/config-advanced', 'https://developers.openai.com/codex/app-server']) {
+      assert(
+        capabilityRequestTemplate.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
+        `Capability Request template cites official Codex doc ${sourceUrl}`,
+        JSON.stringify(capabilityRequestTemplate.observations, null, 2),
+      );
+    }
+    const capabilityTemplateVerdict = verifyCapabilityRequest(capabilityRequestTemplate);
+    assert(
+      capabilityTemplateVerdict.ok === true,
+      'Capability Request template verifies successfully',
+      JSON.stringify(capabilityTemplateVerdict, null, 2),
+    );
+    assert(
+      capabilityTemplateVerdict.observations.some((observation) => observation.code === 'CODEX_CONFIG_ADVANCED_DOCS'),
+      'Capability Request template keeps Codex docs advisory',
+      JSON.stringify(capabilityTemplateVerdict, null, 2),
+    );
 
     const operatorGuide = fs.readFileSync(path.join(workspaceDocsRoot, 'operator-guide.md'), 'utf8');
     for (const text of ['Codex Goals and Slash Commands', '`/goal`', 'goal file passed to', 'manual evidence']) {
@@ -1508,6 +1607,7 @@ function runTests() {
     for (const text of ['Manual Executor Contract', 'Result Ledger', 'Review Manifest', 'archiveVersion: 2']) {
       assert(currentState.includes(text), `current state includes ${text}`, currentState);
     }
+    assert(currentState.includes('Capability verification'), 'current state documents capability verification', currentState);
 
     const sessionLifecycle = fs.readFileSync(sessionLifecyclePath, 'utf8');
     for (const state of ['launched', 'intake-recorded', 'packet-ready', 'review-recorded', 'closeout-recorded', 'blocked']) {
@@ -1527,6 +1627,21 @@ function runTests() {
       'Codex slash command',
     ]) {
       assert(guardrails.includes(text), `guardrails document forbidden ${text}`, guardrails);
+    }
+
+    const selfImprovementCodex = fs.readFileSync(selfImprovementCodexPath, 'utf8');
+    for (const text of ['Capability Verifier Boundary', 'declared-contract compatibility', 'continuation permission']) {
+      assert(selfImprovementCodex.includes(text), `self-improvement Codex doc includes ${text}`, selfImprovementCodex);
+    }
+
+    const customizeSkill = fs.readFileSync(customizeSkillPath, 'utf8');
+    for (const text of ['Capability Verification Authoring', 'capability-request.template.json', '_bmad/custom']) {
+      assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
+    }
+
+    const selfImproveSkill = fs.readFileSync(selfImproveSkillPath, 'utf8');
+    for (const text of ['Capability Verifier Boundary', 'declared-contract compatibility', 'Evidence Gate']) {
+      assert(selfImproveSkill.includes(text), `bmad-self-improve source skill includes ${text}`, selfImproveSkill);
     }
 
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -1598,6 +1713,189 @@ function runTests() {
     );
     const archiveContractFindings = findWorkspaceArchiveContractDrift();
     assert(archiveContractFindings.length === 0, 'archive contract surfaces stay current', archiveContractFindings.join('\n'));
+  }
+
+  section('Workspace Capability Verifier');
+
+  {
+    const verdict = verifyCapabilityRequest(validCapabilityRequest());
+
+    assert(
+      verdict.kind === 'bmad-workspace-capability-verdict',
+      'capability verifier returns verdict kind',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.schemaVersion === 1, 'capability verifier returns schema version 1', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.ok === true,
+      'capability verifier accepts exact declared id with compatible constraints',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.request.id === 'evidence.graph.repo-intake', 'capability verifier echoes request id', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.id === 'evidence.graph.repo-intake',
+      'capability verifier records matched declaration',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.errors.length === 0, 'capability verifier success has no errors', JSON.stringify(verdict, null, 2));
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validCapabilityRequest({ request: { id: 'Evidence.Graph.Repo-Intake' } }));
+    assert(verdict.ok === false, 'capability verifier rejects case-mismatched ids', JSON.stringify(verdict, null, 2));
+    assert(verdict.matchedDeclaration === null, 'case mismatch has no matched declaration', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'CAPABILITY_NOT_DECLARED'),
+      'case mismatch names CAPABILITY_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const capability = validCapabilityContract().capabilities[0];
+    const verdict = verifyCapabilityRequest(validCapabilityRequest({ capabilities: [capability, { ...capability }] }));
+    assert(verdict.ok === false, 'capability verifier rejects duplicate capability ids', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'CAPABILITY_ID_DUPLICATE'),
+      'duplicate id rejection names CAPABILITY_ID_DUPLICATE',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        request: { id: ' evidence.graph.repo-intake' },
+        extraFields: { runtimeAvailable: true },
+      }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects malformed request fields', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'REQUEST_INVALID'),
+      'malformed request names REQUEST_INVALID',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const [capability] = validCapabilityContract().capabilities;
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        request: { sessionType: 'base-improvement' },
+        capabilities: [{ ...capability, allowedInBaseImprovement: false }],
+      }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects disallowed session type', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.id === capability.id,
+      'session denial still records exact declaration',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'SESSION_NOT_ALLOWED'),
+      'session denial names SESSION_NOT_ALLOWED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    for (const [field, code, value] of [
+      ['group', 'GROUP_MISMATCH', 'evidence.docs'],
+      ['provider', 'PROVIDER_MISMATCH', 'codex'],
+      ['interface', 'INTERFACE_MISMATCH', 'app-server'],
+    ]) {
+      const verdict = verifyCapabilityRequest(validCapabilityRequest({ request: { [field]: value } }));
+      assert(verdict.ok === false, `capability verifier rejects ${field} mismatch`, JSON.stringify(verdict, null, 2));
+      assert(
+        verdict.errors.some((error) => error.code === code),
+        `${field} mismatch names ${code}`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    const undeclaredWrite = verifyCapabilityRequest(validCapabilityRequest({ request: { writes: ['workspace-base'] } }));
+    assert(undeclaredWrite.ok === false, 'capability verifier rejects undeclared writes', JSON.stringify(undeclaredWrite, null, 2));
+    assert(
+      undeclaredWrite.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'undeclared write names WRITE_NOT_DECLARED',
+      JSON.stringify(undeclaredWrite, null, 2),
+    );
+    assert(
+      undeclaredWrite.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
+      'forbidden write names WRITE_FORBIDDEN',
+      JSON.stringify(undeclaredWrite, null, 2),
+    );
+
+    const undeclaredOutput = verifyCapabilityRequest(validCapabilityRequest({ request: { outputs: ['runtime.json'] } }));
+    assert(undeclaredOutput.ok === false, 'capability verifier rejects undeclared outputs', JSON.stringify(undeclaredOutput, null, 2));
+    assert(
+      undeclaredOutput.errors.some((error) => error.code === 'OUTPUT_NOT_DECLARED'),
+      'undeclared output names OUTPUT_NOT_DECLARED',
+      JSON.stringify(undeclaredOutput, null, 2),
+    );
+  }
+
+  {
+    const executorCapability = {
+      id: 'executor.codex.manual',
+      group: 'executor.codex',
+      provider: 'codex',
+      interface: 'manual-executor-contract',
+      allowedInNormalSession: true,
+      allowedInBaseImprovement: true,
+      requiresGrant: true,
+      writes: ['workspace-session/packets'],
+      forbiddenWrites: ['workspace-base', 'target-repo'],
+      outputs: ['executor-contract.json'],
+      upstreamGapProofRequired: false,
+    };
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        request: {
+          id: 'executor.codex.manual',
+          group: 'executor.codex',
+          provider: 'codex',
+          interface: 'manual-executor-contract',
+          writes: ['workspace-session/packets'],
+          outputs: ['executor-contract.json'],
+        },
+        capabilities: [executorCapability],
+        observations: [
+          {
+            code: 'CODEX_DOCS_FIXTURE',
+            message: 'Codex app-server docs reviewed for advisory tool awareness.',
+            details: { sourceUrl: 'https://developers.openai.com/codex/app-server', reviewedAt: '2026-05-05' },
+          },
+        ],
+      }),
+    );
+    assert(verdict.ok === true, 'capability verifier does not fail on requiresGrant', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.requiresGrant === true,
+      'capability verifier reports requiresGrant',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'requiresGrant is advisory observation only',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CODEX_DOCS_FIXTURE'),
+      'Codex tool awareness remains advisory observation',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const contractsSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'contracts.js'), 'utf8');
+    const verifierSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'capability-verifier.js'), 'utf8');
+    for (const forbidden of ['_bmad/custom', 'build-repository-graph', 'node:child_process', 'node:http', 'node:https']) {
+      assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
+      assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);
+    }
   }
 
   section('Workspace Compiled History');

@@ -57,6 +57,7 @@ Public command names and options are frozen for this contract.
 | `status` | `read` | JSON | Read-only. | Reports blockers, artifact state, and derived lifecycle. |
 | `handoff` | `read` | Markdown | Read-only. | Emits copy-ready continuation context for an explicit session id. |
 | `evidence` | `read` | JSON | Read-only. | Emits artifact evidence, checksums, validation state, and next manual actions. |
+| `verify-capability` | `read` | JSON | Read-only. | Verifies one Capability Request JSON against supplied declared capabilities; no session lookup, adapter probing, or customization merge. |
 | `diff` | `read` | JSON | Read-only. | Compares two verified Workspace archive bundles. |
 | `result` | `write` | JSON | Writes `results/<result-id>.json`. | Records manual execution evidence and never executes commands. |
 | `closeout` | `write` | JSON | Writes `closeout/<closeout-id>.json`. | Records manual final decision and next manual review action. |
@@ -76,6 +77,10 @@ Public command names and options are frozen for this contract.
 - Executor readiness: `EXECUTOR_CONTRACT_MISSING`,
   `EXECUTOR_CONTRACT_INVALID`.
 - Evidence Gate v1: `EVIDENCE_GATE_FAILED`.
+- Capability verifier: `REQUEST_INVALID`, `CAPABILITY_NOT_DECLARED`,
+  `CAPABILITY_ID_DUPLICATE`, `SESSION_NOT_ALLOWED`, `GROUP_MISMATCH`,
+  `PROVIDER_MISMATCH`, `INTERFACE_MISMATCH`, `WRITE_NOT_DECLARED`,
+  `WRITE_FORBIDDEN`, `OUTPUT_NOT_DECLARED`.
 - Result ledger: `RESULT_PACKET_MISSING`, `RESULT_ID_UNSAFE`,
   `RESULT_EXISTS`, `RESULT_INVALID`, `RESULT_SECRET_DETECTED`.
 - Closeout: `CLOSEOUT_PACKET_MISSING`, `CLOSEOUT_REVIEW_MISSING`,
@@ -108,6 +113,30 @@ Public command names and options are frozen for this contract.
 
 `evidence` never creates, repairs, fetches, executes, restores, replays,
 archives, destroys, merges, promotes, schedules, watches, or activates adapters.
+
+## Capability Verification Shape
+
+`verify-capability` accepts one `--input <request.json>` document with:
+
+- `kind: bmad-workspace-capability-request`
+- `schemaVersion: 1`
+- `request.id` and `request.sessionType`
+- optional requested `group`, `provider`, `interface`, `writes`, and `outputs`
+- `capabilities[]` entries shaped like the Workspace Capability Contract
+- optional `observations[]` for advisory Codex/tool or checked-in graph facts
+
+The command returns `bmad-workspace-capability-verdict` JSON with `ok`,
+`request`, `matchedDeclaration`, `errors`, `warnings`, and `observations`.
+`ok: true` means declared contract compatibility only. It does not authorize
+writes, prove runtime availability, inspect local Codex config, read
+`_bmad/custom`, run Graphify, call app-server APIs, or replace Evidence Gate,
+Grant Guard, self-improve invariants, install checks, or quality checks.
+
+Matching is exact and case-sensitive on `request.id`. Aliases, semantic match,
+lowercasing, trimming, group fallback, and provider fallback are not part of v1.
+Requested `writes` and `outputs` use exact token subset checks; no glob, prefix,
+or path containment semantics are inferred. `requiresGrant` is reported as an
+advisory observation only; `authorize` remains the grant authority.
 
 ## Review Manifest Shape
 
