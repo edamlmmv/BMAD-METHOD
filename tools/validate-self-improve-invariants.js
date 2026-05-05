@@ -17,6 +17,10 @@ const CONTRACT_FILES = {
     label: 'bmad-self-improve skill',
     relativePath: path.join('src', 'core-skills', 'bmad-self-improve', 'SKILL.md'),
   },
+  partyMode: {
+    label: 'bmad-party-mode skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-party-mode', 'SKILL.md'),
+  },
   guide: {
     label: 'runbook',
     relativePath: path.join('docs', 'workspace', 'self-improvement-codex.md'),
@@ -227,6 +231,39 @@ const REQUIRED_CHECKPOINT_TERMS = [
   'Risks',
 ];
 
+const REQUIRED_PARTY_MODE_CONTRACTS = [
+  {
+    label: 'thread/session hygiene',
+    terms: [
+      'thread/session hygiene',
+      'close stale Party Mode threads',
+      'start fresh threads for new consensus loops',
+      'orphan threads',
+      'task-scoped',
+    ],
+  },
+  {
+    label: 'Codex agent budget',
+    terms: ['[agents].max_threads', 'max_threads=6', 'max_depth=1', '2-4', 'max_threads', 'max_depth'],
+  },
+  {
+    label: 'Codex config boundary',
+    terms: [
+      'subagents are enabled by default',
+      '~/.codex/agents',
+      '.codex/agents',
+      'project .codex/config.toml',
+      'trusted projects',
+      'features.codex_hooks',
+      'no repo .codex/config.toml',
+    ],
+  },
+  {
+    label: 'TDD voice injection',
+    terms: ['TDD voice injection', 'red-green-refactor', 'one failing behavior test', 'public behavior', 'implementation planning'],
+  },
+];
+
 const FORBIDDEN_SELF_IMPROVE_PHRASES = [
   'operator-invoked BMAD skill, not Codex automation',
   'Missing automation is expected',
@@ -389,6 +426,18 @@ function requireNoTerms(content, terms, sourceName, errors, fileLabel) {
   }
 }
 
+function requireConceptGroups(content, groups, sourceName, errors, fileLabel) {
+  for (const group of groups) {
+    const missingTerms = group.terms.filter((term) => !hasTerm(content, term));
+    if (missingTerms.length > 0) {
+      addError(errors, 'SI_PARTY_MODE_CONTRACT', `${sourceName} missing required concept: ${group.label}`, {
+        file: fileLabel,
+        field: group.label,
+      });
+    }
+  }
+}
+
 function invariantIds(content) {
   const matches = content.matchAll(/\bSI-AUTO-\d{3}\b/g);
   return new Set([...matches].map((match) => match[0]));
@@ -499,7 +548,7 @@ function validateSelfImproveInvariants(options = {}) {
     return { ok: false, errors };
   }
 
-  const { policy, skill, guide, prompt, resume, checkpoint, moduleHelp } = contents;
+  const { policy, skill, partyMode, guide, prompt, resume, checkpoint, moduleHelp } = contents;
   let packageJson = {};
   try {
     packageJson = JSON.parse(contents.packageJson);
@@ -582,18 +631,19 @@ function validateSelfImproveInvariants(options = {}) {
     errors,
     files.moduleHelp.relativePath,
   );
+  requireConceptGroups(partyMode, REQUIRED_PARTY_MODE_CONTRACTS, 'bmad-party-mode skill', errors, files.partyMode.relativePath);
 
   for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
     validatePlaceholders(contents[key], files[key].label, files[key].relativePath, errors);
   }
-  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint']) {
+  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint']) {
     validateFenceBalance(contents[key], files[key].label, files[key].relativePath, errors);
   }
   for (const contract of REQUIRED_SEQUENCE_CONTRACTS) {
     const definition = files[contract.sourceKey];
     validateOrderedSequence(contents[contract.sourceKey], contract, definition.label, definition.relativePath, errors);
   }
-  for (const key of ['policy', 'skill', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
+  for (const key of ['policy', 'skill', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint', 'moduleHelp']) {
     requireNoTerms(contents[key], FORBIDDEN_SELF_IMPROVE_PHRASES, files[key].label, errors, files[key].relativePath);
   }
 

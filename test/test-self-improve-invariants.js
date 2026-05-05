@@ -26,6 +26,7 @@ const validatorPath = path.join(repoRoot, 'tools', 'validate-self-improve-invari
  * AC-SI-005 ordered sequence: bmad-self-improve Required Sequence plus runbook/prompt ordering fixtures.
  * AC-SI-006 retired phrases: self-improve contract file denylist, scoped fixture injection.
  * AC-SI-007 package wiring: package scripts, quality path fixture mutations.
+ * AC-SI-008 Party Mode contract: thread lifecycle, Codex agent budget/config boundary, and TDD voice injection.
  */
 
 function copyDir(source, target) {
@@ -49,6 +50,7 @@ function makeFixture() {
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
+    'src/core-skills/bmad-party-mode/SKILL.md',
     'src/core-skills/module-help.csv',
     'package.json',
   ]) {
@@ -330,6 +332,30 @@ function testSelfEditContractRequiresSkillTerms() {
   assertInvalid(root, 'bmad-self-improve skill missing required term: Party Mode consensus');
 }
 
+function testPartyModeRequiresThreadLifecycleContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'Close stale Party Mode threads', 'Reuse stale Party Mode threads');
+  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'thread/session hygiene']);
+}
+
+function testPartyModeRequiresCodexAgentBudgetContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'max_threads', 'thread_limit');
+  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'Codex agent budget']);
+}
+
+function testPartyModeRequiresCodexConfigBoundaryContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'features.codex_hooks', 'feature hooks');
+  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'Codex config boundary']);
+}
+
+function testPartyModeRequiresTddVoiceInjectionContract() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'red-green-refactor', 'test later');
+  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'TDD voice injection']);
+}
+
 function testPolicyBaselineBlocksRemovedIds() {
   const root = makeFixture();
   const baselinePath = path.join(root, 'baseline-policy.md');
@@ -400,6 +426,10 @@ function run() {
     testInstallRefreshFailureContractCannotDisappear,
     testFailClosedAmbiguityCannotDisappear,
     testSelfEditContractRequiresSkillTerms,
+    testPartyModeRequiresThreadLifecycleContract,
+    testPartyModeRequiresCodexAgentBudgetContract,
+    testPartyModeRequiresCodexConfigBoundaryContract,
+    testPartyModeRequiresTddVoiceInjectionContract,
     testPolicyBaselineBlocksRemovedIds,
     testRetiredManualOnlyPhrasesStayRemoved,
     testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles,

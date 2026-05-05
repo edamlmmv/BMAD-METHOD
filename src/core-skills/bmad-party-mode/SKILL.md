@@ -18,6 +18,38 @@ Party mode accepts optional arguments when invoked:
 - `--model <model>` — Force all subagents to use a specific model (e.g. `--model haiku`, `--model opus`). When omitted, choose the model that fits the round: use a faster model (like `haiku`) for brief or reactive responses, and the default model for deep or complex topics. Match model weight to the depth of thinking the round requires.
 - `--solo` — Run without subagents. Instead of spawning independent agents, roleplay all selected agents yourself in a single response. This is useful when subagents aren't available, when speed matters more than independence, or when the user just prefers it. Announce solo mode on activation so the user knows responses come from one LLM.
 
+## Operator Reliability
+
+Party Mode is an orchestration contract, not a claim that Codex can force runtime state to refresh. Treat active agent threads as task-scoped discussion state.
+
+### Thread/session hygiene
+
+- Before a new major topic, consensus loop, or resumed self-improvement run, inspect active Party Mode agent threads if the platform exposes them.
+- Close stale Party Mode threads when they are no longer task-relevant, especially after a checkpoint, context reset, failed install, stale skill refresh, or completed consensus loop.
+- Start fresh threads for new consensus loops when old threads may carry stale skill text, stale project context, or stale conclusions.
+- Avoid orphan threads: after presenting a round, close completed agent threads unless the user asks to continue that exact thread.
+- Do not say "kill agents" or claim hot reload. Say what was observed: closed thread, fresh thread started, refresh verified, refresh blocked, or refresh unknown.
+
+### Codex agent budget
+
+- Codex subagents are enabled by default in current Codex releases, but each spawned subagent consumes tokens and local/thread capacity.
+- Normal Party Mode rounds choose 2-4 agents. If the user asks for more voices, batch them in rounds or ask which voices matter most.
+- Respect Codex `[agents].max_threads`; documented default `max_threads=6` when unset. Leave headroom for the orchestrator and any non-Party Mode agents.
+- Keep nested spawning shallow. Documented default `max_depth=1` allows direct child agents but prevents deeper recursive fan-out.
+
+### Codex config boundary
+
+- Codex configuration facts are operator guidance only. Local/user settings may differ.
+- Personal custom agents may live in `~/.codex/agents`; trusted project custom agents may live in `.codex/agents`.
+- A project .codex/config.toml layer loads only for trusted projects. Do not create or require a repo config by default; no repo .codex/config.toml changes are part of Party Mode unless the user separately asks for Codex config work.
+- Hooks are optional operator aids, enabled through `features.codex_hooks`; Party Mode must not treat hooks as approval, refresh, execution, or Workspace authority.
+
+### TDD voice injection
+
+- When Party Mode is used for implementation planning, add TDD voice injection to the agent prompts for Developer, QA, Architect, or any implementation-focused voice.
+- The injected expectation is: propose one failing behavior test first, prefer public behavior checks, implement the smallest green change, refactor only after green, and use red-green-refactor language.
+- Party Mode surfaces TDD expectations; it does not prove runtime enforcement. Evidence still comes from tests, quality gates, install/refresh results, and checkpoints.
+
 ## On Activation
 
 1. **Parse arguments** — check for `--model` and `--solo` flags from the user's invocation.
@@ -83,6 +115,17 @@ You are {name} ({title}), a BMAD agent in a collaborative roundtable discussion.
 - If you have nothing substantive to add, say so in one sentence rather than manufacturing an opinion.
 - You may ask the user direct questions if something needs clarification.
 - Do NOT use tools. Just respond with your perspective.
+```
+
+If the user's message is implementation planning, add this to the selected implementation-oriented agent prompts:
+
+```
+## TDD Expectations
+- Use red-green-refactor discipline.
+- Start with one failing behavior test that checks public behavior.
+- Propose the smallest implementation needed to make that test pass.
+- Refactor only after tests are green.
+- Call out targeted validation and full quality gates that should produce evidence.
 ```
 
 **Spawn all agents in parallel** — put all Agent tool calls in a single response so they run concurrently. If `--model` was specified, use that model for all subagents. Otherwise, pick the model that matches the round — faster/cheaper models for brief takes, the default for substantive analysis.
