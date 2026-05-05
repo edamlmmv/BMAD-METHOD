@@ -1,105 +1,144 @@
 # Ubiquitous Language
 
-## BMAD kernel
+BMAD uses this glossary to keep delivery language, configuration authority, and
+implementation capability aligned. Authority boundaries decide what may be
+changed. Coding, tooling, TDD, and Codex capabilities describe how valid work is
+performed and proven inside those boundaries.
 
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **BMAD Kernel** | The durable source of truth for workflow routing, artifacts, gates, acceptance criteria, and review discipline. | Orchestrator, planner, brain |
-| **BMAD Artifact** | A durable BMAD-owned document or record that justifies work and can be reviewed later. | Note, prompt, file |
-| **BMAD Work Packet** | A BMAD Artifact that packages one session goal, evidence, constraints, acceptance criteria, and rendered executor prompt. | Prompt, task prompt, session prompt |
-| **Setup Gate** | A deterministic BMAD Work Packet section that records zoom-out, Ubiquitous Language, grill decisions, and TDD plan as complete refs or explicit skips. | Readiness engine, hidden planner |
-| **BMAD Router** | The BMAD step that selects the smallest valid workflow path for the session. | Help step, dispatcher |
-| **Acceptance Criteria** | Observable conditions that prove a session or artifact is complete. | Done list, checklist |
-| **Implementation Readiness** | The BMAD gate that decides whether requirements, architecture, and stories are ready for execution. | Readiness check, IR |
-| **Code Review** | The BMAD review path that inspects a diff for defects, bloat, regressions, and missing tests. | CR, review pass |
+## Delivery method
 
-## Session lifecycle
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Stories** | delivery | Bounded implementation slices that describe one user or operator outcome. | Story file, linked acceptance criteria, implementation notes. | Tasks, prompts, chores |
+| **Epics** | delivery | Larger delivery containers that group related stories and preserve product intent. | Epic record, story links, dependency notes. | Buckets, themes |
+| **Acceptance Criteria** | delivery | Observable conditions that define done for a story, artifact, or run. | Passing checks, review notes, command output. | Done list, checklist |
+| **Implementation Readiness** | delivery | The gate that confirms requirements, architecture, risks, and tests are clear enough for execution. | Readiness decision, blockers, chosen workflow. | IR, readiness vibe |
+| **Quality Gate** | delivery | The final deterministic check set required before handoff, commit, install, or push. | Exact command output from the exact checkout. | Final glance, quick check |
 
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **BMAD Workspace** | The durable BMAD-centered base that carries methodology, agents, skills, policies, adapters, settings, and secret references. | Base, toolchain repo, workspace |
-| **Workspace Session** | A disposable runtime launched from a BMAD Workspace for one bounded goal against selected repo inputs. | Instance, run |
-| **Session** | A bounded job with a goal, Repo Pack, grants, BMAD Work Packet, and exit criteria. | Mission, task, ticket, job |
-| **Repo Pack** | The selected target repositories attached to a Workspace Session. | Mounted repos, repo set |
-| **Target Repo** | A repository in the Repo Pack that is allowed to receive session changes. | External repo, project repo |
-| **Repo Intake** | A code-only pre-prompt scan that produces evidence for a BMAD Work Packet. | Context scan, indexing, graph |
-| **Rendered Prompt** | The executor-ready prompt derived from a BMAD Work Packet. | Source prompt, hand-written prompt |
-| **Codex Executor** | The preferred operator that executes rendered prompts inside BMAD constraints. | Agent, worker, model |
-| **Worktree Review** | A Git worktree and patch review surface for inspecting session changes before Promotion. | GitHub Desktop diff, final diff |
+## Config authority
 
-## Authority and persistence
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Config Authority** | config | Permission to treat a configuration source as controlling BMAD behavior for a stated scope. | BMAD artifact, repo rule, grant, or validated policy reference. | Tool setting, local preference |
+| **Config Precedence** | config | The ordered rule stack used when instructions, policies, skills, and local settings interact. | Cited source order and conflict resolution notes. | Whichever file loaded last |
+| **Authority Boundary** | config | The line between what a setting can help with and what it is allowed to decide. | Boundary statement plus the source that grants or denies authority. | Permission mood, implicit approval |
+| **Deterministic Validation** | config | A repeatable check that accepts or rejects a config, glossary, skill, or planning claim. | Stable command, stable diagnostic code, reproducible output. | Manual confidence |
+| **Ownership Rule** | config | The rule that durable BMAD changes must be owned by the correct artifact, grant, branch, and reviewer path. | Owner record, diff, review surface, or explicit skip rationale. | Whoever touched it |
 
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **Capability Contract** | A BMAD-governed registry of adapter capabilities available to a Workspace Session. | Tool list, memory, provider map |
-| **Grant** | An explicit permission record that names allowed capabilities, paths, repos, and persistence rights. | Permission, access, approval |
-| **Base Mutation Grant** | A Grant that explicitly permits changes to the BMAD Workspace. | Self-improvement permission, base write |
-| **Base Improvement Session** | A session whose target is the BMAD Workspace and whose writes require a Base Mutation Grant. | Self-improvement loop, Base Improvement Mission |
-| **Promotion** | The explicit integration of reviewed changes into the BMAD Workspace. | Merge back, persist, learn |
-| **Session State** | Runtime data created inside a Workspace Session that dies unless explicitly retained for review. | Memory, context, cache, Mission State |
-| **Standing Order** | A durable BMAD-owned rule stored in the BMAD Workspace. | Persistent memory, instruction |
-| **Drift** | Any durable change that lacks a BMAD Artifact, Grant, or Git diff proving why it exists. | Accidental mutation, residue |
+## Coding workflow
 
-## Adapter capabilities
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Coding Capability** | coding | The practical ability to inspect code, edit files, run commands, and produce a reviewable diff. | Git status, changed files, tests or targeted validation. | Authority, policy |
+| **Public Behavior Test** | coding | A test that exercises the supported interface or observable CLI behavior rather than internals. | Failing RED output and later passing GREEN output. | Private unit poke, shape test |
+| **Small Diff** | coding | A scoped change set that solves the accepted behavior without unrelated churn. | Focused git diff and changed-file summary. | Rewrite, cleanup pass |
+| **Reviewer-Ready Note** | coding | The concise handoff that names intent, evidence, residual risk, and reviewer focus. | Final report, PR body, or checkpoint note. | Victory lap, vague summary |
+| **Local Verification** | coding | Commands run in the current checkout to prove the diff works before handoff. | Command names, exit status, and relevant output. | Looks good locally |
 
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **Adapter** | A concrete provider that satisfies a BMAD-owned capability interface. | Plugin, engine, integration |
-| **Graph Evidence Adapter** | An Adapter that produces Repo Intake evidence, with Graphify as the first known provider. | Memory graph, context brain |
-| **Runtime Adapter** | An Adapter that exposes sessions, tasks, Cron, Heartbeat, or goals without replacing BMAD governance. | Scheduler, daemon, runtime brain |
-| **Documentation Evidence Adapter** | An Adapter that retrieves trusted current documentation only when freshness affects the mission. | Freshness crawler, doc memory |
-| **Git Adapter** | An Adapter that provides worktrees, diffs, status, commits, provenance, and rollback evidence. | File sync, patch tool |
+## TDD workflow
 
-## Codex operator environment
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **TDD Workflow** | tdd | The RED, GREEN, REFACTOR loop used to grow behavior through tests first. | Ordered test evidence for each vertical slice. | Test later, bulk test plan |
+| **RED** | tdd | The failing public behavior test that proves the current system lacks the desired behavior. | Failing command and stable assertion or diagnostic. | Expected failure without proof |
+| **GREEN** | tdd | The smallest implementation that makes the current RED behavior pass. | Passing targeted command after the implementation. | Broad rewrite |
+| **REFACTOR** | tdd | Cleanup performed only after tests pass, preserving the proven behavior. | Passing tests before and after cleanup. | Opportunistic redesign |
+| **Test-First Delivery** | tdd | Delivery discipline that refuses implementation edits until a relevant public test fails. | RED output captured before the first behavior change. | Test eventually |
+| **Observable Public Behavior** | tdd | The user-facing or operator-facing behavior a test can see through supported commands, files, or docs. | CLI output, generated artifact, rendered docs, or public file contract. | Internal shape |
 
-| Term | Definition | Aliases to avoid |
-| --- | --- | --- |
-| **Operator-Local Configuration** | Codex configuration that tunes local tool behavior without changing BMAD authority. | Workspace authority, grant, policy |
-| **Tool Affordance** | A Codex UI, command, hook, plugin, subagent, or config hint that helps an operator work but is not BMAD evidence by itself. | Approval, authority, Workspace command |
-| **Trusted Project** | A project whose Codex project-local configuration layer is allowed to load. | Safe repo, approved workspace |
-| **Hook** | A Codex lifecycle command configured to react to tool events when enabled. | Approval gate, scheduler |
-| **Subagent** | A spawned Codex agent thread used for bounded parallel perspective or work. | Decision-maker, authority |
-| **Profile** | A named Codex configuration set selected for a session or CLI run. | Mode, Workspace policy |
-| **Approval Policy** | A Codex setting that controls when Codex pauses for human or automatic review before actions. | BMAD grant, repository approval |
-| **Sandbox Mode** | A Codex setting that limits command filesystem and network access. | Security proof, grant |
+## Tooling workflow
+
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Tooling Capability** | tooling | The ability to run, inspect, validate, or propose tool and config changes inside BMAD constraints. | Command output, diff, and cited constraints. | Tool authority |
+| **npm Quality** | tooling | The repo-defined quality script that mirrors the checks expected before push. | `npm run quality` output from the exact checkout. | CI maybe, local smoke |
+| **Skill Validation** | tooling | Deterministic validation of BMAD skill files against documented repository rules. | `npm run validate:skills` output and validator diagnostics. | Skill lint vibes |
+| **CI Parity** | tooling | Local checks matching the repository quality workflow closely enough to predict CI behavior. | Local command list mapped to workflow checks. | CI optimism |
+| **Deterministic Command** | tooling | A command whose inputs, target checkout, and expected diagnostics can be repeated by a reviewer. | Command string, cwd, exit code, and stable output. | Magic command |
+
+## Codex and agent capability
+
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Codex Executor** | agent | The operator that reads BMAD prompts, edits files, runs tools, and reports evidence under BMAD constraints. | Git diff, command output, and final handoff. | Owner, authority source |
+| **Agent Capability** | agent | A bounded ability available to an agent, such as file edits, terminal commands, browser checks, subagents, or documentation lookup. | Tool result, enabled surface, and any applicable constraint. | Permission, guarantee |
+| **Tool Affordance** | agent | A UI, command, hook, subagent, MCP tool, plugin, or config option that helps work happen. | Tool availability plus use evidence. | Grant, approval, policy |
+| **Sandbox Boundary** | agent | The filesystem, network, and command limits that constrain local execution for a run. | Current sandbox settings and any failed or blocked command. | Security proof, BMAD grant |
+| **Approval Policy** | agent | The local action-review setting that controls whether Codex pauses before certain operations. | Current policy value and observed approval behavior. | Ownership, config authority |
+| **Blocker Surface** | agent | The explicit point where work stops because authority, evidence, tools, or environment state is missing. | Blocker message, failed command, or missing source citation. | Silent assumption |
+
+## Evidence gates
+
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Evidence Gate** | validation | A required proof point before work may proceed, finish, install, refresh, commit, or push. | Named gate, command output, and decision. | Trust me, checkpoint vibe |
+| **Validation Evidence** | validation | The recorded result from a deterministic validator, test, lint, build, or quality command. | Command, cwd, exit code, and meaningful diagnostics. | Confidence |
+| **Exact Checkout Gate** | validation | The rule that final quality must run against the same HEAD and worktree being handed off. | `git rev-parse HEAD`, git status, and quality output. | Close enough |
+| **Checkpoint Evidence** | validation | Durable run notes that preserve decisions, failures, commands, branch, and continuation status. | Checkpoint file path and relevant content. | Chat memory |
+| **Install Evidence** | validation | Proof that generated BMAD outputs or skill installations were built or updated when required. | Installer command, manifest row, and source or installed hash. | Assumed install |
+| **Refresh Evidence** | validation | Proof that the active operator surface can see the installed or updated skill/config state. | Reload result, active hash, or explicit unknown/blocked status. | Hot reload claim |
+| **Session Identity** | validation | Classification of a supplied session or thread id before it is used as workspace evidence. | Lookup output, classification, and fallback state evidence. | Session guess |
 
 ## Relationships
 
-- A **BMAD Workspace** creates zero or more **Workspace Sessions**.
-- A **Workspace Session** attaches one **Repo Pack** and produces one or more **BMAD Work Packets**.
-- A **BMAD Work Packet** must include **Repo Intake** evidence before execution.
-- A **BMAD Work Packet** must include one **Setup Gate**.
-- A **Rendered Prompt** is derived from a **BMAD Work Packet** and executed by the **Codex Executor**.
-- A **Capability Contract** exposes one or more **Adapters** to a **Workspace Session**.
-- A normal **Session** may change **Target Repos** but may not change the **BMAD Workspace**.
-- A **Base Improvement Session** may change the **BMAD Workspace** only through a **Base Mutation Grant**.
-- **Promotion** requires a **Worktree Review** and must be explicit.
-- **Session State** dies with the **Workspace Session** unless retained for **Worktree Review**.
-- **Operator-Local Configuration** may expose **Tool Affordances**, but **Grant** and **BMAD Work Packet** remain the authority records.
-- A **Hook**, **Subagent**, or **Profile** is a **Tool Affordance** when used with BMAD.
-- **Approval Policy** and **Sandbox Mode** constrain Codex execution but do not replace a **Grant**.
+- Authority boundaries constrain capability work: a Codex Executor may inspect,
+  propose, edit, validate, and explain within the approved scope, but durable
+  BMAD authority still comes from BMAD artifacts, grants, repo rules, and
+  deterministic validation.
+- Coding, tooling, TDD, and Codex terms produce evidence by turning each claim
+  into an observable command, diff, test result, checkpoint, or reviewer-ready
+  note.
+- Config authority is one peer domain. It protects ownership and precedence, but
+  it does not replace delivery, coding, tooling, TDD, agent, or validation
+  vocabulary.
+- SESSION_NOT_FOUND means workspace session lookup failed; do not infer repo state from it. Re-establish state from git status, files, and test output.
 
 ## Example dialogue
 
-> **Dev:** "Can this **Workspace Session** remember a fix and improve future runs?"
-> **Domain expert:** "Only if you start a **Base Improvement Session**. A normal **Session** writes the **Target Repo**, not the **BMAD Workspace**."
-> **Dev:** "So the **Rendered Prompt** is not the source of truth?"
-> **Domain expert:** "Correct. The **BMAD Work Packet** is the source of truth; the **Rendered Prompt** is derived for the **Codex Executor**."
-> **Dev:** "Can a **Profile** or **Hook** approve Workspace changes?"
-> **Domain expert:** "No. Those are **Tool Affordances** from **Operator-Local Configuration**. They can help the operator, but **Grant** and **BMAD Work Packet** remain the authority records."
-> **Dev:** "What proves a base change is valid?"
-> **Domain expert:** "A **BMAD Artifact**, a **Base Mutation Grant**, and a **Worktree Review**."
+> **Bad authority claim:** "This local tool setting lets me mutate the BMAD
+> Workspace whenever a run seems useful."
+>
+> **Good tooling guidance:** "I can inspect the local setting, propose a
+> config diff, run deterministic validation, and explain the result. BMAD
+> artifacts, grants, repo rules, and review evidence decide whether the change
+> may persist."
+>
+> **Dev:** "Can you start by rewriting the glossary?"
+>
+> **Codex Executor:** "First I will add a Public Behavior Test that fails
+> against the current glossary. After RED is captured, I will make the smallest
+> glossary and validator changes needed for GREEN, then refactor only while the
+> targeted tests are passing."
+>
+> **Reviewer:** "What should I check?"
+>
+> **Codex Executor:** "The Reviewer-Ready Note maps files to acceptance
+> criteria, includes RED and GREEN evidence, names validator codes, records the
+> final quality command, and calls out residual risk."
 
 ## Flagged ambiguities
 
-- "instance" can mean a chat, process, container, or workspace. Use **Workspace Session** for the disposable launched runtime.
-- "mission" is the V1/V2 legacy public word. Use **Session** and **Workspace Session** in new public docs; V4 runtime rejects legacy mission fields.
-- "context" can mean graph evidence, chat history, prompt text, or persistent memory. Use **Repo Intake** for code evidence and **Session State** for runtime residue.
-- "prompt" can mean the planning artifact or executor text. Use **BMAD Work Packet** for the source artifact and **Rendered Prompt** for executor text.
-- "memory" can mean adapter storage, graph evidence, session cache, or durable rules. Use **Session State** for disposable data and **Standing Order** for durable rules.
-- "self-improvement" can imply automatic base mutation. Use **Base Improvement Session** and require a **Base Mutation Grant**.
-- "promotion" can mean merging target repo changes or improving the base. Use **Promotion** only for explicit integration into the **BMAD Workspace**.
-- "configuration" can mean BMAD process policy or local Codex settings. Use **Operator-Local Configuration** for local Codex settings.
-- "hook" can imply an approval gate or background worker. Use **Hook** only for Codex lifecycle commands and never for BMAD authority.
-- "agent" can mean the **Codex Executor**, a BMAD named role, or a **Subagent**. Use the precise term for the thread or role involved.
-- "trusted" can imply safe code or approved business scope. Use **Trusted Project** only for Codex project-local configuration loading.
+- "config" can mean BMAD policy, repo instructions, local Codex settings, or
+  generated tool config. Use **Config Authority** only when a cited source may
+  decide behavior for a stated scope.
+- "authority" can mean approval, ownership, precedence, or tool access. Use
+  **Authority Boundary** for what may be decided.
+- "capability" can mean what an agent can physically do or what BMAD permits.
+  Use **Coding Capability**, **Tooling Capability**, or **Agent Capability** for
+  practical ability, then cite the authority source separately.
+- "agent" can mean the **Codex Executor**, a BMAD role, or a parallel helper.
+  Name the exact role and its allowed scope.
+- "hook" can mean a local lifecycle command or a governance step. Treat hooks as
+  **Tool Affordances** unless a BMAD artifact grants authority.
+- "quality" can mean `npm run quality`, a review judgment, or CI status. Use
+  **npm Quality** for the repo script and **Quality Gate** for the handoff gate.
+- "validation" can mean a deterministic command or a reviewer opinion. Use
+  **Deterministic Validation** and record **Validation Evidence**.
+- "install" can mean dependency install, generated skill install, or user-scope
+  activation. Use **Install Evidence** and name the target.
+- "refresh" can mean app reload, skill discovery, or a new thread. Use
+  **Refresh Evidence** and record known, failed, blocked, or unknown state.
+- "evidence" can mean command output, a checkpoint, a diff, or a citation. Use
+  the narrowest evidence term that proves the claim.
+- "session" can mean a Codex thread, BMAD Workspace Session, shell process, or
+  runtime job. Use **Session Identity** before relying on a supplied id.

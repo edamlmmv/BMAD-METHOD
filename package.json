@@ -39,19 +39,22 @@
     "lint:fix": "eslint . --ext .js,.cjs,.mjs,.yaml --fix",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "prepare": "command -v husky >/dev/null 2>&1 && husky || exit 0",
-    "quality": "npm run format:check && npm run lint && npm run lint:md && npm run docs:build && npm run test:install && npm run test:urls && npm run test:workspace && npm run test:self-improve && npm run validate:refs && npm run validate:skills && npm run validate:bmad-planning-capabilities && npm run validate:self-improve-invariants",
+    "quality": "npm run format:check && npm run lint && npm run lint:md && npm run docs:build && npm run test:install && npm run test:urls && npm run test:workspace && npm run test:self-improve && npm run test:ubiquitous-language && npm run validate:refs && npm run validate:ubiquitous-language && npm run validate:graphify-manifests && npm run validate:skills && npm run validate:bmad-planning-capabilities && npm run validate:self-improve-invariants",
     "rebundle": "node tools/installer/bundlers/bundle-web.js rebundle",
     "test": "npm run test:refs && npm run test:install && npm run test:urls && npm run test:channels && npm run test:workspace && npm run lint && npm run lint:md && npm run format:check",
     "test:channels": "node test/test-installer-channels.js",
     "test:install": "node test/test-installation-components.js",
     "test:refs": "node test/test-file-refs-csv.js",
     "test:self-improve": "node test/test-self-improve-invariants.js",
+    "test:ubiquitous-language": "node test/test-ubiquitous-language.js",
     "test:urls": "node test/test-parse-source-urls.js",
     "test:workspace": "node test/test-workspace-contracts.js && node test/test-workspace-cli.js",
     "validate:bmad-planning-capabilities": "node tools/validate-bmad-planning-capabilities.js",
+    "validate:graphify-manifests": "node tools/validate-graphify-manifests.js",
     "validate:refs": "node tools/validate-file-refs.js --strict",
     "validate:self-improve-invariants": "node tools/validate-self-improve-invariants.js",
-    "validate:skills": "node tools/validate-skills.js --strict"
+    "validate:skills": "node tools/validate-skills.js --strict",
+    "validate:ubiquitous-language": "node tools/validate-ubiquitous-language.js"
   },
   "lint-staged": {
     "*.{js,cjs,mjs}": [

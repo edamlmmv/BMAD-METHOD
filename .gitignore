@@ -8,6 +8,8 @@ package-lock.json
 
 test-output/*
 coverage/
+graphify-out/
+.graphify/work/
 
 # Logs
 logs/

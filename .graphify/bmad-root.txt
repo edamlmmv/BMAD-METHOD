@@ -1,0 +1,11 @@
+AGENTS.md
+bmad.config.yaml
+BMAD.md
+CHANGELOG.md
+CONTRIBUTING.md
+package.json
+README.md
+SECURITY.md
+tools/javascript-conventions.md
+tools/skill-validator.md
+UBIQUITOUS_LANGUAGE.md

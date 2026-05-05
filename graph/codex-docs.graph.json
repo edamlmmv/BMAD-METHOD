@@ -1,0 +1,636 @@
+{
+  "metadata": {
+    "generated_by": "tools/build-repository-graph.js",
+    "slice_id": "codex-docs",
+    "namespace": "codex"
+  },
+  "nodes": [
+    {
+      "id": "codex:concept:graphify-sources-codex-advanced-configuration-thread-excerpt-md:codex-advanced-configuration-thread-excerpt",
+      "type": "concept",
+      "label": "Codex Advanced Configuration Thread Excerpt",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/advanced-configuration-thread-excerpt.md",
+        "line": 8,
+        "url": "user-thread://codex-advanced-configuration",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:advanced-configuration",
+      "type": "concept",
+      "label": "Advanced Configuration",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 8,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:agent-roles",
+      "type": "concept",
+      "label": "Agent Roles",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 39,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:approval-policies-and-sandbox-modes",
+      "type": "concept",
+      "label": "Approval Policies And Sandbox Modes",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 53,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:config-and-state-locations",
+      "type": "concept",
+      "label": "Config And State Locations",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 24,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:history-citations-project-instructions-and-tui",
+      "type": "concept",
+      "label": "History, Citations, Project Instructions, And TUI",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 84,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:hooks",
+      "type": "concept",
+      "label": "Hooks",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 34,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:mcp-servers",
+      "type": "concept",
+      "label": "MCP Servers",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 69,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:model-providers",
+      "type": "concept",
+      "label": "Model Providers",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 48,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:named-permission-profiles",
+      "type": "concept",
+      "label": "Named Permission Profiles",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 59,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:notifications",
+      "type": "concept",
+      "label": "Notifications",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 79,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:observability-and-telemetry",
+      "type": "concept",
+      "label": "Observability And Telemetry",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 74,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:one-off-cli-overrides",
+      "type": "concept",
+      "label": "One-Off CLI Overrides",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 19,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:profiles",
+      "type": "concept",
+      "label": "Profiles",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 13,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:project-config-files",
+      "type": "concept",
+      "label": "Project Config Files",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 29,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:project-root-detection",
+      "type": "concept",
+      "label": "Project Root Detection",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 43,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-advanced-md:shell-environment-policy",
+      "type": "concept",
+      "label": "Shell Environment Policy",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "line": 64,
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-reference-md:config-toml",
+      "type": "concept",
+      "label": "Config TOML",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-reference.md",
+        "line": 13,
+        "url": "https://developers.openai.com/codex/config-reference",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-reference-md:configuration-reference",
+      "type": "concept",
+      "label": "Configuration Reference",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-reference.md",
+        "line": 8,
+        "url": "https://developers.openai.com/codex/config-reference",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-reference-md:core-keys",
+      "type": "concept",
+      "label": "Core Keys",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-reference.md",
+        "line": 19,
+        "url": "https://developers.openai.com/codex/config-reference",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:concept:graphify-sources-codex-config-reference-md:requirements-toml",
+      "type": "concept",
+      "label": "Requirements TOML",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-reference.md",
+        "line": 32,
+        "url": "https://developers.openai.com/codex/config-reference",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:file:graphify-sources-codex-advanced-configuration-thread-excerpt-md",
+      "type": "file",
+      "label": ".graphify/sources/codex/advanced-configuration-thread-excerpt.md",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/advanced-configuration-thread-excerpt.md",
+        "url": "user-thread://codex-advanced-configuration",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:file:graphify-sources-codex-config-advanced-md",
+      "type": "file",
+      "label": ".graphify/sources/codex/config-advanced.md",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-advanced.md",
+        "url": "https://developers.openai.com/codex/config-advanced",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    },
+    {
+      "id": "codex:file:graphify-sources-codex-config-reference-md",
+      "type": "file",
+      "label": ".graphify/sources/codex/config-reference.md",
+      "namespace": "codex",
+      "source": {
+        "path": ".graphify/sources/codex/config-reference.md",
+        "url": "https://developers.openai.com/codex/config-reference",
+        "retrieved_at": "2026-05-05"
+      },
+      "slice_id": "codex-docs"
+    }
+  ],
+  "edges": [
+    {
+      "from": "codex:file:graphify-sources-codex-advanced-configuration-thread-excerpt-md",
+      "to": "codex:concept:graphify-sources-codex-advanced-configuration-thread-excerpt-md:codex-advanced-configuration-thread-excerpt",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/advanced-configuration-thread-excerpt.md",
+          "line": 8,
+          "url": "user-thread://codex-advanced-configuration",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:advanced-configuration",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 8,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:agent-roles",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 39,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:approval-policies-and-sandbox-modes",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 53,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:config-and-state-locations",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 24,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:history-citations-project-instructions-and-tui",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 84,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:hooks",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 34,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:mcp-servers",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 69,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:model-providers",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 48,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:named-permission-profiles",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 59,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:notifications",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 79,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:observability-and-telemetry",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 74,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:one-off-cli-overrides",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 19,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:profiles",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 13,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:project-config-files",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 29,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:project-root-detection",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 43,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-advanced-md",
+      "to": "codex:concept:graphify-sources-codex-config-advanced-md:shell-environment-policy",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-advanced.md",
+          "line": 64,
+          "url": "https://developers.openai.com/codex/config-advanced",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-reference-md",
+      "to": "codex:concept:graphify-sources-codex-config-reference-md:config-toml",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-reference.md",
+          "line": 13,
+          "url": "https://developers.openai.com/codex/config-reference",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-reference-md",
+      "to": "codex:concept:graphify-sources-codex-config-reference-md:configuration-reference",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-reference.md",
+          "line": 8,
+          "url": "https://developers.openai.com/codex/config-reference",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-reference-md",
+      "to": "codex:concept:graphify-sources-codex-config-reference-md:core-keys",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-reference.md",
+          "line": 19,
+          "url": "https://developers.openai.com/codex/config-reference",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    },
+    {
+      "from": "codex:file:graphify-sources-codex-config-reference-md",
+      "to": "codex:concept:graphify-sources-codex-config-reference-md:requirements-toml",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/codex/config-reference.md",
+          "line": 32,
+          "url": "https://developers.openai.com/codex/config-reference",
+          "retrieved_at": "2026-05-05"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "codex-docs"
+    }
+  ],
+  "warnings": []
+}

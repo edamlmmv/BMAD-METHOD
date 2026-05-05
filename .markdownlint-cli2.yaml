@@ -8,6 +8,7 @@ ignores:
   - _bmad/**
   - _bmad*/**
   - .agent/**
+  - .graphify/work/**
   - .claude/**
   - .roo/**
   - .codex/**

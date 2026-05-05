@@ -1,0 +1,3 @@
+.graphify/sources/codex/advanced-configuration-thread-excerpt.md
+.graphify/sources/codex/config-advanced.md
+.graphify/sources/codex/config-reference.md

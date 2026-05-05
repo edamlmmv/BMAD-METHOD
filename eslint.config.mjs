@@ -16,6 +16,9 @@ export default [
       '_bmad*/**',
       // Build output
       'build/**',
+      // Disposable graph materialization output
+      '.graphify/work/**',
+      'graphify-out/**',
       // Website uses ESM/Astro - separate linting ecosystem
       'website/**',
       // Gitignored patterns
