@@ -51,6 +51,28 @@ description: Manual evidence ledger template for Workspace Sessions
 - Next manual action:
 - Evidence refs:
 
+## Capability Evidence Gate Closeout
+
+Use this reviewer/operator closeout when the work claims capability awareness,
+verifier behavior, advisory profile support, or push readiness. Workspace remains a ledger only; it records evidence and decisions but does not execute, authorize, or certify the work.
+
+- Claimed capabilities:
+- Commits reviewed:
+- Touched files and file links:
+- Verifier or advisory profile evidence refs:
+- TDD red-green provenance:
+- Targeted test commands and outcomes:
+- Full quality command and outcome:
+- warning/LOW disposition:
+- dirty worktree impact:
+- Residual risk:
+- exact push/PR next step:
+
+Remember: `npm ci && npm run quality` is a quality gate, not TDD provenance.
+If warnings or LOW findings appear, mark each as `accepted`, `fixed`,
+`deferred`, or `false-positive` with a reason. Name any modified or untracked
+leftovers and state whether they are in scope before push.
+
 ## Archive
 
 - Archive path:

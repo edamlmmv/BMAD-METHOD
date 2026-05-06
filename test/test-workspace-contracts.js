@@ -1300,6 +1300,7 @@ function runTests() {
     const capabilityProfileRegistryPath = path.join(workspaceDocsRoot, 'capability-profile-registry.json');
     const buildDocsPath = path.join(repoRoot, 'tools', 'build-docs.mjs');
     const customizeSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-customize', 'SKILL.md');
+    const workspaceSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace', 'SKILL.md');
     const selfImproveSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
 
     for (const docName of [
@@ -1671,6 +1672,18 @@ function runTests() {
     for (const text of ['# BMAD Workspace Runbook', 'Setup Gate', 'Manual Execution', 'Review Manifest', 'Archive path']) {
       assert(workspaceRunbook.includes(text), `workspace runbook includes ${text}`, workspaceRunbook);
     }
+    for (const text of [
+      'Capability Evidence Gate Closeout',
+      'TDD red-green provenance',
+      'warning/LOW disposition',
+      'file links',
+      'dirty worktree impact',
+      'exact push/PR next step',
+      'quality gate, not TDD provenance',
+      'Workspace remains a ledger only',
+    ]) {
+      assert(workspaceRunbook.includes(text), `workspace runbook includes evidence-gate closeout ${text}`, workspaceRunbook);
+    }
 
     const releaseNote = fs.readFileSync(path.join(workspaceDocsRoot, 'release-note-6.6.0.md'), 'utf8');
     for (const text of [
@@ -1727,6 +1740,29 @@ function runTests() {
       'not verifier authority',
     ]) {
       assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
+    }
+    for (const text of [
+      'Capability Evidence Gate Closeout',
+      '_bmad/custom/*.toml',
+      'ignored/local',
+      'never verifier authority',
+      'authoring and education only',
+    ]) {
+      assert(customizeSkill.includes(text), `bmad-customize source skill includes evidence-gate closeout ${text}`, customizeSkill);
+    }
+
+    const workspaceSkill = fs.readFileSync(workspaceSkillPath, 'utf8');
+    for (const text of [
+      'Capability Evidence Gate Closeout',
+      'TDD red-green provenance',
+      'warning/LOW disposition',
+      'file links',
+      'dirty worktree impact',
+      'exact push/PR next step',
+      'quality gate, not TDD provenance',
+      'Workspace records evidence; it does not execute or authorize the closeout',
+    ]) {
+      assert(workspaceSkill.includes(text), `bmad-workspace source skill includes evidence-gate closeout ${text}`, workspaceSkill);
     }
 
     const selfImproveSkill = fs.readFileSync(selfImproveSkillPath, 'utf8');

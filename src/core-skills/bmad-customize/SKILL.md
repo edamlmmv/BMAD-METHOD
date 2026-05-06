@@ -39,6 +39,12 @@ persistent_facts = [
 This teaches an agent how to author requests. It does not create verifier trust,
 capability declarations, central config, grants, or runtime availability.
 
+For Capability Evidence Gate Closeout, Customize may add local reminders to
+exposed per-skill surfaces such as `bmad-agent-dev`, `bmad-quick-dev`, or
+`bmad-code-review`. Use `_bmad/custom/*.toml` only as ignored/local agent or
+workflow instruction. It is authoring and education only, never verifier
+authority, and never central capability config. These reminders are never verifier authority.
+
 Do not make `bmad workspace verify-capability` read `_bmad/custom`, hand-authored
 TOML, local Codex config, app-server APIs, or live Graphify output. The verifier
 accepts a self-contained Capability Request JSON fixture and returns a declared

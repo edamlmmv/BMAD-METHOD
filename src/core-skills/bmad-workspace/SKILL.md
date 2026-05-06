@@ -247,6 +247,29 @@ Closeout recording fails before writing when:
 Closeouts are manual evidence only. They do not archive, destroy, execute,
 restore, replay, schedule, watch, merge, promote, or call live adapters.
 
+## Capability Evidence Gate Closeout
+
+Use Capability Evidence Gate Closeout when work claims capability awareness,
+Capability Verification behavior, advisory Codex or Graphify support, or
+push/PR readiness. Workspace records evidence; it does not execute or authorize the closeout.
+
+Record the closeout as reviewer/operator evidence with:
+
+- claimed capabilities and commit refs
+- touched files and file links
+- verifier or advisory profile evidence refs
+- TDD red-green provenance
+- targeted test and full quality command outcomes
+- warning/LOW disposition
+- dirty worktree impact
+- residual risk
+- exact push/PR next step
+
+`npm ci && npm run quality` is a quality gate, not TDD provenance. Any warning
+or LOW finding must be marked `accepted`, `fixed`, `deferred`, or
+`false-positive` with a reason. Modified or untracked leftovers must be named,
+scoped, and either included, ignored, or deferred before push.
+
 ## Setup Gate
 
 Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
