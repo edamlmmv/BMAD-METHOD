@@ -11,6 +11,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const { validateCapabilityContract, validateWorkPacket, verifyCapabilityRequest } = require('../tools/workspace/contracts');
+const { createCapabilityContract } = require('../tools/workspace/capability-contract');
 const { createEvidenceGateFailure, evaluateEvidenceGates } = require('../tools/workspace/evidence-gates');
 const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
 const { FORBIDDEN_EXECUTOR_ACTIONS, validateExecutorContract } = require('../tools/workspace/executor-contract');
@@ -1296,6 +1297,7 @@ function runTests() {
     const yarnLockPath = path.join(repoRoot, 'yarn.lock');
     const workspaceCommandPath = path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js');
     const workspaceCommandRegistryPath = path.join(repoRoot, 'tools', 'workspace', 'command-registry.js');
+    const capabilityProfileRegistryPath = path.join(workspaceDocsRoot, 'capability-profile-registry.json');
     const buildDocsPath = path.join(repoRoot, 'tools', 'build-docs.mjs');
     const customizeSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-customize', 'SKILL.md');
     const selfImproveSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
@@ -1318,6 +1320,7 @@ function runTests() {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
     }
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
+    assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
     const historyArchivePath = path.join(historyRoot, 'compiled-bmads.md');
@@ -1347,6 +1350,7 @@ function runTests() {
       './operator-guide.md',
       './architecture.md',
       './capability-contract.md',
+      './capability-profile-registry.json',
       './release-note-6.6.0.md',
       './history/index.md',
     ]) {
@@ -1524,8 +1528,39 @@ function runTests() {
       'bmad-workspace-capability-verdict',
       'requiresGrant',
       '_bmad/custom',
+      'Capability Profile Registry',
+      'support promotion',
     ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
+    }
+
+    const capabilityProfileRegistry = JSON.parse(fs.readFileSync(capabilityProfileRegistryPath, 'utf8'));
+    assert(capabilityProfileRegistry.schemaVersion === 1, 'capability profile registry uses schema version 1');
+    assert(Array.isArray(capabilityProfileRegistry.profiles), 'capability profile registry has profiles array');
+    assert(capabilityProfileRegistry.profiles.length === 2, 'capability profile registry seeds current declared capabilities');
+    const supportedProfileStates = new Set(['proposed', 'experimental', 'supported', 'stale', 'deprecated', 'invalid', 'removed']);
+    const declaredCapabilityIds = new Set(createCapabilityContract(repoRoot).capabilities.map((capability) => capability.id));
+    const profileIds = new Set();
+    for (const [index, profile] of capabilityProfileRegistry.profiles.entries()) {
+      const label = `capability profile registry profiles[${index}]`;
+      for (const field of ['profileId', 'capabilityId', 'toolName', 'supportState', 'trustBoundary', 'evidenceRefs', 'repairHint']) {
+        assert(field in profile, `${label} includes ${field}`, JSON.stringify(profile, null, 2));
+      }
+      assert(!profileIds.has(profile.profileId), `${label} profileId is unique`, JSON.stringify(profile, null, 2));
+      profileIds.add(profile.profileId);
+      assert(declaredCapabilityIds.has(profile.capabilityId), `${label} maps to declared capability id`, JSON.stringify(profile, null, 2));
+      assert(supportedProfileStates.has(profile.supportState), `${label} uses known support state`, JSON.stringify(profile, null, 2));
+      assert(Array.isArray(profile.evidenceRefs), `${label} evidenceRefs is array`, JSON.stringify(profile, null, 2));
+      if (profile.supportState === 'supported') {
+        assert(profile.evidenceRefs.length > 0, `${label} supported profile has evidence refs`, JSON.stringify(profile, null, 2));
+      }
+      if (['stale', 'deprecated', 'invalid', 'removed'].includes(profile.supportState)) {
+        assert(
+          typeof profile.repairHint === 'string' && profile.repairHint.trim() !== '',
+          `${label} non-supported profile has repair hint`,
+          JSON.stringify(profile, null, 2),
+        );
+      }
     }
 
     const templateIndex = fs.readFileSync(templateIndexPath, 'utf8');
@@ -1763,6 +1798,34 @@ function runTests() {
   }
 
   {
+    const [capability] = validCapabilityContract().capabilities;
+    const malformed = { ...capability };
+    delete malformed.outputs;
+    const verdict = verifyCapabilityRequest(validCapabilityRequest({ capabilities: [malformed] }));
+    assert(verdict.ok === false, 'capability verifier rejects missing embedded declaration fields', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === '$.capabilities[0].outputs'),
+      'missing embedded declaration field names REQUEST_INVALID and path',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const [capability] = validCapabilityContract().capabilities;
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        capabilities: [{ ...capability, allowedInNormalSession: 'true' }],
+      }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects invalid embedded declaration fields', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === '$.capabilities[0].allowedInNormalSession'),
+      'invalid embedded declaration field names REQUEST_INVALID and path',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
     const verdict = verifyCapabilityRequest(
       validCapabilityRequest({
         request: { id: ' evidence.graph.repo-intake' },
@@ -1892,7 +1955,16 @@ function runTests() {
   {
     const contractsSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'contracts.js'), 'utf8');
     const verifierSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'capability-verifier.js'), 'utf8');
-    for (const forbidden of ['_bmad/custom', 'build-repository-graph', 'node:child_process', 'node:http', 'node:https']) {
+    for (const forbidden of [
+      '_bmad/custom',
+      '~/.codex',
+      '.codex/config',
+      'capability-profile-registry',
+      'build-repository-graph',
+      'node:child_process',
+      'node:http',
+      'node:https',
+    ]) {
       assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
       assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);
     }

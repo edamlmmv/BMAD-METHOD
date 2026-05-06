@@ -343,6 +343,37 @@ function runTests() {
           2,
         )}\n`,
       );
+      const malformedDeclarationPath = path.join(verifierTempRoot, 'malformed-declaration-request.json');
+      const malformedCapability = { ...capability };
+      delete malformedCapability.outputs;
+      fs.writeFileSync(
+        malformedDeclarationPath,
+        `${JSON.stringify(
+          {
+            kind: 'bmad-workspace-capability-request',
+            schemaVersion: 1,
+            request: {
+              id: 'evidence.graph.repo-intake',
+              sessionType: 'normal',
+              group: 'evidence.graph',
+              provider: 'graphify',
+              interface: 'repo-intake',
+              writes: ['workspace-session/intake'],
+              outputs: ['graph.json'],
+            },
+            capabilities: [malformedCapability],
+            observations: [
+              {
+                code: 'GRAPHIFY_DOCS_FIXTURE',
+                message: 'Graphify docs reviewed for advisory tool awareness.',
+                details: { sourceUrl: 'https://github.com/safishamsi/graphify#full-command-reference', reviewedAt: '2026-05-05' },
+              },
+            ],
+          },
+          null,
+          2,
+        )}\n`,
+      );
 
       const beforeVerify = fingerprintTree(verifierTempRoot);
       const valid = runCli(['workspace', 'verify-capability', '--input', validRequestPath]);
@@ -368,6 +399,29 @@ function runTests() {
         missingOutput.errors.some((error) => error.code === 'CAPABILITY_NOT_DECLARED'),
         'verify-capability denied request names CAPABILITY_NOT_DECLARED',
         missingText,
+      );
+
+      const beforeMalformedVerify = fingerprintTree(verifierTempRoot);
+      const malformedDeclaration = runCli(['workspace', 'verify-capability', '--input', malformedDeclarationPath]);
+      const malformedDeclarationText = `${malformedDeclaration.stdout}\n${malformedDeclaration.stderr}`;
+      const afterMalformedVerify = fingerprintTree(verifierTempRoot);
+      assert(malformedDeclaration.status === 1, 'verify-capability malformed declaration exits one', malformedDeclarationText);
+      assert(
+        beforeMalformedVerify === afterMalformedVerify,
+        'verify-capability malformed declaration request is read-only',
+        malformedDeclarationText,
+      );
+      const malformedDeclarationOutput = JSON.parse(malformedDeclaration.stdout);
+      assert(malformedDeclarationOutput.ok === false, 'verify-capability malformed declaration returns ok false', malformedDeclarationText);
+      assert(
+        malformedDeclarationOutput.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === '$.capabilities[0].outputs'),
+        'verify-capability malformed declaration names REQUEST_INVALID',
+        malformedDeclarationText,
+      );
+      assert(
+        malformedDeclarationOutput.observations.length === 0,
+        'verify-capability malformed declaration observations do not change ok',
+        malformedDeclarationText,
       );
     } finally {
       fs.rmSync(verifierTempRoot, { recursive: true, force: true });

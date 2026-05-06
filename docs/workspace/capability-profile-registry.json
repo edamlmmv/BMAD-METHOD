@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "profileId": "graphify.repo-intake.static-graph-evidence",
+      "capabilityId": "evidence.graph.repo-intake",
+      "toolName": "Graphify",
+      "supportState": "supported",
+      "trustBoundary": "Static graph artifacts may provide advisory Workspace graph evidence; live Graphify, MCP, watch mode, hooks, cache, and regeneration are not verifier inputs.",
+      "evidenceRefs": [
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "docs/workspace/templates/capability-request.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Keep declared capability fields, graph evidence docs, fixtures, and Workspace tests aligned before claiming support."
+    },
+    {
+      "profileId": "codex.manual-executor-contract",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Codex",
+      "supportState": "supported",
+      "trustBoundary": "Codex is a manual executor and operator affordance; local config, slash commands, hooks, plugins, goals, subagents, and app-server availability are not verifier inputs.",
+      "evidenceRefs": [
+        "tools/workspace/capability-contract.js",
+        "tools/workspace/executor-contract.js",
+        "docs/workspace/capability-contract.md",
+        "docs/workspace/templates/capability-request.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Keep Executor Contract docs, Capability Request fixtures, and Workspace tests aligned before claiming support."
+    }
+  ]
+}

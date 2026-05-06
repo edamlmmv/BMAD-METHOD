@@ -93,6 +93,12 @@ compatibility check over one self-contained Capability Request JSON document.
 The request carries the exact capability id, session type, optional requested
 contract fields, declared capability entries, and optional advisory observations.
 
+Embedded `capabilities[]` declarations must include the current Adapter Record
+fields. Missing or malformed declaration fields fail as `REQUEST_INVALID`.
+Duplicate exact capability ids fail as `CAPABILITY_ID_DUPLICATE`. The verifier
+does not hydrate or repair declarations from ambient Workspace, Codex, Graphify,
+or customization state.
+
 Version 1 matching is exact and case-sensitive on `request.id`. Aliases, tags,
 descriptions, group fallback, provider fallback, lowercasing, trimming, and
 semantic matching do not grant capability. Requested `writes` and `outputs` are
@@ -109,6 +115,39 @@ reported as advisory; `authorize` remains the grant authority.
 Author request/declaration examples through Workspace docs and BMad Customize
 guidance, then pass the resolved declaration fixture to the verifier. Do not make
 the verifier depend on hand-authored TOML or customization merge internals.
+
+## Capability Profile Registry
+
+The Capability Profile Registry is the advisory snapshot at
+`docs/workspace/capability-profile-registry.json`. It helps authors map named
+tools such as Codex and Graphify to declared Workspace capability ids,
+support-state notes, evidence refs, trust boundaries, and repair hints.
+
+The registry is not read by `verify-capability`. It cannot grant compatibility,
+authorize writes, prove runtime availability, promote support, or demote
+support. It is documentation and authoring context only. If the registry says a
+tool is supported but the submitted Capability Request JSON omits or malforms
+the declaration, the verifier must still fail.
+
+Support states are `proposed`, `experimental`, `supported`, `stale`,
+`deprecated`, `invalid`, and `removed`. `stale`, `deprecated`, `invalid`, and
+`removed` profiles must keep a repair hint so unsupported or broken capability
+knowledge stays visible instead of disappearing.
+
+## Support Promotion
+
+This support promotion rule is separate from Workspace Base promotion or target
+repo merge decisions.
+
+Support promotion means changing committed capability contract or profile data
+after evidence is reviewed. A capability becomes supported only through a
+committed evidence package: declaration, positive fixture, negative fixtures,
+boundary tests, docs, validator owner, and quality evidence.
+
+Verifier success is one evidence item, not the promotion decision. Runtime
+availability, local Codex config, live Graphify state, BMad Customize resolver
+output, Review Manifest, Result Ledger, Closeout, and Archive evidence cannot
+promote support by themselves.
 
 ## Executor Prompt Rule
 

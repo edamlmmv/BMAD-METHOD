@@ -122,12 +122,23 @@ Capability Contract entries. This is a declared-contract compatibility check
 only: exact case-sensitive capability id matching plus existing contract
 constraints for session type, provider, group, interface, writes, and outputs.
 
+Embedded `capabilities[]` declarations must include the current declared
+capability fields. Missing or malformed declaration fields fail before matching,
+and duplicate exact ids fail closed. Advisory observations are preserved only
+after the request and declarations are valid.
+
 `ok: true` never means runtime availability or permission. The verifier does
 not read `_bmad/custom`, local Codex config, app-server APIs, live Graphify
 state, or Workspace Session artifacts. `requiresGrant` is reported as advisory;
 `bmad workspace authorize` remains the grant authority. Use
 `docs/workspace/templates/capability-request.template.json` as the authoring
 example.
+
+`docs/workspace/capability-profile-registry.json` is advisory authoring context
+for named tools such as Codex and Graphify. It maps profiles to exact
+capability ids, support states, trust boundaries, evidence refs, and repair
+hints. It is not verifier input, grant authority, runtime availability proof,
+or support-promotion authority.
 
 ## Codex Operator Affordances
 

@@ -440,11 +440,91 @@ function validateCapabilityRequestDocument(capabilityRequest) {
   validateCapabilityUsageRequest(capabilityRequest.request, errors);
   if (!Array.isArray(capabilityRequest.capabilities) || capabilityRequest.capabilities.length === 0) {
     errors.push(capabilityIssue('REQUEST_INVALID', 'Capability request capabilities must be a non-empty array.', '$.capabilities'));
+  } else {
+    validateCapabilityRequestDeclarations(capabilityRequest.capabilities, errors);
   }
   if ('observations' in capabilityRequest && !Array.isArray(capabilityRequest.observations)) {
     errors.push(capabilityIssue('REQUEST_INVALID', 'Capability request observations must be an array when present.', '$.observations'));
   }
   return errors;
+}
+
+function validateCapabilityRequestDeclarations(capabilities, errors) {
+  const seenIds = new Set();
+  for (const [index, capability] of capabilities.entries()) {
+    const label = `$.capabilities[${index}]`;
+    if (!isObject(capability)) {
+      errors.push(capabilityIssue('REQUEST_INVALID', 'Capability declaration must be an object.', label));
+      continue;
+    }
+
+    for (const field of REQUIRED_CAPABILITY_FIELDS) {
+      if (!(field in capability)) {
+        errors.push(capabilityIssue('REQUEST_INVALID', `Capability declaration ${field} is required.`, `${label}.${field}`));
+      }
+    }
+
+    for (const field of ['id', 'group', 'provider', 'interface']) {
+      validateCapabilityDeclarationString(capability, field, errors, label);
+    }
+
+    if (typeof capability.id === 'string' && capability.id !== '' && capability.id.trim() === capability.id) {
+      if (seenIds.has(capability.id)) {
+        errors.push(
+          capabilityIssue('CAPABILITY_ID_DUPLICATE', 'Capability id is declared more than once.', '$.capabilities', {
+            id: capability.id,
+          }),
+        );
+      }
+      seenIds.add(capability.id);
+    }
+
+    for (const field of ['allowedInNormalSession', 'allowedInBaseImprovement', 'requiresGrant', 'upstreamGapProofRequired']) {
+      if (typeof capability[field] !== 'boolean') {
+        errors.push(capabilityIssue('REQUEST_INVALID', `Capability declaration ${field} must be boolean.`, `${label}.${field}`));
+      }
+    }
+
+    for (const field of ['writes', 'forbiddenWrites', 'outputs']) {
+      validateCapabilityDeclarationStringArray(capability, field, errors, label);
+    }
+
+    if (isEngineLike(capability) && capability.upstreamGapProofRequired !== true) {
+      errors.push(
+        capabilityIssue(
+          'REQUEST_INVALID',
+          'Capability declaration upstreamGapProofRequired must be true for engine-like adapters.',
+          `${label}.upstreamGapProofRequired`,
+        ),
+      );
+    }
+  }
+}
+
+function validateCapabilityDeclarationString(capability, field, errors, label) {
+  if (typeof capability[field] !== 'string' || capability[field] === '' || capability[field].trim() !== capability[field]) {
+    errors.push(
+      capabilityIssue('REQUEST_INVALID', `Capability declaration ${field} must be a non-empty exact string.`, `${label}.${field}`),
+    );
+  }
+}
+
+function validateCapabilityDeclarationStringArray(capability, field, errors, label) {
+  if (!Array.isArray(capability[field])) {
+    errors.push(capabilityIssue('REQUEST_INVALID', `Capability declaration ${field} must be an array.`, `${label}.${field}`));
+    return;
+  }
+  for (const [index, value] of capability[field].entries()) {
+    if (typeof value !== 'string' || value === '' || value.trim() !== value) {
+      errors.push(
+        capabilityIssue(
+          'REQUEST_INVALID',
+          `Capability declaration ${field} entries must be non-empty exact strings.`,
+          `${label}.${field}[${index}]`,
+        ),
+      );
+    }
+  }
 }
 
 function validateCapabilityUsageRequest(request, errors) {

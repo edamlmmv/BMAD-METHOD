@@ -19,6 +19,12 @@ education control plane only. Help the user start from
 declared capability fields, and route any per-skill behavior changes through the
 normal exposed `customize.toml` surfaces.
 
+When the user says "use Codex" or "use Graphify", you may point at
+`docs/workspace/capability-profile-registry.json` as advisory authoring context:
+exact capability ids, support states, trust boundaries, evidence refs, and
+repair hints. The registry helps authors choose and explain a Capability
+Request. It is not a customization surface and not verifier authority.
+
 Do not make `bmad workspace verify-capability` read `_bmad/custom`, hand-authored
 TOML, local Codex config, app-server APIs, or live Graphify output. The verifier
 accepts a self-contained Capability Request JSON fixture and returns a declared

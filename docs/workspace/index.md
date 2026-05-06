@@ -23,6 +23,7 @@ CLI records reviewable evidence.
 | Current system summary | [Current State](./current-state.md) |
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
+| Advisory capability profiles | [Capability Profile Registry](./capability-profile-registry.json) |
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
 | Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
