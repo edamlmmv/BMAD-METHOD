@@ -14,6 +14,7 @@ description: Index of BMAD Workspace templates
 - **[capability-request.codex-manual.example.json](./capability-request.codex-manual.example.json)** - Codex manual executor capability request example
 - **[capability-request.graphify-repo-intake.example.json](./capability-request.graphify-repo-intake.example.json)** - Graphify repo-intake capability request example
 - **[capability-request.template.json](./capability-request.template.json)** - Declared capability verification request example
+- **[codex-executable-evidence.template.json](./codex-executable-evidence.template.json)** - Codex command-backed executable evidence template
 - **[fresh-chat-prompt.md](./fresh-chat-prompt.md)** - Workspace-aware Codex starter prompt
 - **[self-improvement-checkpoint.template.md](./self-improvement-checkpoint.template.md)** - Checkpoint template for BMAD self-improvement automation runs
 - **[self-improvement-codex-prompt.md](./self-improvement-codex-prompt.md)** - Codex prompt for local automation-capable BMAD self-improvement runs

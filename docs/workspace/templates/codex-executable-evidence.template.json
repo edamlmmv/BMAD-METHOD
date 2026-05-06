@@ -1,0 +1,47 @@
+{
+  "kind": "codex-executable-evidence",
+  "schemaVersion": 1,
+  "surface": "codex-mcp-server",
+  "allowedSurfaces": ["codex-cli", "codex-desktop", "codex-mcp-server"],
+  "command": "codex mcp-server",
+  "cwd": "/Users/edam/Documents/TODA/BMAD-METHOD",
+  "timestamp": "2026-05-06T00:00:00.000Z",
+  "exitCode": 0,
+  "stdoutSummary": "JSON-RPC initialize and tools/list responses captured.",
+  "stderrSummary": "",
+  "version": "0.128.0",
+  "pass": true,
+  "mcp": {
+    "transport": "stdio",
+    "initialize": {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize"
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "serverInfo": {
+            "name": "codex-mcp-server",
+            "version": "0.128.0"
+          }
+        }
+      }
+    },
+    "toolsList": {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list"
+      },
+      "responseSummary": "Tools include codex and codex-reply.",
+      "normalizedToolNames": ["codex", "codex-reply"]
+    }
+  },
+  "review": {
+    "verdict": "pass",
+    "notes": "Executable proof requires command-backed transcript. Docs, config, and customize output are context only."
+  }
+}

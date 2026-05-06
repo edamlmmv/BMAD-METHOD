@@ -25,6 +25,7 @@ export default [
       'z*/**', // z-samples, z1, z2, etc.
       '.claude/**',
       '.codex/**',
+      '.history/**',
       '.github/chatmodes/**',
       '.agent/**',
       '.agentvibes/**',

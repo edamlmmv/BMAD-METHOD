@@ -52,6 +52,7 @@ const REQUIRED_CAPABILITY_FIELDS = [
   'outputs',
   'upstreamGapProofRequired',
 ];
+const ALLOWED_CAPABILITY_DECLARATION_FIELDS = new Set(REQUIRED_CAPABILITY_FIELDS);
 
 function validateWorkPacket(packet) {
   const errors = [];
@@ -458,6 +459,8 @@ function validateCapabilityRequestDeclarations(capabilities, errors) {
       continue;
     }
 
+    collectUnknownFields(capability, ALLOWED_CAPABILITY_DECLARATION_FIELDS, label, errors, 'Capability declaration field');
+
     for (const field of REQUIRED_CAPABILITY_FIELDS) {
       if (!(field in capability)) {
         errors.push(capabilityIssue('REQUEST_INVALID', `Capability declaration ${field} is required.`, `${label}.${field}`));
@@ -636,10 +639,12 @@ function normalizeCapabilityObservations(observations) {
   });
 }
 
-function collectUnknownFields(object, allowedFields, label, errors) {
+function collectUnknownFields(object, allowedFields, label, errors, fieldLabel = 'Capability request field') {
   for (const field of Object.keys(object)) {
     if (!allowedFields.has(field)) {
-      errors.push(capabilityIssue('REQUEST_INVALID', `Capability request field ${field} is not allowed.`, `${label}.${field}`));
+      const evidenceBoundary =
+        field === 'executableEvidence' ? '; executable evidence belongs in Workspace result/review/closeout artifacts' : '';
+      errors.push(capabilityIssue('REQUEST_INVALID', `${fieldLabel} ${field} is not allowed${evidenceBoundary}.`, `${label}.${field}`));
     }
   }
 }

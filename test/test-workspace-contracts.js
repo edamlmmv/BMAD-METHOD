@@ -1340,6 +1340,8 @@ function runTests() {
       'templates',
       'capability-request.graphify-repo-intake.example.json',
     );
+    const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
+    const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
@@ -1373,6 +1375,8 @@ function runTests() {
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
     assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
+    assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
+    assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
@@ -1417,6 +1421,37 @@ function runTests() {
       'workspace index defines verifier boundary',
       index,
     );
+    const codexEvidencePlan = fs.existsSync(codexEvidencePlanPath) ? fs.readFileSync(codexEvidencePlanPath, 'utf8') : '';
+    const codexExecutableEvidenceTemplate = fs.existsSync(codexExecutableEvidenceTemplatePath)
+      ? fs.readFileSync(codexExecutableEvidenceTemplatePath, 'utf8')
+      : '';
+    for (const required of [
+      'Declared capability is not demonstrated capability.',
+      'codex --version',
+      'codex exec --help',
+      'codex mcp --help',
+      'codex mcp-server --help',
+      'JSON-RPC initialize',
+      'JSON-RPC tools/list',
+      'codex app <workspace>',
+      'codex-mcp-server-transcript.jsonl',
+      'codex-cli-evidence.jsonl',
+      'Workspace result/review/closeout artifacts are evidence containers',
+    ]) {
+      assert(codexEvidencePlan.includes(required), `Codex evidence plan includes ${required}`, codexEvidencePlan);
+    }
+    for (const required of [
+      '"surface"',
+      '"codex-cli"',
+      '"codex-desktop"',
+      '"codex-mcp-server"',
+      '"transport": "stdio"',
+      '"initialize"',
+      '"toolsList"',
+      '"normalizedToolNames"',
+    ]) {
+      assert(codexExecutableEvidenceTemplate.includes(required), `Codex executable evidence template includes ${required}`);
+    }
 
     const architecture = fs.readFileSync(architecturePath, 'utf8');
     assert(architecture.includes('The current system is'), 'architecture states current system', architecture);
@@ -2051,6 +2086,30 @@ function runTests() {
     assert(
       verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === '$.capabilities[0].allowedInNormalSession'),
       'invalid embedded declaration field names REQUEST_INVALID and path',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const [capability] = validCapabilityContract().capabilities;
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        capabilities: [{ ...capability, executableEvidence: { command: 'codex mcp-server' } }],
+      }),
+    );
+    assert(
+      verdict.ok === false,
+      'capability verifier rejects executable evidence inside embedded declarations',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some(
+        (error) =>
+          error.code === 'REQUEST_INVALID' &&
+          error.path === '$.capabilities[0].executableEvidence' &&
+          error.message.includes('Workspace result/review/closeout'),
+      ),
+      'executable evidence rejection names declaration path and Workspace evidence boundary',
       JSON.stringify(verdict, null, 2),
     );
   }

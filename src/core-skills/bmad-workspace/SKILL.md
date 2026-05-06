@@ -296,12 +296,12 @@ fields, not separate CLI commands.
 Use shared BMAD planning capabilities to produce or check setup evidence when
 the Workspace goal needs them:
 
-| Capability | Use when | Workspace ref |
-| --- | --- | --- |
-| `capability:zoom-out` `zoom-out` | Reframe problem, constraints, alternatives, and chosen path. | `zoomOut` |
-| `capability:tdd` `tdd` | Plan failing-test-first implementation guidance. | `tddPlan` |
-| `capability:ubiquitous-language` `ubiquitous-language` | Align terms across docs, prompts, help, and code-facing names. | `ubiquitousLanguage` |
-| `capability:grill-me` `grill-me` | Challenge a plan at checkpoint and record changed/deferred decisions. | `grillDecisions` |
+| Capability                                             | Use when                                                              | Workspace ref        |
+| ------------------------------------------------------ | --------------------------------------------------------------------- | -------------------- |
+| `capability:zoom-out` `zoom-out`                       | Reframe problem, constraints, alternatives, and chosen path.          | `zoomOut`            |
+| `capability:tdd` `tdd`                                 | Plan failing-test-first implementation guidance.                      | `tddPlan`            |
+| `capability:ubiquitous-language` `ubiquitous-language` | Align terms across docs, prompts, help, and code-facing names.        | `ubiquitousLanguage` |
+| `capability:grill-me` `grill-me`                       | Challenge a plan at checkpoint and record changed/deferred decisions. | `grillDecisions`     |
 
 Each setup entry must be complete with a ref or skipped with an explicit reason.
 Use `--skip-setup <step=reason>` only when the user accepts the skip.
