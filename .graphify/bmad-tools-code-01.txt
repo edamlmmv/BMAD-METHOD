@@ -57,11 +57,14 @@ tools/validate-skills.js
 tools/validate-svg-changes.sh
 tools/validate-ubiquitous-language.js
 tools/workspace/archive.js
+tools/workspace/capability-contract.js
+tools/workspace/capability-verifier.js
 tools/workspace/closeout.js
 tools/workspace/command-registry.js
 tools/workspace/contracts.js
 tools/workspace/destroy.js
 tools/workspace/diff.js
+tools/workspace/evidence-gates.js
 tools/workspace/evidence.js
 tools/workspace/executor-contract.js
 tools/workspace/grant-guard.js

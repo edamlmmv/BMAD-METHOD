@@ -30,6 +30,7 @@ docs/reference/core-tools.md
 docs/reference/modules.md
 docs/reference/testing.md
 docs/reference/workflow-map.md
+docs/reviews/codex-self-improve-capability-evidence-gates.md
 docs/roadmap.mdx
 docs/tutorials/getting-started.md
 docs/workspace/adr-candidates.md
@@ -46,6 +47,13 @@ docs/workspace/operator-quickstart.md
 docs/workspace/prd.md
 docs/workspace/release-checklist.md
 docs/workspace/release-note-6.6.0.md
+docs/workspace/reviews/customize-architecture-corrections-2026-05-05.md
+docs/workspace/reviews/question-10-final-spec-assembly.md
+docs/workspace/reviews/question-7-codex-graphify-capability-context.md
+docs/workspace/reviews/question-8-capability-lifecycle-variants.md
+docs/workspace/reviews/question-9-capability-promotion-evidence.md
+docs/workspace/reviews/self-improve-capability-evidence-gates-customize-review.md
+docs/workspace/reviews/self-improve-capability-evidence-gates-squash-spec.md
 docs/workspace/self-improvement-automation-policy.md
 docs/workspace/self-improvement-codex.md
 docs/workspace/session-lifecycle.md

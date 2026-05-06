@@ -14,12 +14,13 @@ const GRAPHIFY_DIR = '.graphify';
 const GRAPH_DIR = 'graph';
 const PROPOSED_GLOSSARY = 'UBIQUITOUS_LANGUAGE.proposed.md';
 
-const REQUIRED_SINGLE_MANIFESTS = Object.freeze(['bmad-root.txt', 'codex-config.txt']);
+const REQUIRED_SINGLE_MANIFESTS = Object.freeze(['bmad-root.txt', 'codex-config.txt', 'graphify-docs.txt']);
 const REQUIRED_MANIFEST_PREFIXES = Object.freeze(['bmad-docs-', 'bmad-skills-', 'bmad-tools-code-']);
 const REQUIRED_GRAPHS = Object.freeze([
   'bmad-docs.graph.json',
   'bmad-code.graph.json',
   'codex-docs.graph.json',
+  'graphify-docs.graph.json',
   'repository-knowledge.graph.json',
 ]);
 const GENERATED_OR_NOISY_PATTERNS = Object.freeze([
@@ -185,6 +186,24 @@ function validateManifestSet(projectRoot, errors) {
     if (!codexContent.includes(required)) {
       addError(errors, 'GRAPHIFY_CODEX_SOURCE_MISSING', `Codex source metadata missing: ${required}`, {
         file: path.join(GRAPHIFY_DIR, 'codex-config.txt'),
+        field: required,
+      });
+    }
+  }
+
+  const graphifyLines = manifests.get('graphify-docs.txt') || [];
+  const graphifyContent = graphifyLines.map((line) => fs.readFileSync(path.join(projectRoot, line), 'utf8')).join('\n');
+  for (const required of [
+    'source_marker: graphify-v7-doc',
+    'https://github.com/safishamsi/graphify#full-command-reference',
+    'https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md',
+    'https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md',
+    'https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md',
+    'retrieved_at:',
+  ]) {
+    if (!graphifyContent.includes(required)) {
+      addError(errors, 'GRAPHIFY_SOURCE_MISSING', `Graphify source metadata missing: ${required}`, {
+        file: path.join(GRAPHIFY_DIR, 'graphify-docs.txt'),
         field: required,
       });
     }

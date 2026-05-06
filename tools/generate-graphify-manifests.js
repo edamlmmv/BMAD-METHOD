@@ -11,9 +11,11 @@ const path = require('node:path');
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const GRAPHIFY_DIR = path.join(PROJECT_ROOT, '.graphify');
 const CODEX_SOURCE_DIR = path.join(GRAPHIFY_DIR, 'sources', 'codex');
+const GRAPHIFY_SOURCE_DIR = path.join(GRAPHIFY_DIR, 'sources', 'graphify');
 const MAX_FILES_PER_MANIFEST = 200;
 
 const CODEX_RETRIEVED_AT = '2026-05-05';
+const GRAPHIFY_RETRIEVED_AT = '2026-05-06';
 
 const DENY_DIRS = new Set([
   '.git',
@@ -284,6 +286,153 @@ MCP server identities, and command rules.
   );
 }
 
+function writeGraphifySources() {
+  writeFile(
+    path.join(GRAPHIFY_SOURCE_DIR, 'full-command-reference.md'),
+    `---
+source_marker: graphify-v7-doc
+source_url: https://github.com/safishamsi/graphify#full-command-reference
+retrieved_at: ${GRAPHIFY_RETRIEVED_AT}
+namespace: graphify
+---
+
+# Graphify Command Reference
+
+Graphify exposes command surfaces for repository graph generation, static graph
+navigation, AI client installation, and hook/watch lifecycle support. This
+snapshot records BMAD-relevant command families as advisory operator context.
+
+## Query And Navigation Commands
+
+Graphify supports natural-language graph queries, DFS budgeted queries, path
+finding between graph nodes, and node explanation commands. These commands can
+help an operator navigate checked-in graph artifacts, but their live output is
+not Workspace verifier input.
+
+## Agent Integration Commands
+
+Graphify documents assistant integrations for platforms including Codex. Client
+install commands can configure an assistant to consult graph reports before
+file reads on platforms that support that behavior. BMAD treats this as local
+operator affordance, not Workspace authority.
+
+## Hook And Watch Commands
+
+Graphify includes hook install, uninstall, and status commands for repository
+change awareness. BMAD records hook/watch capability as proposed advisory
+context only; Workspace must not run hooks or regenerate graph artifacts during
+capability verification.
+`,
+  );
+
+  writeFile(
+    path.join(GRAPHIFY_SOURCE_DIR, 'architecture.md'),
+    `---
+source_marker: graphify-v7-doc
+source_url: https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md
+retrieved_at: ${GRAPHIFY_RETRIEVED_AT}
+namespace: graphify
+---
+
+# Graphify Architecture
+
+Graphify is documented as an assistant skill backed by a Python library. The
+pipeline moves through detection, extraction, graph build, clustering, analysis,
+report rendering, and export. Modules communicate through plain dictionaries
+and NetworkX graph objects.
+
+## Pipeline Modules
+
+Key modules cover file collection, extraction, graph building, clustering,
+analysis, reporting, export, ingest, cache handling, security validation, schema
+validation, MCP serving, watching, and benchmarking. BMAD persists these as
+tool capability context, not as permission to call Graphify.
+
+## MCP Stdio Server
+
+Graphify architecture names a serve module that starts an MCP stdio server from
+a graph path. BMAD treats this as an experimental live-tool affordance. Live MCP
+activation is not verifier input and not Workspace authority.
+
+## Security And Validation
+
+Graphify validates external URLs, fetched content, graph file paths, and node
+labels before use. BMAD still keeps source files and declared Workspace
+contracts as authority before planning or edits.
+`,
+  );
+
+  writeFile(
+    path.join(GRAPHIFY_SOURCE_DIR, 'docker-mcp-sqlite.md'),
+    `---
+source_marker: graphify-v7-doc
+source_url: https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md
+retrieved_at: ${GRAPHIFY_RETRIEVED_AT}
+namespace: graphify
+---
+
+# Graphify Docker MCP SQLite Runbook
+
+The Graphify docs include a reproducible Docker MCP Toolkit runbook for adding
+SQLite MCP tools beside graph-related context. The runbook is optional and not
+required to use Graphify.
+
+## SQLite MCP Tools
+
+The runbook describes SQLite tools for read queries, write queries, table
+creation, table listing, table description, and insight append operations.
+These tools are persistent local MCP affordances, not Workspace verifier
+evidence.
+
+## Client Wiring
+
+The runbook lists client connection steps for multiple MCP clients, including
+Codex. BMAD treats this as advisory operator setup. Runtime availability must be
+recorded manually through Workspace result or closeout evidence if it matters.
+`,
+  );
+
+  writeFile(
+    path.join(GRAPHIFY_SOURCE_DIR, 'how-it-works.md'),
+    `---
+source_marker: graphify-v7-doc
+source_url: https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md
+retrieved_at: ${GRAPHIFY_RETRIEVED_AT}
+namespace: graphify
+---
+
+# Graphify How It Works
+
+Graphify processes code, media, documents, papers, and images into a graph.
+BMAD records this as source evidence for advisory graph context and capability
+authoring.
+
+## Three Passes
+
+Code structure extraction uses local tree-sitter parsing. Video and audio
+transcription use local faster-whisper. Document, paper, image, and transcript
+extraction can use parallel Claude subagents and costs tokens.
+
+## Confidence Tagging
+
+Graphify labels relationships as extracted, inferred, or ambiguous. BMAD must
+keep ambiguous and inferred graph relationships advisory until source files or
+manual review confirms them.
+
+## SHA256 Cache
+
+Graphify fingerprints extracted files by content hash and skips unchanged files
+on reruns. Cache state helps explain freshness risk but is not Workspace
+verifier input.
+
+## Graph Format
+
+Graphify outputs NetworkX node-link graph JSON with stable node ids, labels,
+source files, edge relations, confidence data, and optional hyperedges.
+`,
+  );
+}
+
 function writeRunbook() {
   writeFile(
     path.join(GRAPHIFY_DIR, 'runbook.md'),
@@ -308,6 +457,7 @@ npm run validate:graphify-manifests
 
 - \`.graphify/*.txt\` files are deterministic corpus manifests.
 - \`.graphify/sources/codex/*.md\` files are Codex source snapshots and citation metadata.
+- \`.graphify/sources/graphify/*.md\` files are Graphify source snapshots and citation metadata.
 - \`.graphify/work/\` is disposable materialized corpus data.
 - \`graph/*.graph.json\` files are normalized review artifacts.
 - \`graph/repository-knowledge.graph.json\` is derived from per-slice graphs.
@@ -339,6 +489,7 @@ function main() {
   ensureDir(GRAPHIFY_DIR);
   removeOldGeneratedManifests();
   writeCodexSources();
+  writeGraphifySources();
   writeRunbook();
 
   writeManifest('bmad-root.txt', [
@@ -369,6 +520,13 @@ function main() {
     '.graphify/sources/codex/advanced-configuration-thread-excerpt.md',
     '.graphify/sources/codex/config-advanced.md',
     '.graphify/sources/codex/config-reference.md',
+  ]);
+
+  writeManifest('graphify-docs.txt', [
+    '.graphify/sources/graphify/architecture.md',
+    '.graphify/sources/graphify/docker-mcp-sqlite.md',
+    '.graphify/sources/graphify/full-command-reference.md',
+    '.graphify/sources/graphify/how-it-works.md',
   ]);
 
   console.log('Graphify manifests generated.');

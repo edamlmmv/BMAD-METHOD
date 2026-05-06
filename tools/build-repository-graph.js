@@ -381,18 +381,21 @@ function buildGraphs() {
   const skillsFiles = manifestNames.filter((name) => name.startsWith('bmad-skills-')).flatMap((name) => readManifest(name));
   const codeFiles = manifestNames.filter((name) => name.startsWith('bmad-tools-code-')).flatMap((name) => readManifest(name));
   const codexFiles = readManifest('codex-config.txt');
+  const graphifyFiles = readManifest('graphify-docs.txt');
 
   const bmadDocs = buildSlice('bmad-docs', 'bmad', [...rootFiles, ...docsFiles, ...skillsFiles]);
   const bmadCode = buildSlice('bmad-code', 'code', codeFiles);
   const codexDocs = buildSlice('codex-docs', 'codex', codexFiles);
-  const repository = mergeGraphs([bmadDocs, bmadCode, codexDocs]);
+  const graphifyDocs = buildSlice('graphify-docs', 'graphify', graphifyFiles);
+  const repository = mergeGraphs([bmadDocs, bmadCode, codexDocs, graphifyDocs]);
 
   writeGraph('bmad-docs.graph.json', bmadDocs);
   writeGraph('bmad-code.graph.json', bmadCode);
   writeGraph('codex-docs.graph.json', codexDocs);
+  writeGraph('graphify-docs.graph.json', graphifyDocs);
   writeGraph('repository-knowledge.graph.json', repository);
 
-  return { bmadDocs, bmadCode, codexDocs, repository };
+  return { bmadDocs, bmadCode, codexDocs, graphifyDocs, repository };
 }
 
 function sourceRefForNode(node) {
@@ -423,6 +426,16 @@ function selectProposalTerms(repositoryGraph) {
     ['codex', 'MCP Servers'],
     ['codex', 'Observability And Telemetry'],
     ['codex', 'Requirements TOML'],
+    ['graphify', 'Graphify Command Reference'],
+    ['graphify', 'Query And Navigation Commands'],
+    ['graphify', 'Agent Integration Commands'],
+    ['graphify', 'Hook And Watch Commands'],
+    ['graphify', 'Graphify Architecture'],
+    ['graphify', 'MCP Stdio Server'],
+    ['graphify', 'Graphify How It Works'],
+    ['graphify', 'Confidence Tagging'],
+    ['graphify', 'SHA256 Cache'],
+    ['graphify', 'Graph Format'],
   ];
 
   const selected = [];
@@ -460,6 +473,7 @@ ${rows}
 
 - Per-slice graphs are primary review artifacts; \`graph/repository-knowledge.graph.json\` is derived.
 - Codex terms stay in the \`codex\` namespace unless explicit BMAD usage supports a cross-link.
+- Graphify terms stay in the \`graphify\` namespace unless explicit BMAD usage supports a cross-link.
 - BMAD terms stay in the \`bmad\` namespace unless source evidence supports a merge.
 - Code symbols become language terms only when they represent reviewer-facing behavior or validation concepts.
 

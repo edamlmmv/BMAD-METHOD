@@ -19,6 +19,7 @@ npm run validate:graphify-manifests
 
 - `.graphify/*.txt` files are deterministic corpus manifests.
 - `.graphify/sources/codex/*.md` files are Codex source snapshots and citation metadata.
+- `.graphify/sources/graphify/*.md` files are Graphify source snapshots and citation metadata.
 - `.graphify/work/` is disposable materialized corpus data.
 - `graph/*.graph.json` files are normalized review artifacts.
 - `graph/repository-knowledge.graph.json` is derived from per-slice graphs.

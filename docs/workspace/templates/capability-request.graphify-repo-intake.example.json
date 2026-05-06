@@ -1,0 +1,62 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "evidence.graph.repo-intake",
+    "sessionType": "normal",
+    "group": "evidence.graph",
+    "provider": "graphify",
+    "interface": "repo-intake",
+    "writes": ["workspace-session/intake"],
+    "outputs": ["repo-intake.json", "graph.json", "provenance.json"]
+  },
+  "capabilities": [
+    {
+      "id": "evidence.graph.repo-intake",
+      "group": "evidence.graph",
+      "provider": "graphify",
+      "interface": "repo-intake",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": false,
+      "writes": ["workspace-session/intake"],
+      "forbiddenWrites": ["workspace-base"],
+      "outputs": ["repo-intake.json", "graph.json", "provenance.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "GRAPHIFY_COMMAND_REFERENCE_DOCS",
+      "message": "Graphify command reference reviewed for advisory query, install, and hook command context only.",
+      "details": {
+        "sourceUrl": "https://github.com/safishamsi/graphify#full-command-reference",
+        "reviewedAt": "2026-05-06"
+      }
+    },
+    {
+      "code": "GRAPHIFY_ARCHITECTURE_DOCS",
+      "message": "Graphify architecture docs reviewed for pipeline, MCP server, and validation context only.",
+      "details": {
+        "sourceUrl": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "reviewedAt": "2026-05-06"
+      }
+    },
+    {
+      "code": "GRAPHIFY_HOW_IT_WORKS_DOCS",
+      "message": "Graphify how-it-works docs reviewed for graph extraction, confidence, cache, and graph format context only.",
+      "details": {
+        "sourceUrl": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "reviewedAt": "2026-05-06"
+      }
+    },
+    {
+      "code": "GRAPHIFY_DOCKER_MCP_SQLITE_DOCS",
+      "message": "Graphify Docker MCP SQLite docs reviewed for optional persistent MCP context only.",
+      "details": {
+        "sourceUrl": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "reviewedAt": "2026-05-06"
+      }
+    }
+  ]
+}

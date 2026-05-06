@@ -1,0 +1,508 @@
+{
+  "metadata": {
+    "generated_by": "tools/build-repository-graph.js",
+    "slice_id": "graphify-docs",
+    "namespace": "graphify"
+  },
+  "nodes": [
+    {
+      "id": "graphify:concept:graphify-sources-graphify-architecture-md:graphify-architecture",
+      "type": "concept",
+      "label": "Graphify Architecture",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/architecture.md",
+        "line": 8,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-architecture-md:mcp-stdio-server",
+      "type": "concept",
+      "label": "MCP Stdio Server",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/architecture.md",
+        "line": 22,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-architecture-md:pipeline-modules",
+      "type": "concept",
+      "label": "Pipeline Modules",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/architecture.md",
+        "line": 15,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-architecture-md:security-and-validation",
+      "type": "concept",
+      "label": "Security And Validation",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/architecture.md",
+        "line": 28,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:client-wiring",
+      "type": "concept",
+      "label": "Client Wiring",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+        "line": 21,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:graphify-docker-mcp-sqlite-runbook",
+      "type": "concept",
+      "label": "Graphify Docker MCP SQLite Runbook",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+        "line": 8,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:sqlite-mcp-tools",
+      "type": "concept",
+      "label": "SQLite MCP Tools",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+        "line": 14,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-full-command-reference-md:agent-integration-commands",
+      "type": "concept",
+      "label": "Agent Integration Commands",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/full-command-reference.md",
+        "line": 21,
+        "url": "https://github.com/safishamsi/graphify#full-command-reference",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-full-command-reference-md:graphify-command-reference",
+      "type": "concept",
+      "label": "Graphify Command Reference",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/full-command-reference.md",
+        "line": 8,
+        "url": "https://github.com/safishamsi/graphify#full-command-reference",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-full-command-reference-md:hook-and-watch-commands",
+      "type": "concept",
+      "label": "Hook And Watch Commands",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/full-command-reference.md",
+        "line": 28,
+        "url": "https://github.com/safishamsi/graphify#full-command-reference",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-full-command-reference-md:query-and-navigation-commands",
+      "type": "concept",
+      "label": "Query And Navigation Commands",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/full-command-reference.md",
+        "line": 14,
+        "url": "https://github.com/safishamsi/graphify#full-command-reference",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-how-it-works-md:confidence-tagging",
+      "type": "concept",
+      "label": "Confidence Tagging",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "line": 20,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-how-it-works-md:graph-format",
+      "type": "concept",
+      "label": "Graph Format",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "line": 32,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-how-it-works-md:graphify-how-it-works",
+      "type": "concept",
+      "label": "Graphify How It Works",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "line": 8,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-how-it-works-md:sha256-cache",
+      "type": "concept",
+      "label": "SHA256 Cache",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "line": 26,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:concept:graphify-sources-graphify-how-it-works-md:three-passes",
+      "type": "concept",
+      "label": "Three Passes",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "line": 14,
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:file:graphify-sources-graphify-architecture-md",
+      "type": "file",
+      "label": ".graphify/sources/graphify/architecture.md",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/architecture.md",
+        "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:file:graphify-sources-graphify-docker-mcp-sqlite-md",
+      "type": "file",
+      "label": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:file:graphify-sources-graphify-full-command-reference-md",
+      "type": "file",
+      "label": ".graphify/sources/graphify/full-command-reference.md",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/full-command-reference.md",
+        "url": "https://github.com/safishamsi/graphify#full-command-reference",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    },
+    {
+      "id": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "type": "file",
+      "label": ".graphify/sources/graphify/how-it-works.md",
+      "namespace": "graphify",
+      "source": {
+        "path": ".graphify/sources/graphify/how-it-works.md",
+        "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "retrieved_at": "2026-05-06"
+      },
+      "slice_id": "graphify-docs"
+    }
+  ],
+  "edges": [
+    {
+      "from": "graphify:file:graphify-sources-graphify-architecture-md",
+      "to": "graphify:concept:graphify-sources-graphify-architecture-md:graphify-architecture",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/architecture.md",
+          "line": 8,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-architecture-md",
+      "to": "graphify:concept:graphify-sources-graphify-architecture-md:mcp-stdio-server",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/architecture.md",
+          "line": 22,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-architecture-md",
+      "to": "graphify:concept:graphify-sources-graphify-architecture-md:pipeline-modules",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/architecture.md",
+          "line": 15,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-architecture-md",
+      "to": "graphify:concept:graphify-sources-graphify-architecture-md:security-and-validation",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/architecture.md",
+          "line": 28,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-docker-mcp-sqlite-md",
+      "to": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:client-wiring",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+          "line": 21,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-docker-mcp-sqlite-md",
+      "to": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:graphify-docker-mcp-sqlite-runbook",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+          "line": 8,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-docker-mcp-sqlite-md",
+      "to": "graphify:concept:graphify-sources-graphify-docker-mcp-sqlite-md:sqlite-mcp-tools",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/docker-mcp-sqlite.md",
+          "line": 14,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-full-command-reference-md",
+      "to": "graphify:concept:graphify-sources-graphify-full-command-reference-md:agent-integration-commands",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/full-command-reference.md",
+          "line": 21,
+          "url": "https://github.com/safishamsi/graphify#full-command-reference",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-full-command-reference-md",
+      "to": "graphify:concept:graphify-sources-graphify-full-command-reference-md:graphify-command-reference",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/full-command-reference.md",
+          "line": 8,
+          "url": "https://github.com/safishamsi/graphify#full-command-reference",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-full-command-reference-md",
+      "to": "graphify:concept:graphify-sources-graphify-full-command-reference-md:hook-and-watch-commands",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/full-command-reference.md",
+          "line": 28,
+          "url": "https://github.com/safishamsi/graphify#full-command-reference",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-full-command-reference-md",
+      "to": "graphify:concept:graphify-sources-graphify-full-command-reference-md:query-and-navigation-commands",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/full-command-reference.md",
+          "line": 14,
+          "url": "https://github.com/safishamsi/graphify#full-command-reference",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "to": "graphify:concept:graphify-sources-graphify-how-it-works-md:confidence-tagging",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/how-it-works.md",
+          "line": 20,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "to": "graphify:concept:graphify-sources-graphify-how-it-works-md:graph-format",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/how-it-works.md",
+          "line": 32,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "to": "graphify:concept:graphify-sources-graphify-how-it-works-md:graphify-how-it-works",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/how-it-works.md",
+          "line": 8,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "to": "graphify:concept:graphify-sources-graphify-how-it-works-md:sha256-cache",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/how-it-works.md",
+          "line": 26,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    },
+    {
+      "from": "graphify:file:graphify-sources-graphify-how-it-works-md",
+      "to": "graphify:concept:graphify-sources-graphify-how-it-works-md:three-passes",
+      "relation": "documents",
+      "evidence": [
+        {
+          "path": ".graphify/sources/graphify/how-it-works.md",
+          "line": 14,
+          "url": "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+          "retrieved_at": "2026-05-06"
+        }
+      ],
+      "confidence": "EXTRACTED",
+      "slice_id": "graphify-docs"
+    }
+  ],
+  "warnings": []
+}

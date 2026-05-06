@@ -115,6 +115,9 @@ reported as advisory; `authorize` remains the grant authority.
 Author request/declaration examples through Workspace docs and BMad Customize
 guidance, then pass the resolved declaration fixture to the verifier. Do not make
 the verifier depend on hand-authored TOML or customization merge internals.
+Codex and Graphify examples live at
+`docs/workspace/templates/capability-request.codex-manual.example.json` and
+`docs/workspace/templates/capability-request.graphify-repo-intake.example.json`.
 
 ## Capability Profile Registry
 
@@ -144,6 +147,11 @@ Profile evidence refs may cite committed docs, tests, source files, and source
 URLs used for authoring context. They are not support promotion by themselves.
 Any Workspace result or closeout that mentions Codex or Graphify tool output
 must be recorded as explicit manual evidence, not as hidden validation.
+
+Graphify source snapshots under `.graphify/sources/graphify/` and normalized
+`graph/graphify-docs.graph.json` are durable advisory graph context. They help
+operators explain query, MCP, hook/watch, cache, and graph-format affordances;
+they do not make Workspace call Graphify or trust live Graphify output.
 
 ## Support Promotion
 

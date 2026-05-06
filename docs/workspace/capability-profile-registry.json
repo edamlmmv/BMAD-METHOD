@@ -11,6 +11,8 @@
         "tools/workspace/capability-contract.js",
         "docs/workspace/capability-contract.md",
         "docs/workspace/templates/capability-request.template.json",
+        "docs/workspace/templates/capability-request.graphify-repo-intake.example.json",
+        "graph/graphify-docs.graph.json",
         "test/test-workspace-contracts.js"
       ],
       "repairHint": "Keep declared capability fields, graph evidence docs, fixtures, and Workspace tests aligned before claiming support."
@@ -26,6 +28,7 @@
         "tools/workspace/executor-contract.js",
         "docs/workspace/capability-contract.md",
         "docs/workspace/templates/capability-request.template.json",
+        "docs/workspace/templates/capability-request.codex-manual.example.json",
         "test/test-workspace-contracts.js"
       ],
       "repairHint": "Keep Executor Contract docs, Capability Request fixtures, and Workspace tests aligned before claiming support."
@@ -38,9 +41,11 @@
       "trustBoundary": "Codex config may describe operator affordances such as sandboxing, approvals, apps, MCP servers, skills, hooks, and multi-agent tools; config is not verifier input and not Workspace authority.",
       "evidenceRefs": [
         "https://developers.openai.com/codex/config-reference#configtoml",
+        ".graphify/sources/codex/config-reference.md",
         "docs/workspace/capability-contract.md",
         "src/core-skills/bmad-workspace/SKILL.md",
         "src/core-skills/bmad-customize/SKILL.md",
+        "docs/workspace/templates/capability-request.codex-manual.example.json",
         "test/test-workspace-contracts.js"
       ],
       "repairHint": "Refresh official Codex config references, Workspace boundary docs, and registry tests before changing this profile."
@@ -55,6 +60,7 @@
         "https://developers.openai.com/codex/app-server#api-overview",
         "docs/workspace/capability-contract.md",
         "src/core-skills/bmad-workspace/SKILL.md",
+        "docs/workspace/templates/capability-request.codex-manual.example.json",
         "test/test-workspace-contracts.js"
       ],
       "repairHint": "Refresh official Codex app-server references and keep any Workspace use framed as manual evidence recording only."
@@ -68,6 +74,9 @@
       "evidenceRefs": [
         "https://github.com/safishamsi/graphify#full-command-reference",
         "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        ".graphify/sources/graphify/full-command-reference.md",
+        ".graphify/sources/graphify/how-it-works.md",
+        "docs/workspace/templates/capability-request.graphify-repo-intake.example.json",
         "docs/workspace/capability-contract.md",
         "src/core-skills/bmad-workspace/SKILL.md",
         "test/test-workspace-contracts.js"
@@ -84,6 +93,9 @@
         "https://github.com/safishamsi/graphify#using-the-graph-directly",
         "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
         "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        ".graphify/sources/graphify/architecture.md",
+        ".graphify/sources/graphify/docker-mcp-sqlite.md",
+        "graph/graphify-docs.graph.json",
         "docs/workspace/capability-contract.md",
         "test/test-workspace-contracts.js"
       ],
@@ -98,6 +110,8 @@
       "evidenceRefs": [
         "https://github.com/safishamsi/graphify#full-command-reference",
         "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        ".graphify/sources/graphify/full-command-reference.md",
+        ".graphify/sources/graphify/architecture.md",
         "docs/workspace/capability-contract.md",
         "src/core-skills/bmad-workspace/SKILL.md",
         "test/test-workspace-contracts.js"

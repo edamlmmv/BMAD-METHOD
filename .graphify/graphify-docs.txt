@@ -1,0 +1,4 @@
+.graphify/sources/graphify/architecture.md
+.graphify/sources/graphify/docker-mcp-sqlite.md
+.graphify/sources/graphify/full-command-reference.md
+.graphify/sources/graphify/how-it-works.md
