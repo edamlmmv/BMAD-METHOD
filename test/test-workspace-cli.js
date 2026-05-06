@@ -67,6 +67,20 @@ function runCli(args, options = {}) {
   });
 }
 
+function runGraphify(args) {
+  return spawnSync('uv', ['tool', 'run', '--from', 'graphifyy', 'graphify', ...args], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: cleanGitEnv({
+      NO_COLOR: '1',
+    }),
+  });
+}
+
+function commandText(result) {
+  return `${result.stdout || ''}\n${result.stderr || ''}\n${result.error?.message || ''}`;
+}
+
 function git(args, cwd) {
   return execFileSync('git', args, {
     cwd,
@@ -281,6 +295,40 @@ function runTests() {
   }
   assert(commandContract.includes('handoff` writes Markdown'), 'command contract states handoff output type', commandContract);
   assert(commandContract.includes('every other command writes JSON'), 'command contract states JSON output type', commandContract);
+
+  section('Graphify Command Evidence');
+
+  {
+    const graphifyFixturePath = path.join(repoRoot, 'test', 'fixtures', 'graphify', 'native-node-link.graph.json');
+
+    const help = runGraphify(['--help']);
+    const helpText = commandText(help);
+    assert(help.status === 0, 'Graphify help exits zero through uv', helpText);
+    assert(helpText.includes('Usage: graphify'), 'Graphify help prints usage', helpText);
+
+    const hookStatus = runGraphify(['hook', 'status']);
+    const hookStatusText = commandText(hookStatus);
+    assert(hookStatus.status === 0, 'Graphify hook status exits zero through uv', hookStatusText);
+    assert(hookStatusText.includes('post-commit:'), 'Graphify hook status reports post-commit state', hookStatusText);
+    assert(hookStatusText.includes('post-checkout:'), 'Graphify hook status reports post-checkout state', hookStatusText);
+
+    const query = runGraphify(['query', 'capability evidence', '--graph', graphifyFixturePath]);
+    const queryText = commandText(query);
+    assert(query.status === 0, 'Graphify query exits zero on native node-link fixture', queryText);
+    assert(queryText.includes('Capability Evidence'), 'Graphify query includes stable fixture label', queryText);
+
+    const explain = runGraphify(['explain', 'Capability Evidence', '--graph', graphifyFixturePath]);
+    const explainText = commandText(explain);
+    assert(explain.status === 0, 'Graphify explain exits zero on native node-link fixture', explainText);
+    assert(explainText.includes('Capability Evidence'), 'Graphify explain includes target fixture label', explainText);
+    assert(explainText.includes('Workspace Verifier'), 'Graphify explain includes neighbor fixture label', explainText);
+
+    const pathResult = runGraphify(['path', 'Capability Evidence', 'Workspace Verifier', '--graph', graphifyFixturePath]);
+    const graphPathText = commandText(pathResult);
+    assert(pathResult.status === 0, 'Graphify path exits zero on native node-link fixture', graphPathText);
+    assert(graphPathText.includes('Capability Evidence'), 'Graphify path includes source fixture label', graphPathText);
+    assert(graphPathText.includes('Workspace Verifier'), 'Graphify path includes target fixture label', graphPathText);
+  }
 
   section('Workspace Capability Verifier CLI');
 

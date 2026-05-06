@@ -28,6 +28,14 @@ When the user says "use Codex" or "use Graphify", you may point at
 exact capability ids, support states, trust boundaries, evidence refs, and
 repair hints. The registry helps authors choose and explain a Capability
 Request. It is not a customization surface and not verifier authority.
+If a Graphify request includes command claims, explain that `commandEvidence`
+is informational operator evidence only and use
+`uv tool run --from graphifyy graphify ...` for separate smoke checks against a
+Graphify-native node-link fixture (`nodes[]` and `links[]`). Do not use
+`_bmad/custom/*.toml` to declare command availability, grant authority, or make
+`verify-capability` execute commands. Codex manual executor readiness is
+human-mediated/manual and is not a guarantee that a runnable local Codex CLI
+exists.
 
 Use a per-skill authoring override example only when the target skill exposes
 the field in `customize.toml`:

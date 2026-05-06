@@ -22,7 +22,7 @@
       "capabilityId": "executor.codex.manual",
       "toolName": "Codex",
       "supportState": "supported",
-      "trustBoundary": "Codex is a manual executor and operator affordance; local config, slash commands, hooks, plugins, goals, subagents, and app-server availability are not verifier inputs.",
+      "trustBoundary": "Codex manual executor readiness is human-mediated/manual and not a guarantee that a runnable local Codex CLI exists; local config, slash commands, hooks, plugins, goals, subagents, and app-server availability are not verifier inputs.",
       "evidenceRefs": [
         "tools/workspace/capability-contract.js",
         "tools/workspace/executor-contract.js",
@@ -71,6 +71,33 @@
       "toolName": "Graphify",
       "supportState": "supported",
       "trustBoundary": "Graphify query, path, and explain commands may help an operator navigate committed graph artifacts; command output is not verifier input and not Workspace authority.",
+      "commandEvidence": {
+        "boundary": "Informational operator evidence only; not verifier input, not support promotion, and not grant authority.",
+        "canonicalInvocation": "uv tool run --from graphifyy graphify",
+        "graphFormat": "Graphify CLI smoke tests use Graphify-native node-link JSON with nodes[] and links[]; BMAD normalized graph artifacts use nodes[] and edges[] and are not CLI smoke fixtures.",
+        "smokeTests": [
+          {
+            "command": "uv tool run --from graphifyy graphify --help",
+            "expectedExitCode": 0,
+            "expectedOutputIncludes": ["Usage: graphify"]
+          },
+          {
+            "command": "uv tool run --from graphifyy graphify query \"capability evidence\" --graph test/fixtures/graphify/native-node-link.graph.json",
+            "expectedExitCode": 0,
+            "expectedOutputIncludes": ["Capability Evidence"]
+          },
+          {
+            "command": "uv tool run --from graphifyy graphify explain \"Capability Evidence\" --graph test/fixtures/graphify/native-node-link.graph.json",
+            "expectedExitCode": 0,
+            "expectedOutputIncludes": ["Capability Evidence"]
+          },
+          {
+            "command": "uv tool run --from graphifyy graphify path \"Capability Evidence\" \"Workspace Verifier\" --graph test/fixtures/graphify/native-node-link.graph.json",
+            "expectedExitCode": 0,
+            "expectedOutputIncludes": ["Capability Evidence", "Workspace Verifier"]
+          }
+        ]
+      },
       "evidenceRefs": [
         "https://github.com/safishamsi/graphify#full-command-reference",
         "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
@@ -107,6 +134,17 @@
       "toolName": "Graphify",
       "supportState": "proposed",
       "trustBoundary": "Graphify hooks, watch mode, cache refresh, and regeneration may explain graph freshness risk; automation output is not verifier input and not Workspace authority.",
+      "commandEvidence": {
+        "boundary": "Informational operator evidence only; not verifier input, not support promotion, and not grant authority.",
+        "canonicalInvocation": "uv tool run --from graphifyy graphify",
+        "smokeTests": [
+          {
+            "command": "uv tool run --from graphifyy graphify hook status",
+            "expectedExitCode": 0,
+            "expectedOutputIncludes": ["post-commit:", "post-checkout:"]
+          }
+        ]
+      },
       "evidenceRefs": [
         "https://github.com/safishamsi/graphify#full-command-reference",
         "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",

@@ -70,6 +70,49 @@ function section(title) {
   console.log(`\n${colors.cyan}── ${title} ──${colors.reset}`);
 }
 
+function assertCommandEvidence(profile, profileId, expectedCommandFragments) {
+  const evidence = profile?.commandEvidence;
+  assert(evidence && typeof evidence === 'object', `${profileId} exposes commandEvidence`, JSON.stringify(profile, null, 2));
+  if (!evidence || typeof evidence !== 'object') {
+    return;
+  }
+
+  assert(
+    evidence.canonicalInvocation === 'uv tool run --from graphifyy graphify',
+    `${profileId} uses canonical uv Graphify invocation`,
+    JSON.stringify(evidence, null, 2),
+  );
+  for (const boundary of ['not verifier input', 'not support promotion', 'not grant authority']) {
+    assert(
+      typeof evidence.boundary === 'string' && evidence.boundary.includes(boundary),
+      `${profileId} commandEvidence boundary includes ${boundary}`,
+      JSON.stringify(evidence, null, 2),
+    );
+  }
+  assert(Array.isArray(evidence.smokeTests) && evidence.smokeTests.length > 0, `${profileId} lists smoke tests`);
+  for (const [index, smokeTest] of (evidence.smokeTests || []).entries()) {
+    const label = `${profileId} commandEvidence.smokeTests[${index}]`;
+    assert(
+      typeof smokeTest.command === 'string' && smokeTest.command.startsWith(evidence.canonicalInvocation),
+      `${label} uses canonical invocation`,
+      JSON.stringify(smokeTest, null, 2),
+    );
+    assert(smokeTest.expectedExitCode === 0, `${label} expects exit code 0`, JSON.stringify(smokeTest, null, 2));
+    assert(
+      Array.isArray(smokeTest.expectedOutputIncludes) && smokeTest.expectedOutputIncludes.length > 0,
+      `${label} asserts stable output`,
+      JSON.stringify(smokeTest, null, 2),
+    );
+  }
+  for (const fragment of expectedCommandFragments) {
+    assert(
+      evidence.smokeTests.some((smokeTest) => smokeTest.command.includes(fragment)),
+      `${profileId} commandEvidence includes ${fragment}`,
+      JSON.stringify(evidence.smokeTests, null, 2),
+    );
+  }
+}
+
 function validWorkPacket() {
   return {
     kind: 'bmad-work-packet',
@@ -1298,6 +1341,7 @@ function runTests() {
       'capability-request.graphify-repo-intake.example.json',
     );
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
+    const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
     const yarnLockPath = path.join(repoRoot, 'yarn.lock');
@@ -1538,6 +1582,7 @@ function runTests() {
       'requiresGrant',
       '_bmad/custom',
       'Capability Profile Registry',
+      'commandEvidence',
       'support promotion',
     ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
@@ -1573,6 +1618,7 @@ function runTests() {
       'capabilityDeclaration',
     ]);
     const profileIds = new Set();
+    const profilesById = new Map();
     const profilesByToolName = new Map();
     for (const [index, profile] of capabilityProfileRegistry.profiles.entries()) {
       const label = `capability profile registry profiles[${index}]`;
@@ -1581,6 +1627,7 @@ function runTests() {
       }
       assert(!profileIds.has(profile.profileId), `${label} profileId is unique`, JSON.stringify(profile, null, 2));
       profileIds.add(profile.profileId);
+      profilesById.set(profile.profileId, profile);
       profilesByToolName.set(profile.toolName, (profilesByToolName.get(profile.toolName) || 0) + 1);
       assert(declaredCapabilityIds.has(profile.capabilityId), `${label} maps to declared capability id`, JSON.stringify(profile, null, 2));
       assert(supportedProfileStates.has(profile.supportState), `${label} uses known support state`, JSON.stringify(profile, null, 2));
@@ -1620,6 +1667,34 @@ function runTests() {
     }
     assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
     assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
+    assert(
+      profilesById.get('codex.manual-executor-contract')?.trustBoundary.includes('not a guarantee that a runnable local Codex CLI exists'),
+      'Codex manual executor profile avoids runnable CLI guarantee',
+      JSON.stringify(profilesById.get('codex.manual-executor-contract'), null, 2),
+    );
+    assertCommandEvidence(profilesById.get('graphify.query.static-graph-navigation'), 'graphify.query.static-graph-navigation', [
+      '--help',
+      ' query ',
+      ' explain ',
+      ' path ',
+    ]);
+    assert(
+      profilesById.get('graphify.query.static-graph-navigation')?.commandEvidence?.graphFormat.includes('nodes[] and links[]'),
+      'Graphify query commandEvidence names native node-link fixture format',
+      JSON.stringify(profilesById.get('graphify.query.static-graph-navigation')?.commandEvidence, null, 2),
+    );
+    assert(
+      profilesById.get('graphify.query.static-graph-navigation')?.commandEvidence?.graphFormat.includes('nodes[] and edges[]'),
+      'Graphify query commandEvidence distinguishes BMAD normalized graph format',
+      JSON.stringify(profilesById.get('graphify.query.static-graph-navigation')?.commandEvidence, null, 2),
+    );
+    assertCommandEvidence(profilesById.get('graphify.hooks.watch-regeneration'), 'graphify.hooks.watch-regeneration', ['hook status']);
+
+    const graphifyNodeLinkFixturePath = path.join(repoRoot, 'test', 'fixtures', 'graphify', 'native-node-link.graph.json');
+    const graphifyNodeLinkFixture = JSON.parse(fs.readFileSync(graphifyNodeLinkFixturePath, 'utf8'));
+    assert(Array.isArray(graphifyNodeLinkFixture.nodes), 'Graphify CLI fixture uses nodes[]');
+    assert(Array.isArray(graphifyNodeLinkFixture.links), 'Graphify CLI fixture uses links[]');
+    assert(!('edges' in graphifyNodeLinkFixture), 'Graphify CLI fixture does not use BMAD normalized edges[]');
 
     const templateIndex = fs.readFileSync(templateIndexPath, 'utf8');
     assert(templateIndex.includes('capability-request.template.json'), 'template index links capability request template', templateIndex);
@@ -1794,6 +1869,8 @@ function runTests() {
     for (const text of [
       'Capability Verification Authoring',
       'capability-request.template.json',
+      'commandEvidence',
+      'uv tool run --from graphifyy graphify',
       '_bmad/custom',
       'authoring override example',
       'not verifier authority',
@@ -1836,6 +1913,7 @@ function runTests() {
     assert(packageJson.scripts.quality.includes('npm run test:urls'), 'quality script includes URL tests');
 
     const qualityWorkflow = fs.readFileSync(qualityWorkflowPath, 'utf8');
+    const publishWorkflow = fs.readFileSync(publishWorkflowPath, 'utf8');
     for (const command of [
       'npm run test:install',
       'npm run test:urls',
@@ -1845,6 +1923,8 @@ function runTests() {
     ]) {
       assert(qualityWorkflow.includes(command), `quality workflow includes ${command}`, qualityWorkflow);
     }
+    assert(qualityWorkflow.includes('astral-sh/setup-uv'), 'quality workflow installs uv before Workspace tests', qualityWorkflow);
+    assert(publishWorkflow.includes('astral-sh/setup-uv'), 'publish workflow installs uv before npm test', publishWorkflow);
 
     const workspaceCommand = fs.readFileSync(workspaceCommandPath, 'utf8');
     const workspaceCommandRegistry = fs.readFileSync(workspaceCommandRegistryPath, 'utf8');
@@ -2118,6 +2198,8 @@ function runTests() {
       assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
       assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);
     }
+    assert(!contractsSource.includes('commandEvidence'), 'capability verifier ignores commandEvidence', contractsSource);
+    assert(!verifierSource.includes('commandEvidence'), 'capability CLI wrapper ignores commandEvidence', verifierSource);
   }
 
   section('Workspace Compiled History');

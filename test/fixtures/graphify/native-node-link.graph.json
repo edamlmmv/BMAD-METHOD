@@ -1,0 +1,50 @@
+{
+  "directed": false,
+  "graph": {
+    "name": "BMAD Graphify CLI smoke fixture"
+  },
+  "links": [
+    {
+      "confidence": "fixture",
+      "relation": "checks",
+      "source": "capability-evidence",
+      "target": "workspace-verifier"
+    },
+    {
+      "confidence": "fixture",
+      "relation": "records",
+      "source": "capability-evidence",
+      "target": "graphify-command"
+    }
+  ],
+  "multigraph": false,
+  "nodes": [
+    {
+      "community": "workspace",
+      "file_type": "fixture",
+      "id": "capability-evidence",
+      "label": "Capability Evidence",
+      "norm_label": "capability evidence",
+      "source_file": "test/fixtures/graphify/native-node-link.graph.json",
+      "source_location": "node:capability-evidence"
+    },
+    {
+      "community": "workspace",
+      "file_type": "fixture",
+      "id": "workspace-verifier",
+      "label": "Workspace Verifier",
+      "norm_label": "workspace verifier",
+      "source_file": "test/fixtures/graphify/native-node-link.graph.json",
+      "source_location": "node:workspace-verifier"
+    },
+    {
+      "community": "workspace",
+      "file_type": "fixture",
+      "id": "graphify-command",
+      "label": "Graphify Command",
+      "norm_label": "graphify command",
+      "source_file": "test/fixtures/graphify/native-node-link.graph.json",
+      "source_location": "node:graphify-command"
+    }
+  ]
+}

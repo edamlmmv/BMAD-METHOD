@@ -146,10 +146,14 @@ or support-promotion authority.
 
 Use the profile registry to explain known Codex and Graphify affordances before
 authoring a Capability Request: Codex config and app-server context remain
-operator context, while Graphify query, MCP, hook, watch, and regeneration
-surfaces remain advisory graph context. Record any actual operator observation
-through `bmad workspace result` or `bmad workspace closeout`; never treat the
-profile as execution evidence.
+operator context, while Graphify query, MCP, hook, watch, regeneration, and
+`commandEvidence` surfaces remain advisory graph context. `commandEvidence`
+uses `uv tool run --from graphifyy graphify ...` for operator-run smoke checks;
+it is not verifier input, support promotion, grant authority, or hidden
+execution. Codex manual executor readiness is human-mediated/manual and is not
+a guarantee that a runnable local Codex CLI exists. Record any actual operator
+observation through `bmad workspace result` or `bmad workspace closeout`; never
+treat the profile as execution evidence.
 
 ## Codex Operator Affordances
 

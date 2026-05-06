@@ -143,6 +143,14 @@ Graphify MCP, and Graphify hook/watch profiles can all help an author understand
 how to write or explain a request, while the verifier still matches only the
 embedded declared capability id in the submitted JSON.
 
+Profile entries may also carry `commandEvidence` metadata for operator-runnable
+smoke checks. This metadata is informational only: it is not verifier input, not
+support promotion, not grant authority, and not a Workspace instruction to run
+commands. Graphify CLI command evidence uses the canonical
+`uv tool run --from graphifyy graphify ...` invocation and Graphify-native
+node-link fixtures with `nodes[]` and `links[]`; BMAD normalized graph artifacts
+remain `nodes[]` and `edges[]` evidence.
+
 Profile evidence refs may cite committed docs, tests, source files, and source
 URLs used for authoring context. They are not support promotion by themselves.
 Any Workspace result or closeout that mentions Codex or Graphify tool output
