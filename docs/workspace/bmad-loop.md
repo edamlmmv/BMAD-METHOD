@@ -20,6 +20,46 @@ running or editing the loop.
 - Self-improve instance: `bmad-self-improve`
 - Self-improve compatibility aliases: `SI-AUTO-*`
 
+## Loop Platform v1
+
+`bmad-loop` is runtime contract only. Pre-established loops in v1 stay thin and
+repo-owned.
+
+### `WorkflowBundle`
+
+`WorkflowBundle` is passive source asset pack for reusable one-shot or recurring
+loop workflow. It contains:
+
+- identity and purpose
+- goal-input contract
+- success criteria
+- recommended BMAD route
+- Party Mode gate prompt
+- `prompt_template`
+- `resume_prompt_template`
+- `checkpoint_template`
+- Workspace evidence guidance
+
+`WorkflowBundle` owns no runtime semantics.
+
+### `LoopRunConfig`
+
+`LoopRunConfig` is passive resolved run config from sparse `[workflow]` fields.
+It includes `loop_skill`, `loop_slug`, goal refs, branch/checkpoint settings,
+template refs, caps, facts, hooks, and `on_complete`.
+
+Predefined loop instances should stay thin. Unspecified fields inherit from the
+referenced `loop_skill` defaults. For thin repo-owned loop instances, new
+generic `bmad-loop` fields pass through unchanged unless the instance
+intentionally overrides them.
+
+### Explicit v1 Non-Goals
+
+- no first-class chain model
+- no first-class queue or scheduler model
+- no persisted recursion
+- no new Workspace CLI commands
+
 ## Required Launch Inputs
 
 - `repo_path`: repository to run against.
@@ -39,6 +79,11 @@ If goal input or finite controls are missing, stop before mutation with:
 ```text
 BMAD loop needs one of: direct operator goal, workflow.goal_ref, or workflow.scope, plus finite stop_condition and quality_command. Provide input or use bmad-customize to author instance fields.
 ```
+
+Reusable long prompts become `WorkflowBundle` assets when they need durable goal
+contract, resume/checkpoint shape, Workspace evidence guidance, or future slash
+hooks such as `/workflow-start`, `/loop-start`, `/loop-resume`, or
+`/loop-plan`. Those hooks remain operator-assist-only design surfaces in v1.
 
 ## State Machine
 
@@ -72,12 +117,48 @@ them:
 - `capability:grill-me` `grill-me`: challenge a plan at checkpoint boundaries
   and record decisions changed or deferred.
 
+## One-Shot And Recurring
+
+- One-shot workflow = `WorkflowBundle` + `LoopRunConfig` with `max_iterations=1`.
+- Recurring loop = same `WorkflowBundle` + explicit recurring caps.
+- Same bundle must support both modes without changing bundle semantics.
+
+## Template Contract
+
+Template roles stay explicit:
+
+- `prompt_template`: operator prompt only. No side effects.
+- `resume_prompt_template`: continuation prompt only. No side effects.
+- `checkpoint_template`: checkpoint and evidence shape only. No side effects.
+
+Use
+[Workflow Bundle Template](./templates/workflow-bundle.template.md) and
+[Loop Party Mode Gate Template](./templates/loop-party-mode-gate.template.md)
+when defining new repo-owned loop instances.
+
+## Party Mode Gate
+
+Before any dedicated loop-specific planning pass, record:
+
+- goal
+- success metric
+- chosen run mode
+- recommended BMAD route
+- main risks
+- required evidence
+- open questions
+- deferred questions
+
+Gate depth is dynamic: `light`, `standard`, or `deep`. Party Mode is advisory
+only. Operator owns stop/go.
+
 ## Customize Boundary
 
 `bmad-customize` may author minimal Customize instance config for exposed
-`[workflow]` fields. Customize does not create runtime authority, branch
-permission, verifier trust, Workspace schema, scheduler behavior, hidden
-execution, push permission, or gate bypass.
+`[workflow]` fields. It authors `LoopRunConfig` only. Customize does not create
+`WorkflowBundle` assets, runtime authority, branch permission, verifier trust,
+Workspace schema, scheduler behavior, hidden execution, push permission, gate
+bypass, or persisted recursion.
 
 Runtime resolver rejects unsafe or incomplete config. Validators enforce branch
 safety, no-push, dirty preflight, quality gate, install/refresh evidence, and

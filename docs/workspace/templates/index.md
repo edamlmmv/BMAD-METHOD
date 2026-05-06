@@ -21,8 +21,10 @@ description: Index of BMAD Workspace templates
 - **[capability-request.template.json](./capability-request.template.json)** - Declared capability verification request example
 - **[codex-executable-evidence.template.json](./codex-executable-evidence.template.json)** - Codex command-backed executable evidence template
 - **[fresh-chat-prompt.md](./fresh-chat-prompt.md)** - Workspace-aware Codex starter prompt
+- **[loop-party-mode-gate.template.md](./loop-party-mode-gate.template.md)** - Generic Party Mode gate output for loop-specific planning
 - **[self-improvement-checkpoint.template.md](./self-improvement-checkpoint.template.md)** - Checkpoint template for BMAD self-improvement automation runs
 - **[self-improvement-codex-prompt.md](./self-improvement-codex-prompt.md)** - Codex prompt for local automation-capable BMAD self-improvement runs
 - **[self-improvement-codex-resume-prompt.md](./self-improvement-codex-resume-prompt.md)** - Resume prompt for continued BMAD self-improvement runs
+- **[workflow-bundle.template.md](./workflow-bundle.template.md)** - Repo-owned passive bundle template for one-shot and recurring loops
 - **[workspace-runbook.md](./workspace-runbook.md)** - Manual engagement runbook for evidence refs and closeout
 - **[worktree-review-checklist.md](./worktree-review-checklist.md)** - Explicit promotion review checklist

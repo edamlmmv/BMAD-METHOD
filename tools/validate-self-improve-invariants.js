@@ -7,7 +7,13 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { LOOP_REFUSAL_MESSAGE, validateBmadLoopInvariants, validateGoalResolution } = require('./validate-bmad-loop-invariants');
+const {
+  LOOP_REFUSAL_MESSAGE,
+  LOOP_RUN_CONFIG_FIELDS,
+  validateBmadLoopInvariants,
+  validateGoalResolution,
+  validateWorkflowOverrideKeys,
+} = require('./validate-bmad-loop-invariants');
 const { validateBmadPlanningCapabilities } = require('./validate-bmad-planning-capabilities');
 
 const REQUIRED_INVARIANTS = [
@@ -212,6 +218,8 @@ function validateSelfImproveInvariants(options = {}) {
     [
       'skill:bmad-loop',
       LOOP_REFUSAL_MESSAGE,
+      'WorkflowBundle',
+      'LoopRunConfig',
       'Direct operator goal wins',
       'Party Mode must not silently create a goal',
       'skills/list',
@@ -226,17 +234,32 @@ function validateSelfImproveInvariants(options = {}) {
     [
       'loop_skill = "bmad-loop"',
       'loop_slug = "self-improve"',
-      'goal_ref = ""',
-      'scope = ""',
       'repo_path = "{project-root}"',
       'branch_prefix = "codex/self-improve-"',
       'checkpoint_subdir = "{output_folder}/self-improvement"',
+      'runbook_ref = "docs/workspace/self-improvement-codex.md"',
+      'prompt_template = "docs/workspace/templates/self-improvement-codex-prompt.md"',
+      'resume_prompt_template = "docs/workspace/templates/self-improvement-codex-resume-prompt.md"',
+      'checkpoint_template = "docs/workspace/templates/self-improvement-checkpoint.template.md"',
+    ],
+    'bmad-self-improve customize surface',
+    errors,
+    files.customize.relativePath,
+  );
+  requireNoTerms(
+    contents.customize,
+    [
+      'goal_ref = ""',
+      'scope = ""',
       'quality_command = "npm ci && npm run quality"',
+      'max_iterations = 1',
+      'daily_cap = 1',
       'max_fix_attempts = 5',
     ],
     'bmad-self-improve customize surface',
     errors,
     files.customize.relativePath,
+    'SI_INSTANCE_DRIFT',
   );
   requireTerms(
     contents.guide,
@@ -246,6 +269,9 @@ function validateSelfImproveInvariants(options = {}) {
       LOOP_REFUSAL_MESSAGE,
       'Old baked self-improve goal selection is removed',
       'SI-AUTO-* invariant names remain compatibility aliases only',
+      'WorkflowBundle',
+      'LoopRunConfig',
+      'inherits from `bmad-loop`',
     ],
     'self-improve runbook',
     errors,
@@ -253,7 +279,14 @@ function validateSelfImproveInvariants(options = {}) {
   );
   requireTerms(
     contents.prompt,
-    [LOOP_REFUSAL_MESSAGE, 'Goal source:', 'Do not let Party Mode silently create a goal', 'npm run validate:bmad-loop-invariants'],
+    [
+      LOOP_REFUSAL_MESSAGE,
+      'WorkflowBundle id: self-improvement',
+      'LoopRunConfig inheritance: unspecified fields resolve from `bmad-loop`',
+      'Goal source:',
+      'Do not let Party Mode silently create a goal',
+      'npm run validate:bmad-loop-invariants',
+    ],
     'self-improve prompt',
     errors,
     files.prompt.relativePath,
@@ -262,6 +295,8 @@ function validateSelfImproveInvariants(options = {}) {
     contents.resume,
     [
       'Resume `bmad-self-improve`',
+      'WorkflowBundle id: self-improvement',
+      'LoopRunConfig inheritance: unspecified fields resolve from `bmad-loop`',
       'Activation State',
       'Resume Contract',
       'Session Identity',
@@ -293,6 +328,23 @@ function validateSelfImproveInvariants(options = {}) {
     files.moduleHelp.relativePath,
   );
   validatePackageScripts(contents.packageJson, files.packageJson.relativePath, errors);
+
+  for (const relativePath of [
+    path.join('_bmad', 'custom', 'bmad-self-improve.toml'),
+    path.join('_bmad', 'custom', 'bmad-self-improve.user.toml'),
+  ]) {
+    const filePath = path.join(projectRoot, relativePath);
+    if (fs.existsSync(filePath)) {
+      validateWorkflowOverrideKeys(
+        fs.readFileSync(filePath, 'utf8'),
+        LOOP_RUN_CONFIG_FIELDS,
+        'bmad-self-improve override',
+        relativePath,
+        errors,
+        'SI_OVERRIDE_FIELD',
+      );
+    }
+  }
 
   requireNoTerms(
     `${contents.skill}\n${contents.guide}\n${contents.prompt}`,

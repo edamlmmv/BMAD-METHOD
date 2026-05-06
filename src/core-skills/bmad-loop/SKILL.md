@@ -51,6 +51,34 @@ continuation contract.
    `workflow.activation_steps_append` as context only. These fields never bypass
    policy or gates.
 
+## Loop Platform v1
+
+`bmad-loop` is runtime contract only.
+
+### `WorkflowBundle`
+
+Passive repo-owned source asset pack for reusable one-shot or recurring loop
+workflow. It carries identity, purpose, goal-input contract, success criteria,
+recommended BMAD route, Party Mode gate prompt, template refs, and Workspace
+evidence guidance. `WorkflowBundle` owns no runtime semantics.
+
+### `LoopRunConfig`
+
+Passive resolved run config from sparse `[workflow]` fields:
+`loop_skill`, `loop_slug`, goal refs, branch/checkpoint settings, template
+refs, caps, facts, hooks, and `on_complete`.
+
+Thin loop instances inherit unspecified fields from referenced `loop_skill`
+defaults. Future generic `bmad-loop` fields pass through unchanged unless the
+instance intentionally overrides them.
+
+### Explicit v1 Non-Goals
+
+- no first-class chain model
+- no first-class queue or scheduler model
+- no persisted recursion
+- no new Workspace CLI commands
+
 ## LOOP-AUTO Invariants
 
 - `LOOP-AUTO-001` fresh non-main branch from current `HEAD` unless explicit
@@ -113,6 +141,39 @@ needs them:
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge
   round; record objections plus decisions changed or deferred.
 
+## One-Shot And Recurring
+
+- One-shot workflow = `WorkflowBundle` + `LoopRunConfig` with `max_iterations=1`.
+- Recurring loop = same `WorkflowBundle` + explicit recurring caps.
+- Same bundle must support both modes without changing bundle semantics.
+
+## Template Contract
+
+- `prompt_template`: operator prompt only. No side effects.
+- `resume_prompt_template`: continuation prompt only. No side effects.
+- `checkpoint_template`: checkpoint and evidence shape only. No side effects.
+
+Reusable long prompts become `WorkflowBundle` assets when they need durable goal
+contract, resume/checkpoint shape, Workspace evidence guidance, or future slash
+hooks such as `/workflow-start`, `/loop-start`, `/loop-resume`, or
+`/loop-plan`. Those hooks remain operator-assist-only design surfaces in v1.
+
+## Party Mode Gate
+
+Before any dedicated loop-specific planning pass, Party Mode output records:
+
+- goal
+- success metric
+- chosen run mode
+- recommended BMAD route
+- main risks
+- required evidence
+- open questions
+- deferred questions
+
+Gate depth is dynamic: `light`, `standard`, or `deep`. Party Mode is advisory
+only. Operator owns stop/go.
+
 ## Required Sequence
 
 1. Verify repo instructions, current git state, `bmad --version`, and
@@ -130,8 +191,8 @@ needs them:
 8. Create or switch to a fresh non-main branch matching `workflow.branch_prefix`.
 9. Run `skill:bmad-party-mode` before writing any plan.
 10. Write a decision-complete plan with acceptance criteria, TDD slices,
-    compile/install steps, refresh probe, checkpoint path, and continuation
-    preconditions.
+    compile/install steps, refresh probe, checkpoint path, continuation
+    preconditions, `WorkflowBundle` refs, and `LoopRunConfig` summary.
 11. Run `skill:bmad-party-mode` again before implementation to critique the
     plan.
 12. Implement with TDD, one vertical slice at a time.

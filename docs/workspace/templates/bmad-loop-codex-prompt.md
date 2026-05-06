@@ -18,6 +18,12 @@ You are Codex working in `{project-root}`.
 
 Run a generic BMAD loop.
 
+WorkflowBundle id: [bundle id]
+WorkflowBundle purpose: [bundle purpose]
+WorkflowBundle success criteria: [bundle success criteria]
+Recommended BMAD route: [route from bmad-help]
+Party Mode gate ref: docs/workspace/templates/loop-party-mode-gate.template.md
+Run mode: one-shot|recurring
 Mode: local Codex automation loop
 Repo path: `{project-root}`
 Base ref: current HEAD
@@ -29,6 +35,11 @@ max_iterations: 1
 daily_cap: 1
 max_fix_attempts: 5
 quality_command: npm ci && npm run quality
+Template contract:
+- `prompt_template` = operator prompt only
+- `resume_prompt_template` = continuation prompt only
+- `checkpoint_template` = checkpoint evidence only
+Slash hooks such as `/workflow-start`, `/loop-start`, `/loop-resume`, and `/loop-plan` are operator-assist only and are not part of this run.
 
 Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
 
@@ -51,6 +62,7 @@ Required policy:
 - Use a fresh non-main branch matching the resolved branch prefix.
 - Run `skill:bmad-party-mode` before writing any plan.
 - Write a decision-complete plan with acceptance criteria and TDD slices.
+- Record Party Mode gate output: goal, success metric, chosen run mode, recommended BMAD route, main risks, required evidence, open questions, and deferred questions.
 - Run `skill:bmad-party-mode` again before implementation.
 - Implement with TDD, one vertical slice at a time.
 - Run the configured quality command on HEAD of the exact checkout before commit, install, refresh, or continuation.

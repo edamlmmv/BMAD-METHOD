@@ -13,6 +13,10 @@ mechanics to `bmad-loop`. It remains a local Codex automation loop for BMAD
 repository changes, with `SI-AUTO-*` compatibility terms preserved for existing
 validators, docs, and checkpoints.
 
+Self-Improve is thin repo-owned loop instance. Its self-improve-specific
+templates act as `WorkflowBundle` assets, while unresolved `LoopRunConfig`
+fields inherit from `bmad-loop` through `loop_skill = "bmad-loop"`.
+
 Self-Improve has no built-in improvement goal. A run starts only when the
 operator supplies a direct goal, a readable `workflow.goal_ref`, or a non-empty
 `workflow.scope`.
@@ -88,24 +92,26 @@ active skill hash matches expected and refresh state is known_good.
 
 ## Instance Defaults
 
-Self-Improve defaults live in `customize.toml` under `[workflow]`:
+Self-Improve overrides live in `customize.toml` under `[workflow]`:
 
 - `loop_skill = "bmad-loop"`
 - `loop_slug = "self-improve"`
 - `repo_path = "{project-root}"`
 - `branch_prefix = "codex/self-improve-"`
 - `checkpoint_subdir = "{output_folder}/self-improvement"`
-- `quality_command = "npm ci && npm run quality"`
-- `max_iterations = 1`
-- `daily_cap = 1`
-- `max_fix_attempts = 5`
-- `goal_ref = ""`
-- `scope = ""`
+- `allowed_write_roots = ["{project-root}"]`
+- `runbook_ref = "docs/workspace/self-improvement-codex.md"`
+- `prompt_template = "docs/workspace/templates/self-improvement-codex-prompt.md"`
+- `resume_prompt_template = "docs/workspace/templates/self-improvement-codex-resume-prompt.md"`
+- `checkpoint_template = "docs/workspace/templates/self-improvement-checkpoint.template.md"`
 
-The empty default `goal_ref` and `scope` are intentional. Existing
-`bmad-self-improve` users now provide a direct operator goal, `goal_ref`, or
-`scope` before a loop starts. Existing checkpoints remain under
-`_bmad-output/self-improvement` unless the resolved `checkpoint_subdir` changes.
+Other `LoopRunConfig` fields inherit from `bmad-loop` unless Self-Improve
+intentionally overrides them later. That keeps future generic loop fields
+available without copy-paste drift.
+
+Inherited loop controls still apply even when Self-Improve does not override
+them locally, including `stop_condition`, `quality_command`,
+`max_iterations`, `daily_cap`, and `max_fix_attempts`.
 
 ## Shared BMAD Planning Capabilities
 

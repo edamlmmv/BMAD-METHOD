@@ -27,6 +27,8 @@ CLI records reviewable evidence.
 | Customize and Codex MCP planning boundary | [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) |
 | Google Calendar MCP capability planning boundary | [Google Calendar Capability Planning](./google-calendar-capability-planning.md) |
 | Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
+| Thin pre-established loop platform | [Loop Platform v1](./loop-platform-v1.md) |
+| Deferred starter loop backlog | [Loop Candidate Registry](./loop-candidate-registry.md) |
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
 | Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
@@ -83,8 +85,9 @@ example is
 [Google Calendar MCP Capability Request](./templates/capability-request.google-calendar-mcp.example.json).
 
 Use [BMAD Loop Codex Prompt](./templates/bmad-loop-codex-prompt.md) when Codex
-should run a generic local BMAD loop with explicit goal input, branch safety,
-quality gates, install/refresh evidence, and checkpointed continuation.
+should run a generic local BMAD loop for one-shot or recurring
+`WorkflowBundle` goals with explicit goal input, branch safety, quality gates,
+install/refresh evidence, and checkpointed continuation.
 
 Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
 when Codex should improve BMAD itself as a predefined `bmad-loop` instance.

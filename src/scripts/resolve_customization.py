@@ -31,6 +31,14 @@ Merge rules (purely structural — no field-name special-casing):
 No removal mechanism — overrides cannot delete base items. To suppress
 a default, fork the skill or override the item by code with a no-op
 description/prompt.
+
+Loop workflow inheritance:
+  - If a skill's `[workflow]` table declares `loop_skill = "<other-skill>"`,
+    resolver loads that referenced skill's `customize.toml` first, then deep
+    merges the current skill's defaults on top before project overrides.
+  - This keeps predefined loop instances thin and lets future generic loop
+    fields pass through unchanged unless an instance intentionally overrides
+    them.
 """
 
 import argparse
@@ -91,6 +99,38 @@ def load_toml(file_path: Path, required: bool = False) -> dict:
         if required:
             sys.exit(1)
         return {}
+
+
+def load_skill_defaults(skill_dir: Path, seen: tuple[str, ...] = ()) -> dict:
+    skill_name = skill_dir.name
+    if skill_name in seen:
+        cycle = " -> ".join((*seen, skill_name))
+        sys.stderr.write(f"error: loop_skill inheritance cycle detected: {cycle}\n")
+        sys.exit(1)
+
+    defaults = load_toml(skill_dir / "customize.toml", required=True)
+    workflow = defaults.get("workflow")
+    if not isinstance(workflow, dict):
+        return defaults
+
+    loop_skill = workflow.get("loop_skill")
+    if not isinstance(loop_skill, str):
+        return defaults
+
+    referenced_skill = loop_skill.strip()
+    if not referenced_skill or referenced_skill == skill_name:
+        return defaults
+
+    parent_dir = skill_dir.parent
+    base_skill_dir = parent_dir / referenced_skill
+    if not base_skill_dir.exists():
+        sys.stderr.write(
+            f"error: referenced loop_skill '{referenced_skill}' not found next to {skill_dir}\n"
+        )
+        sys.exit(1)
+
+    base_defaults = load_skill_defaults(base_skill_dir, (*seen, skill_name))
+    return deep_merge(base_defaults, defaults)
 
 
 def _detect_keyed_merge_field(items):
@@ -196,7 +236,7 @@ def main():
     skill_name = skill_dir.name
     defaults_path = skill_dir / "customize.toml"
 
-    defaults = load_toml(defaults_path, required=True)
+    defaults = load_skill_defaults(skill_dir)
 
     # Prefer the project that contains this skill. Only fall back to cwd if
     # the skill isn't inside a recognizable project tree (unusual but possible

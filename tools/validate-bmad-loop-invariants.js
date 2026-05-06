@@ -16,6 +16,14 @@ const LOOP_FILES = {
     label: 'BMAD loop policy',
     relativePath: path.join('docs', 'workspace', 'bmad-loop-automation-policy.md'),
   },
+  platform: {
+    label: 'loop platform v1 doc',
+    relativePath: path.join('docs', 'workspace', 'loop-platform-v1.md'),
+  },
+  candidates: {
+    label: 'loop candidate registry',
+    relativePath: path.join('docs', 'workspace', 'loop-candidate-registry.md'),
+  },
   skill: {
     label: 'bmad-loop skill',
     relativePath: path.join('src', 'core-skills', 'bmad-loop', 'SKILL.md'),
@@ -43,6 +51,14 @@ const LOOP_FILES = {
   checkpointExample: {
     label: 'BMAD loop checkpoint example',
     relativePath: path.join('docs', 'workspace', 'templates', 'bmad-loop-checkpoint.example.md'),
+  },
+  bundleTemplate: {
+    label: 'workflow bundle template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'workflow-bundle.template.md'),
+  },
+  partyGateTemplate: {
+    label: 'loop party mode gate template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'loop-party-mode-gate.template.md'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -113,10 +129,38 @@ const REQUIRED_CUSTOMIZE_TERMS = [
   'checkpoint_subdir = "{output_folder}/loops"',
   'goal_ref = ""',
   'scope = ""',
+  'prompt_template = "docs/workspace/templates/bmad-loop-codex-prompt.md"',
+  'resume_prompt_template = "docs/workspace/templates/bmad-loop-codex-resume-prompt.md"',
+  'checkpoint_template = "docs/workspace/templates/bmad-loop-checkpoint.template.md"',
   'quality_command = "npm ci && npm run quality"',
   'max_iterations = 1',
   'daily_cap = 1',
   'max_fix_attempts = 5',
+];
+
+const LOOP_RUN_CONFIG_FIELDS = [
+  'loop_skill',
+  'loop_slug',
+  'goal_ref',
+  'scope',
+  'repo_path',
+  'branch_prefix',
+  'checkpoint_subdir',
+  'allowed_write_roots',
+  'policy_ref',
+  'runbook_ref',
+  'prompt_template',
+  'resume_prompt_template',
+  'checkpoint_template',
+  'stop_condition',
+  'quality_command',
+  'max_iterations',
+  'daily_cap',
+  'max_fix_attempts',
+  'persistent_facts',
+  'activation_steps_prepend',
+  'activation_steps_append',
+  'on_complete',
 ];
 
 const REQUIRED_STATE_TERMS = [
@@ -184,6 +228,13 @@ function readRequired(filePath, errors, fileLabel = filePath) {
   }
 }
 
+function readOptional(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  return fs.readFileSync(filePath, 'utf8');
+}
+
 function hasTerm(content, term) {
   return content.toLowerCase().includes(term.toLowerCase());
 }
@@ -202,6 +253,42 @@ function requireNoTerms(content, terms, sourceName, errors, fileLabel, errorCode
       addError(errors, errorCode, `${sourceName} contains forbidden generic-loop term: ${term}`, {
         file: fileLabel,
         field: term,
+      });
+    }
+  }
+}
+
+function extractWorkflowAssignmentKeys(content) {
+  const keys = [];
+  let inWorkflow = false;
+  for (const line of content.split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+    const header = trimmed.match(/^\[([^[\]]+)\]$/u);
+    if (header) {
+      inWorkflow = header[1] === 'workflow';
+      continue;
+    }
+    if (!inWorkflow) {
+      continue;
+    }
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/u);
+    if (match) {
+      keys.push(match[1]);
+    }
+  }
+  return keys;
+}
+
+function validateWorkflowOverrideKeys(content, allowedFields, sourceName, fileLabel, errors, errorCode = 'LOOP_OVERRIDE_FIELD') {
+  const allowed = new Set(allowedFields);
+  for (const key of extractWorkflowAssignmentKeys(content)) {
+    if (!allowed.has(key)) {
+      addError(errors, errorCode, `${sourceName} contains unsupported workflow field: ${key}`, {
+        file: fileLabel,
+        field: key,
       });
     }
   }
@@ -318,8 +405,30 @@ function validateBmadLoopInvariants(options = {}) {
   }
 
   requireTerms(
+    contents.platform,
+    ['WorkflowBundle', 'LoopRunConfig', 'operator-assist only', 'no persisted recursion'],
+    'loop platform v1 doc',
+    errors,
+    files.platform.relativePath,
+  );
+  requireTerms(
+    contents.candidates,
+    ['Optimization loop', 'Bug triage loop', 'Review-hardening loop', 'one candidate at a time'],
+    'loop candidate registry',
+    errors,
+    files.candidates.relativePath,
+  );
+  requireTerms(
     contents.skill,
-    [LOOP_REFUSAL_MESSAGE, 'Customize may author instance defaults only', 'State Machine'],
+    [
+      LOOP_REFUSAL_MESSAGE,
+      'Customize may author instance defaults only',
+      'WorkflowBundle',
+      'LoopRunConfig',
+      '/workflow-start',
+      'no first-class queue or scheduler model',
+      'State Machine',
+    ],
     'bmad-loop skill',
     errors,
     files.skill.relativePath,
@@ -327,31 +436,99 @@ function validateBmadLoopInvariants(options = {}) {
   requireTerms(contents.customize, REQUIRED_CUSTOMIZE_TERMS, 'bmad-loop customize surface', errors, files.customize.relativePath);
   requireTerms(
     contents.guide,
-    [LOOP_REFUSAL_MESSAGE, 'Customize Boundary', 'Codex Boundary'],
+    [LOOP_REFUSAL_MESSAGE, 'WorkflowBundle', 'LoopRunConfig', 'Template Contract', 'Customize Boundary', 'Codex Boundary'],
     'BMAD loop runbook',
     errors,
     files.guide.relativePath,
   );
   requireTerms(
     contents.prompt,
-    [LOOP_REFUSAL_MESSAGE, 'Goal source:', 'quality_command: npm ci && npm run quality'],
+    [
+      LOOP_REFUSAL_MESSAGE,
+      'WorkflowBundle id:',
+      'Run mode: one-shot|recurring',
+      'prompt_template',
+      'resume_prompt_template',
+      'checkpoint_template',
+      'Goal source:',
+      'quality_command: npm ci && npm run quality',
+    ],
     'BMAD loop prompt',
     errors,
     files.prompt.relativePath,
   );
   requireTerms(
     contents.resume,
-    ['Resume the BMAD loop', 'Activation State', 'Resume Contract', 'Session Identity'],
+    [
+      'Resume the BMAD loop',
+      'WorkflowBundle id:',
+      'Run mode: one-shot|recurring',
+      'Activation State',
+      'Resume Contract',
+      'Session Identity',
+    ],
     'BMAD loop resume prompt',
     errors,
     files.resume.relativePath,
   );
-  requireTerms(contents.checkpoint, REQUIRED_STATE_TERMS, 'BMAD loop checkpoint template', errors, files.checkpoint.relativePath);
-  requireTerms(contents.moduleHelp, ['Core,bmad-loop,', 'BMAD Loop,BL'], 'module-help.csv', errors, files.moduleHelp.relativePath);
+  requireTerms(
+    contents.checkpoint,
+    [...REQUIRED_STATE_TERMS, 'Workflow Bundle', 'Run mode:', 'Party Mode Gate Output', 'Template contract'],
+    'BMAD loop checkpoint template',
+    errors,
+    files.checkpoint.relativePath,
+  );
+  requireTerms(
+    contents.bundleTemplate,
+    [
+      'Bundle id:',
+      'Goal Input Contract',
+      'prompt_template',
+      'resume_prompt_template',
+      'checkpoint_template',
+      'Operator-assist-only reminder',
+    ],
+    'workflow bundle template',
+    errors,
+    files.bundleTemplate.relativePath,
+  );
+  requireTerms(
+    contents.partyGateTemplate,
+    ['Goal:', 'Success metric:', 'Chosen run mode:', 'Recommended BMAD route:', 'Deferred questions:'],
+    'loop party mode gate template',
+    errors,
+    files.partyGateTemplate.relativePath,
+  );
+  requireTerms(
+    contents.moduleHelp,
+    ['Core,bmad-loop,', 'BMAD Loop,BL', 'WorkflowBundle'],
+    'module-help.csv',
+    errors,
+    files.moduleHelp.relativePath,
+  );
   validateCheckpointExample(contents.checkpointExample, 'BMAD loop checkpoint example', files.checkpointExample.relativePath, errors);
   validatePackageScripts(contents.packageJson, files.packageJson.relativePath, errors);
 
-  for (const key of ['policy', 'skill', 'customize', 'guide', 'prompt', 'resume', 'checkpoint', 'checkpointExample']) {
+  for (const relativePath of [path.join('_bmad', 'custom', 'bmad-loop.toml'), path.join('_bmad', 'custom', 'bmad-loop.user.toml')]) {
+    const filePath = path.join(projectRoot, relativePath);
+    const overrideContent = readOptional(filePath);
+    if (overrideContent !== null) {
+      validateWorkflowOverrideKeys(overrideContent, LOOP_RUN_CONFIG_FIELDS, 'bmad-loop override', relativePath, errors);
+    }
+  }
+
+  for (const key of [
+    'policy',
+    'platform',
+    'candidates',
+    'skill',
+    'customize',
+    'guide',
+    'prompt',
+    'resume',
+    'checkpoint',
+    'checkpointExample',
+  ]) {
     requireNoTerms(
       contents[key],
       ['codex/self-improve-', '_bmad-output/self-improvement'],
@@ -390,7 +567,9 @@ if (require.main === module) {
 module.exports = {
   LOOP_FILES,
   LOOP_INVARIANTS,
+  LOOP_RUN_CONFIG_FIELDS,
   LOOP_REFUSAL_MESSAGE,
   validateBmadLoopInvariants,
   validateGoalResolution,
+  validateWorkflowOverrideKeys,
 };

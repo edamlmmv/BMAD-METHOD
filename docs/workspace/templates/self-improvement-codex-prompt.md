@@ -19,6 +19,8 @@ You are Codex working in `{project-root}`.
 
 Run `bmad-self-improve` as a predefined `bmad-loop` instance.
 
+WorkflowBundle id: self-improvement
+LoopRunConfig inheritance: unspecified fields resolve from `bmad-loop`
 Mode: local Codex automation loop
 Repo path: `{project-root}`
 Base ref: current HEAD

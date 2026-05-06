@@ -16,14 +16,24 @@ When the target's `customize.toml` doesn't expose what the user wants, say so pl
 For `bmad-loop` and predefined loop instances such as `bmad-self-improve`,
 Customize may author exposed `[workflow]` instance defaults only: goal refs,
 scope, branch prefix, checkpoint location, caps, quality command, allowed write
-roots, hooks, facts, and completion text. The runtime loop resolver must still
-reject missing goal input, unsafe branches, missing finite stop conditions, or
+roots, hooks, facts, template refs, and completion text. Treat these as
+`LoopRunConfig` fields only. The runtime loop resolver must still reject
+missing goal input, unsafe branches, missing finite stop conditions, or
 gate-bypass attempts.
+
+Thin repo-owned loop instances resolve `loop_skill` first, then merge instance
+defaults, then team/user overrides. Unspecified fields inherit from the
+referenced loop skill defaults.
 
 Do not imply that `_bmad/custom/*.toml` creates runtime authority, schedules a
 loop, grants writes, bypasses dirty preflight, weakens no-push, changes
 Workspace schema, proves verifier compatibility, or permits continuation.
 Customize is authoring and education only.
+
+`WorkflowBundle` assets, Party Mode gate docs, candidate registries, chain
+models, queue models, scheduler behavior, slash-command behavior, and persisted
+recursion are not `bmad-customize` v1 outputs. Those remain repo-owned source
+artifacts or deferred design surfaces.
 
 ## Capability Verification Authoring
 

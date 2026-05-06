@@ -19,6 +19,13 @@ You are Codex working in `{project-root}`.
 Resume the BMAD loop from the latest checkpoint under the resolved
 `workflow.checkpoint_subdir`.
 
+WorkflowBundle id: [bundle id]
+Run mode: one-shot|recurring
+Template contract reminder:
+- `prompt_template` = operator prompt only
+- `resume_prompt_template` = continuation prompt only
+- `checkpoint_template` = checkpoint evidence only
+
 First read:
 
 - `docs/workspace/bmad-loop-automation-policy.md`
@@ -51,6 +58,7 @@ Before continuing, verify:
 - Activation State gates support continuation
 - Resume Contract permits continuation
 - Session Identity distinguishes Codex thread ids from BMAD Workspace Session ids
+- no queue, scheduler, hidden recursion, or slash-hook behavior is assumed
 
 Resume from the next exact task. Do not restart discovery unless the checkpoint
 says the plan is invalid.

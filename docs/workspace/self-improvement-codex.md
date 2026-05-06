@@ -11,6 +11,11 @@ uses generic `bmad-loop` mechanics for branch safety, Party Mode planning, TDD,
 quality gates, install/refresh evidence, checkpointing, and continuation.
 This remains a local Codex automation loop for improving BMAD itself.
 
+In loop platform v1, Self-Improve is thin repo-owned loop instance. Its
+self-improvement docs and templates act as `WorkflowBundle` assets, while its
+resolved `LoopRunConfig` inherits from `bmad-loop` and resolves unspecified
+fields from that generic loop contract.
+
 Read [BMAD Loop Automation Policy](./bmad-loop-automation-policy.md) before
 running or editing this workflow. Self-Improvement Automation Policy is the
 legacy name for this self-improve instance policy surface.
@@ -35,6 +40,8 @@ optional adapters and are not part of the local self-improve run.
   readable `workflow.goal_ref`, or non-empty `workflow.scope`.
 - Old baked self-improve goal selection is removed. Party Mode may refine an
   instantiated goal, but it must not silently create one.
+- Self-Improve now prefers sparse instance overrides. Unspecified generic loop
+  fields inherit from `bmad-loop`.
 - Existing checkpoints remain under `_bmad-output/self-improvement` unless the
   resolved `workflow.checkpoint_subdir` changes.
 - `SI-AUTO-*` invariant names remain compatibility aliases only. New docs prefer
@@ -66,21 +73,25 @@ BMAD loop needs one of: direct operator goal, workflow.goal_ref, or workflow.sco
 ## Resolved Instance Defaults
 
 `src/core-skills/bmad-self-improve/customize.toml` defines the shipped instance
-defaults:
+overrides:
 
 - `loop_skill = "bmad-loop"`
 - `loop_slug = "self-improve"`
 - `repo_path = "{project-root}"`
 - `branch_prefix = "codex/self-improve-"`
 - `checkpoint_subdir = "{output_folder}/self-improvement"`
-- `quality_command = "npm ci && npm run quality"`
-- `max_fix_attempts = 5`
-- `goal_ref = ""`
-- `scope = ""`
+- `allowed_write_roots = ["{project-root}"]`
+- `runbook_ref = "docs/workspace/self-improvement-codex.md"`
+- `prompt_template = "docs/workspace/templates/self-improvement-codex-prompt.md"`
+- `resume_prompt_template = "docs/workspace/templates/self-improvement-codex-resume-prompt.md"`
+- `checkpoint_template = "docs/workspace/templates/self-improvement-checkpoint.template.md"`
 
 `bmad-customize` may author minimal Customize instance config for these exposed
 workflow fields. Customize does not bypass branch safety, dirty preflight,
 quality gates, install/refresh evidence, validators, or checkpoint requirements.
+
+Other `LoopRunConfig` fields inherit from `bmad-loop` unless Self-Improve
+intentionally overrides them later.
 
 ## Capability Verifier Boundary
 

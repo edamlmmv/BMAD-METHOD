@@ -1,34 +1,20 @@
 [workflow]
+# Thin LoopRunConfig override. Unspecified fields inherit from bmad-loop.
 loop_skill = "bmad-loop"
 loop_slug = "self-improve"
-
-# Goal intentionally empty until instantiated by direct operator input, a
-# readable goal_ref, or non-empty scope.
-goal_ref = ""
-scope = ""
 
 repo_path = "{project-root}"
 branch_prefix = "codex/self-improve-"
 checkpoint_subdir = "{output_folder}/self-improvement"
 allowed_write_roots = ["{project-root}"]
 
-policy_ref = "docs/workspace/bmad-loop-automation-policy.md"
 runbook_ref = "docs/workspace/self-improvement-codex.md"
 prompt_template = "docs/workspace/templates/self-improvement-codex-prompt.md"
 resume_prompt_template = "docs/workspace/templates/self-improvement-codex-resume-prompt.md"
 checkpoint_template = "docs/workspace/templates/self-improvement-checkpoint.template.md"
 
-stop_condition = "checkpoint written or max caps reached"
-quality_command = "npm ci && npm run quality"
-max_iterations = 1
-daily_cap = 1
-max_fix_attempts = 5
-
 persistent_facts = [
-  "Self-Improve is a predefined bmad-loop instance for BMAD repository improvement.",
+  "Self-Improve is thin repo-owned bmad-loop instance for BMAD repository improvement.",
   "SI-AUTO-* invariant names are compatibility aliases for LOOP-AUTO-* invariants.",
   "Party Mode may refine an instantiated goal but must not silently create one.",
 ]
-activation_steps_prepend = []
-activation_steps_append = []
-on_complete = ""

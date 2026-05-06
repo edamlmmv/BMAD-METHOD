@@ -21,6 +21,9 @@ Resume `bmad-self-improve` from the latest checkpoint under
 `{output_folder}/self-improvement/` unless the resolved `checkpoint_subdir`
 points elsewhere.
 
+WorkflowBundle id: self-improvement
+LoopRunConfig inheritance: unspecified fields resolve from `bmad-loop`
+
 First read:
 
 - `docs/workspace/bmad-loop-automation-policy.md`

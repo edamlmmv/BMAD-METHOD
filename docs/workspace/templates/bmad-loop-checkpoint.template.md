@@ -12,6 +12,13 @@ Do not commit generated run checkpoints by default.
 
 -
 
+## Workflow Bundle
+
+- Bundle id:
+- Purpose:
+- Success criteria:
+- Recommended BMAD route:
+
 ## Resolved Input
 
 - Direct operator goal:
@@ -22,6 +29,7 @@ Do not commit generated run checkpoints by default.
 
 ## Mode and Inputs
 
+- Run mode:
 - Mode:
 - `repo_path`:
 - `base_ref`:
@@ -87,6 +95,17 @@ Do not commit generated run checkpoints by default.
 ## Party Mode Critique
 
 -
+
+## Party Mode Gate Output
+
+- Goal:
+- Success metric:
+- Chosen run mode:
+- Recommended BMAD route:
+- Main risks:
+- Required evidence:
+- Open questions:
+- Deferred questions:
 
 ## Shared BMAD Planning Capabilities
 
@@ -154,6 +173,12 @@ resume_contract:
 Continuation is allowed only when quality passes, repo-local install passes,
 active user install is not failed or blocked, active skill hash matches
 expected, and refresh state is known_good.
+
+Template contract:
+
+- `prompt_template`: operator prompt only
+- `resume_prompt_template`: continuation prompt only
+- `checkpoint_template`: checkpoint and evidence shape only
 
 ## Session Identity
 

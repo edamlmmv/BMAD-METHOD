@@ -9,6 +9,13 @@ description: Example checkpoint evidence for generic BMAD loop validation
 
 - Example loop checkpoint.
 
+## Workflow Bundle
+
+- Bundle id: example-loop-bundle
+- Purpose: Demonstrate generic loop checkpoint evidence.
+- Success criteria: Checkpoint written with valid activation state.
+- Recommended BMAD route: `bmad-help` -> `bmad-party-mode` -> `bmad-loop`
+
 ## Resolved Input
 
 - Direct operator goal: "Improve one documented BMAD loop behavior."

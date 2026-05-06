@@ -40,10 +40,14 @@ function makeFixture() {
   for (const relativePath of [
     'docs/workspace/bmad-loop-automation-policy.md',
     'docs/workspace/bmad-loop.md',
+    'docs/workspace/loop-platform-v1.md',
+    'docs/workspace/loop-candidate-registry.md',
     'docs/workspace/templates/bmad-loop-codex-prompt.md',
     'docs/workspace/templates/bmad-loop-codex-resume-prompt.md',
     'docs/workspace/templates/bmad-loop-checkpoint.template.md',
     'docs/workspace/templates/bmad-loop-checkpoint.example.md',
+    'docs/workspace/templates/workflow-bundle.template.md',
+    'docs/workspace/templates/loop-party-mode-gate.template.md',
     'src/core-skills/module-help.csv',
     'package.json',
   ]) {
@@ -173,6 +177,14 @@ function testCliUsesInvariantPrefix() {
   assert(output.includes('BMAD_LOOP_INVARIANT:'), output);
 }
 
+function testOverrideCannotInventUnsupportedWorkflowField() {
+  const root = makeFixture();
+  const overridePath = path.join(root, '_bmad', 'custom', 'bmad-loop.toml');
+  fs.mkdirSync(path.dirname(overridePath), { recursive: true });
+  fs.writeFileSync(overridePath, '[workflow]\nloop_queue = "bad"\n');
+  assertInvalid(root, 'unsupported workflow field: loop_queue');
+}
+
 function run() {
   const tests = [
     testCurrentRepoValidates,
@@ -184,6 +196,7 @@ function run() {
     testGenericLoopRejectsSelfImproveDefaults,
     testCheckpointExampleRequiresEvidenceBlock,
     testCliUsesInvariantPrefix,
+    testOverrideCannotInventUnsupportedWorkflowField,
   ];
   for (const test of tests) {
     test();

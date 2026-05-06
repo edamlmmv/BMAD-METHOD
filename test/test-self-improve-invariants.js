@@ -46,11 +46,15 @@ function makeFixture() {
     'tools/workspace/packet.js',
     'docs/workspace/bmad-loop-automation-policy.md',
     'docs/workspace/bmad-loop.md',
+    'docs/workspace/loop-platform-v1.md',
+    'docs/workspace/loop-candidate-registry.md',
     'docs/workspace/self-improvement-codex.md',
     'docs/workspace/templates/bmad-loop-codex-prompt.md',
     'docs/workspace/templates/bmad-loop-codex-resume-prompt.md',
     'docs/workspace/templates/bmad-loop-checkpoint.template.md',
     'docs/workspace/templates/bmad-loop-checkpoint.example.md',
+    'docs/workspace/templates/workflow-bundle.template.md',
+    'docs/workspace/templates/loop-party-mode-gate.template.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
@@ -67,6 +71,7 @@ function makeFixture() {
   copyDir(path.join(repoRoot, 'src/core-skills/bmad-loop'), path.join(root, 'src/core-skills/bmad-loop'));
   copyDir(path.join(repoRoot, 'src/core-skills/bmad-self-improve'), path.join(root, 'src/core-skills/bmad-self-improve'));
   copyDir(path.join(repoRoot, 'docs/workspace/vendor/mattpocock-skills'), path.join(root, 'docs/workspace/vendor/mattpocock-skills'));
+  fs.mkdirSync(path.join(root, '_bmad', 'custom'), { recursive: true });
   return root;
 }
 
@@ -90,6 +95,23 @@ function runValidatorCli(root) {
     encoding: 'utf8',
     env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
   });
+}
+
+function resolveWorkflow(root) {
+  const result = spawnSync(
+    'python3',
+    [
+      path.join(repoRoot, '_bmad', 'scripts', 'resolve_customization.py'),
+      '--skill',
+      path.join(root, 'src', 'core-skills', 'bmad-self-improve'),
+    ],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
+    },
+  );
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  return JSON.parse(result.stdout);
 }
 
 function testCurrentRepoValidates() {
@@ -124,12 +146,13 @@ function testSelfImproveCustomizeSurfaceShipsEmptyGoal() {
   for (const required of [
     'loop_skill = "bmad-loop"',
     'loop_slug = "self-improve"',
-    'goal_ref = ""',
-    'scope = ""',
     'branch_prefix = "codex/self-improve-"',
     'checkpoint_subdir = "{output_folder}/self-improvement"',
   ]) {
     assert(customize.includes(required), `self-improve customize includes ${required}`);
+  }
+  for (const inherited of ['goal_ref = ""', 'scope = ""', 'quality_command = "npm ci && npm run quality"', 'max_fix_attempts = 5']) {
+    assert(!customize.includes(inherited), `self-improve customize inherits ${inherited}`);
   }
 }
 
@@ -178,12 +201,43 @@ function testPromptRequiresGoalSource() {
 
 function testCliUsesInvariantPrefix() {
   const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-self-improve/customize.toml', 'goal_ref = ""', 'goal_pointer = ""');
+  const overridePath = path.join(root, '_bmad', 'custom', 'bmad-self-improve.toml');
+  fs.writeFileSync(overridePath, '[workflow]\ngoal_pointer = "bad"\n');
   const result = runValidatorCli(root);
   const output = `${result.stdout}\n${result.stderr}`;
   assert.notEqual(result.status, 0, output);
   assert(output.includes('SELF_IMPROVE_INVARIANT:'), output);
-  assert(output.includes('goal_ref = ""'), output);
+  assert(output.includes('goal_pointer'), output);
+}
+
+function testSelfImproveInheritsFutureLoopField() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-loop/customize.toml',
+    'max_fix_attempts = 5',
+    'max_fix_attempts = 5\nfuture_contract_field = "pass-through"',
+  );
+  const resolved = resolveWorkflow(root);
+  assert.equal(resolved.workflow.future_contract_field, 'pass-through');
+}
+
+function testSelfImproveMayOverrideInheritedFutureLoopField() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-loop/customize.toml',
+    'max_fix_attempts = 5',
+    'max_fix_attempts = 5\nfuture_contract_field = "base"',
+  );
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-self-improve/customize.toml',
+    'loop_slug = "self-improve"',
+    'loop_slug = "self-improve"\nfuture_contract_field = "instance"',
+  );
+  const resolved = resolveWorkflow(root);
+  assert.equal(resolved.workflow.future_contract_field, 'instance');
 }
 
 function run() {
@@ -197,6 +251,8 @@ function run() {
     testPartyModeCannotCreateGoalTextDisappear,
     testPromptRequiresGoalSource,
     testCliUsesInvariantPrefix,
+    testSelfImproveInheritsFutureLoopField,
+    testSelfImproveMayOverrideInheritedFutureLoopField,
   ];
   for (const test of tests) {
     test();

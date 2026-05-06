@@ -1,5 +1,5 @@
 [workflow]
-# Generic loop identity. Instance skills may override these sparse fields.
+# Generic LoopRunConfig identity. Thin loop instances inherit from this file.
 loop_skill = "bmad-loop"
 loop_slug = ""
 
@@ -14,7 +14,7 @@ branch_prefix = "codex/loop-"
 checkpoint_subdir = "{output_folder}/loops"
 allowed_write_roots = []
 
-# Contract refs. Paths are documentation/template refs, not runtime authority.
+# Contract refs. Paths are WorkflowBundle asset refs, not runtime authority.
 policy_ref = "docs/workspace/bmad-loop-automation-policy.md"
 runbook_ref = "docs/workspace/bmad-loop.md"
 prompt_template = "docs/workspace/templates/bmad-loop-codex-prompt.md"
