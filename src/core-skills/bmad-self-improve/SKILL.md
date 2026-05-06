@@ -61,10 +61,14 @@ Future mode: hosted orchestrator adapter. Vercel Workflow WDK may wrap the same 
 - Decision-complete plan with acceptance criteria.
 - Party Mode critique and revised plan.
 - TDD implementation evidence.
+- Capability and contract evidence when the run changes declared capabilities, verifier fixtures, Workspace contracts, or skill
+  guidance.
 - Test results and full gate output.
 - compile/install evidence for generated BMAD skills.
 - Codex refresh result or fallback refresh status.
 - Activation State, Resume Contract, and Session Identity evidence.
+- TDD red-green provenance, warning/LOW disposition, dirty worktree impact, file links, residual risk, and exact push/PR next
+  step for capability or contract closeout.
 - Local commit SHA values.
 - Continuation decision.
 - Checkpoint under `{output_folder}/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
@@ -108,6 +112,37 @@ continuation permission, install readiness, quality success, or Evidence Gate
 pass state. Codex/tool observations and checked-in graph references in verifier
 fixtures remain advisory only.
 
+## Capability Improvement Workflow
+
+When Self-Improve changes capabilities, contracts, or skill guidance, make the
+authority model explicit before implementation:
+
+- List exact capability ids, claimed provider/interface, source files, docs,
+  fixtures, and tests. Capability profile registry entries, Codex affordances,
+  and Graphify observations are planning context only.
+- Party Mode may provide ideation, critique, and consensus evidence, but it is
+  advisory only. It is not approval authority, an acceptance gate, verifier
+  authority, write authorization, quality evidence, or continuation permission.
+- Use `bmad workspace verify-capability` with a self-contained Capability Request JSON
+  when declared compatibility matters. A Capability Contract
+  verdict is exact-id, JSON-only, and read-only; it does not read
+  `_bmad/custom/*.toml`, Codex config, live Graphify, Workspace Sessions, or
+  the advisory profile registry.
+- `bmad-customize is authoring and education only`: it may help draft
+  per-skill reminders or explain Capability Request fields. `_bmad/custom/*.toml`
+  can guide local agents, but it is never verifier authority, central
+  capability config, grant source, or Self-Improve continuation gate.
+- Self-Improve remains non-customizable in v1. Do not add `customize.toml`, new Workspace schema, new Capability Request fields,
+  or a central config surface unless a future explicit feature and tests introduce that public interface.
+- Executor Contract is manual readiness only. Workspace Result, Review, and Closeout are manual evidence only.
+  They do not execute, approve, merge, promote, push, restore, replay, schedule, watch, or activate adapters.
+- Record TDD red-green provenance per slice: failing public behavior test,
+  smallest green change, refactor if any, and validation command.
+  `npm ci && npm run quality` proves quality gate, not TDD provenance.
+- Final checkpoint and operator answer must include warning/LOW disposition as
+  `accepted`, `fixed`, `deferred`, or `false-positive`, plus file links, dirty
+  worktree impact, residual risk, and exact push/PR next step.
+
 ## Stop Conditions
 
 Stop and report when any condition appears:
@@ -140,9 +175,13 @@ Stop and report when any condition appears:
 6. If dirty preservation is required and the scan passes, preserve the current checkout with `chore: preserve pre-automation worktree state` before branch creation.
 7. Create or switch to a fresh non-main `codex/self-improve-*` branch from current `HEAD`, explicit `base_ref`, or the preservation commit. Fresh means not `main` or `master`, matching `codex/self-improve-*`, and created for the current run before improvement edits. Verify branch freshness before any implementation, docs, tests, install, refresh, or continuation mutation.
 8. Run `skill:bmad-party-mode` before writing any plan. Ask it to choose the highest-value BMAD repo target, likely files, risks, and tests.
-9. Write a decision-complete plan. Include public behavior, acceptance criteria, TDD slices, compile/install steps, refresh probe, checkpoint path, effective automation schedule/config consulted, and continuation preconditions.
+9. Write a decision-complete plan. Include public behavior, acceptance criteria, TDD slices, capability and contract claims
+   with exact ids when applicable, compile/install steps, refresh probe, checkpoint path, effective automation
+   schedule/config consulted, and continuation preconditions.
 10. Run `skill:bmad-party-mode` again before implementation. Ask it to critique the plan, reject weak assumptions, and revise decisions.
-11. Implement with TDD, one vertical slice at a time, inside the selected BMAD repo target.
+11. Implement with TDD, one vertical slice at a time, inside the selected BMAD repo target. For capability or contract
+    changes, preserve the Workspace verifier boundary and Customize authoring boundary in tests before changing docs or
+    skill text.
 12. Run targeted validation after each slice. If failures remain, fix until green or `max_fix_attempts=5` is reached.
 13. Run `npm ci && npm run quality` on `HEAD` of the exact checkout before local code commit, install, refresh, or continuation.
 14. Run `npm run validate:self-improve-invariants` when policy, automation docs, or `bmad-self-improve` changes.
@@ -152,7 +191,9 @@ Stop and report when any condition appears:
 18. Record Resume Contract with `continuation_allowed`, `reason`, and `required_before_resume`.
 19. Record Session Identity with `codex_thread_id`, `workspace_session_id`, and `classification`.
 20. Commit passing work locally with a Conventional Commit message. Never push.
-21. Write final checkpoint with branch, commits, gate evidence, install/refresh evidence, Activation State, Resume Contract, Session Identity, and continuation decision.
+21. Write final checkpoint with branch, commits, gate evidence, capability/contract/TDD closeout, install/refresh evidence,
+    Activation State, Resume Contract, Session Identity, warning/LOW disposition, dirty worktree impact, file links, exact
+    push/PR next step, and continuation decision.
 22. Allow continuation only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, refresh state is known_good, and the effective automation schedule/config, latest checkpoint, evidence, lock state, and loop caps allow it.
 
 ## Self-Edit and Policy-Edit Gate
@@ -176,6 +217,9 @@ When the skill or policy changes:
 - Refactor only when tests are green.
 - Prefer public behavior checks over implementation details.
 - Validate branch/no-push/main, continuation, install/refresh, dirty-worktree, self-edit, and policy-edit invariants when automation boundaries change.
+- For capability, contract, or skill guidance changes, write the invariant or public behavior test before changing
+  Workspace, Customize, or Self-Improve wording.
+- Treat `npm ci && npm run quality` as the final quality gate, not as a replacement for TDD red-green provenance.
 
 ## compile/install Rules
 
@@ -244,5 +288,6 @@ Complete only after:
 - `npm ci && npm run quality` result is recorded.
 - compile/install result is recorded when generated skills change.
 - Refresh status is recorded.
+- Capability, contract, and TDD closeout is recorded when those surfaces change.
 - Final checkpoint exists.
 - Continuation decision is recorded.

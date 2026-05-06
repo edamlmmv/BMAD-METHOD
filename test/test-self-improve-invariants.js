@@ -302,6 +302,44 @@ function testSelfImproveRejectsActiveEvidenceGateV1Claim() {
   assertInvalidWithAll(root, ['SI_EVIDENCE_GATE_V1_BOUNDARY', 'Self-Improve actively enforces Evidence Gate v1']);
 }
 
+function testSelfImproveNamesCapabilityContractAndTddCloseoutBoundary() {
+  const selfImproveSkill = fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8');
+
+  for (const requiredText of [
+    '## Capability Improvement Workflow',
+    'Party Mode may provide ideation, critique, and consensus evidence',
+    'advisory only',
+    'not approval authority',
+    'acceptance gate',
+    'Capability Request JSON',
+    'Capability Contract',
+    'exact-id, JSON-only, and read-only',
+    'bmad-customize is authoring and education only',
+    '_bmad/custom/*.toml',
+    'never verifier authority',
+    'Self-Improve remains non-customizable in v1',
+    'Do not add `customize.toml`',
+    'new Workspace schema',
+    'new Capability Request fields',
+    'central config surface',
+    'Executor Contract is manual readiness only',
+    'Workspace Result, Review, and Closeout are manual evidence only',
+    'They do not execute, approve, merge, promote, push, restore, replay, schedule, watch, or activate adapters',
+    'TDD red-green provenance',
+    'quality gate, not TDD provenance',
+    'warning/LOW disposition',
+    'accepted',
+    'fixed',
+    'deferred',
+    'false-positive',
+    'file links',
+    'dirty worktree impact',
+    'exact push/PR next step',
+  ]) {
+    assert(selfImproveSkill.includes(requiredText), `self-improve names capability/contract/TDD boundary: ${requiredText}`);
+  }
+}
+
 function testRequiredInvariantIdsExist() {
   const ids = REQUIRED_INVARIANTS.map((item) => item.id);
   assert.equal(ids.length, 13);
@@ -776,6 +814,7 @@ function run() {
     testSelfImproveConsumesWorkspaceGraphEvidenceOnly,
     testSelfImproveEvidenceGateV1IsFutureCompatibleOnly,
     testSelfImproveRejectsActiveEvidenceGateV1Claim,
+    testSelfImproveNamesCapabilityContractAndTddCloseoutBoundary,
     testRequiredInvariantIdsExist,
     testMissingRequiredFileReportsStableError,
     testCliMissingRequiredFileUsesInvariantPrefix,
