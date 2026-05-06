@@ -224,6 +224,39 @@ function validCapabilityRequest(overrides = {}) {
   return capabilityRequest;
 }
 
+function googleCalendarCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
+}
+
+function validGoogleCalendarCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.google-calendar.remote',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'google-calendar-mcp',
+    interface: 'remote-calendar-mcp',
+    writes: ['external/google-calendar/events'],
+    outputs: ['calendar-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [googleCalendarCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
 function validRouting(workflow = 'bmad-quick-dev') {
   return {
     routingSchemaVersion: 1,
@@ -1199,6 +1232,36 @@ function runTests() {
   }
 
   {
+    const contract = createCapabilityContract(repoRoot);
+    const result = validateCapabilityContract(contract);
+    const calendarCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
+    assert(result.ok === true, 'current Workspace capability contract validates', result.errors.join('; '));
+    assert(Boolean(calendarCapability), 'Google Calendar remote MCP capability is declared');
+    assert(calendarCapability.group === 'host.mcp', 'Google Calendar capability uses host.mcp group', JSON.stringify(calendarCapability));
+    assert(
+      calendarCapability.provider === 'google-calendar-mcp',
+      'Google Calendar capability records provider',
+      JSON.stringify(calendarCapability),
+    );
+    assert(
+      calendarCapability.interface === 'remote-calendar-mcp',
+      'Google Calendar capability records interface',
+      JSON.stringify(calendarCapability),
+    );
+    assert(calendarCapability.requiresGrant === true, 'Google Calendar capability requires grant', JSON.stringify(calendarCapability));
+    assert(
+      calendarCapability.allowedInBaseImprovement === false,
+      'Google Calendar capability is not base-improvement compatible',
+      JSON.stringify(calendarCapability),
+    );
+    assert(
+      calendarCapability.forbiddenWrites.includes('target-repo/appsscript'),
+      'Google Calendar capability forbids appsscript-derived verifier writes',
+      JSON.stringify(calendarCapability),
+    );
+  }
+
+  {
     const contract = validCapabilityContract();
     contract.capabilities.push({
       id: 'runtime.session.custom-scheduler',
@@ -1340,8 +1403,14 @@ function runTests() {
       'templates',
       'capability-request.graphify-repo-intake.example.json',
     );
+    const googleCalendarCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.google-calendar-mcp.example.json',
+    );
     const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
     const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
+    const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
@@ -1369,6 +1438,7 @@ function runTests() {
       'prd.md',
       'capability-contract.md',
       'customize-codex-mcp-planning.md',
+      'google-calendar-capability-planning.md',
       'self-improvement-codex.md',
       'release-note-6.6.0.md',
     ]) {
@@ -1377,8 +1447,10 @@ function runTests() {
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
     assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
+    assert(fs.existsSync(googleCalendarCapabilityRequestExamplePath), 'Google Calendar Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
+    assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
@@ -1412,6 +1484,7 @@ function runTests() {
       './capability-contract.md',
       './capability-profile-registry.json',
       './customize-codex-mcp-planning.md',
+      './google-calendar-capability-planning.md',
       './release-note-6.6.0.md',
       './history/index.md',
     ]) {
@@ -1428,6 +1501,9 @@ function runTests() {
     const codexEvidencePlan = fs.existsSync(codexEvidencePlanPath) ? fs.readFileSync(codexEvidencePlanPath, 'utf8') : '';
     const customizeCodexMcpPlanning = fs.existsSync(customizeCodexMcpPlanningPath)
       ? fs.readFileSync(customizeCodexMcpPlanningPath, 'utf8')
+      : '';
+    const googleCalendarCapabilityPlanning = fs.existsSync(googleCalendarCapabilityPlanningPath)
+      ? fs.readFileSync(googleCalendarCapabilityPlanningPath, 'utf8')
       : '';
     const codexExecutableEvidenceTemplate = fs.existsSync(codexExecutableEvidenceTemplatePath)
       ? fs.readFileSync(codexExecutableEvidenceTemplatePath, 'utf8')
@@ -1474,8 +1550,50 @@ function runTests() {
       'AC6',
       'Red-Test Matrix',
       'OpenAI Codex CLI MCP Reference',
+      'Browser affordance',
+      'Playwright MCP',
+      'Playwright CLI',
+      'Agent Browser',
+      'Browser Use',
+      'Computer Use',
+      'Evidence Authority Model',
+      'browser-derived observations',
+      'manual result/review/closeout evidence',
+      'No registry/profile mutation in this slice',
     ]) {
       assert(customizeCodexMcpPlanning.includes(required), `Customize Codex MCP planning includes ${required}`, customizeCodexMcpPlanning);
+    }
+    for (const required of [
+      'host.mcp.google-calendar.remote',
+      'Source Register',
+      'Boundary Map',
+      'google_calendar_mcp_config',
+      'google_workspace_mcp_config',
+      'google_calendar_api_overview',
+      'google_calendar_addons_create_conference',
+      'google_calendar_addons_sync_conference_changes',
+      'openai_codex_mcp_docs',
+      'Calendar MCP',
+      'Google Workspace docs MCP',
+      'Calendar API',
+      'Codex Google Calendar connector',
+      'Workspace verifier',
+      '/Users/edam/Documents/TODA/toda-gsuite-plugin',
+      'capability-request.google-calendar-mcp.example.json',
+      'bmad-customize` has no exposed `customize.toml`',
+      'indirect prompt injection',
+      'human review before',
+      'Calendar-affecting',
+      'appsscript.json',
+      'live MCP discovery',
+      'Calendar API enablement',
+      'local OAuth setup',
+    ]) {
+      assert(
+        googleCalendarCapabilityPlanning.includes(required),
+        `Google Calendar capability planning includes ${required}`,
+        googleCalendarCapabilityPlanning,
+      );
     }
     for (const required of [
       '"surface"',
@@ -1656,6 +1774,11 @@ function runTests() {
       'Capability Profile Registry',
       'commandEvidence',
       'support promotion',
+      'host.mcp.google-calendar.remote',
+      'google-calendar-mcp',
+      'remote-calendar-mcp',
+      'calendar-mcp-operator-evidence.json',
+      'capability-request.google-calendar-mcp.example.json',
     ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
     }
@@ -1663,13 +1786,17 @@ function runTests() {
     const capabilityProfileRegistry = JSON.parse(fs.readFileSync(capabilityProfileRegistryPath, 'utf8'));
     assert(capabilityProfileRegistry.schemaVersion === 1, 'capability profile registry uses schema version 1');
     assert(Array.isArray(capabilityProfileRegistry.profiles), 'capability profile registry has profiles array');
-    assert(capabilityProfileRegistry.profiles.length >= 7, 'capability profile registry inventories Codex and Graphify advisory profiles');
+    assert(
+      capabilityProfileRegistry.profiles.length >= 8,
+      'capability profile registry inventories Codex, Graphify, and Google Calendar advisory profiles',
+    );
     const supportedProfileStates = new Set(['proposed', 'experimental', 'supported', 'stale', 'deprecated', 'invalid', 'removed']);
     const declaredCapabilityIds = new Set(createCapabilityContract(repoRoot).capabilities.map((capability) => capability.id));
     const expectedProfileIds = new Set([
       'codex.manual-executor-contract',
       'codex.config.operator-affordances',
       'codex.app-server.thread-and-tool-context',
+      'google-calendar.remote-mcp.operator-affordance',
       'graphify.repo-intake.static-graph-evidence',
       'graphify.query.static-graph-navigation',
       'graphify.mcp.static-graph-tools',
@@ -1739,10 +1866,21 @@ function runTests() {
     }
     assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
     assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
+    assert((profilesByToolName.get('Google Calendar MCP') || 0) >= 1, 'capability profile registry inventories Google Calendar profiles');
     assert(
       profilesById.get('codex.manual-executor-contract')?.trustBoundary.includes('not a guarantee that a runnable local Codex CLI exists'),
       'Codex manual executor profile avoids runnable CLI guarantee',
       JSON.stringify(profilesById.get('codex.manual-executor-contract'), null, 2),
+    );
+    assert(
+      profilesById.get('google-calendar.remote-mcp.operator-affordance')?.trustBoundary.includes('live MCP server discovery'),
+      'Google Calendar profile rejects live MCP discovery as verifier input',
+      JSON.stringify(profilesById.get('google-calendar.remote-mcp.operator-affordance'), null, 2),
+    );
+    assert(
+      profilesById.get('google-calendar.remote-mcp.operator-affordance')?.trustBoundary.includes('target repo manifests'),
+      'Google Calendar profile rejects target repo manifests as verifier input',
+      JSON.stringify(profilesById.get('google-calendar.remote-mcp.operator-affordance'), null, 2),
     );
     assertCommandEvidence(profilesById.get('graphify.query.static-graph-navigation'), 'graphify.query.static-graph-navigation', [
       '--help',
@@ -1778,6 +1916,11 @@ function runTests() {
     assert(
       templateIndex.includes('capability-request.graphify-repo-intake.example.json'),
       'template index links Graphify capability request example',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('capability-request.google-calendar-mcp.example.json'),
+      'template index links Google Calendar capability request example',
       templateIndex,
     );
 
@@ -1850,6 +1993,55 @@ function runTests() {
         graphifyCapabilityRequestExample.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
         `Graphify Capability Request example cites ${sourceUrl}`,
         JSON.stringify(graphifyCapabilityRequestExample.observations, null, 2),
+      );
+    }
+
+    const googleCalendarCapabilityRequestExample = JSON.parse(fs.readFileSync(googleCalendarCapabilityRequestExamplePath, 'utf8'));
+    const googleCalendarExampleVerdict = verifyCapabilityRequest(googleCalendarCapabilityRequestExample);
+    assert(
+      googleCalendarExampleVerdict.ok === true,
+      'Google Calendar Capability Request example verifies',
+      JSON.stringify(googleCalendarExampleVerdict, null, 2),
+    );
+    assert(
+      googleCalendarExampleVerdict.request.id === 'host.mcp.google-calendar.remote',
+      'Google Calendar Capability Request example persists remote MCP capability',
+      JSON.stringify(googleCalendarExampleVerdict, null, 2),
+    );
+    assert(
+      googleCalendarExampleVerdict.matchedDeclaration.requiresGrant === true,
+      'Google Calendar Capability Request example requires grant',
+      JSON.stringify(googleCalendarExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://developers.google.com/workspace/calendar/api/guides/configure-mcp-server',
+      'https://developers.google.com/workspace/guides/configure-mcp-servers',
+      'https://developers.google.com/workspace/calendar/api/guides/overview',
+      'https://developers.google.com/workspace/add-ons/calendar/conferencing/create-conference',
+      'https://developers.google.com/workspace/add-ons/calendar/conferencing/sync-calendar-changes',
+      'https://developers.openai.com/codex/mcp',
+    ]) {
+      assert(
+        googleCalendarCapabilityRequestExample.observations.some((observation) =>
+          JSON.stringify(observation.details || {}).includes(sourceUrl),
+        ),
+        `Google Calendar Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(googleCalendarCapabilityRequestExample.observations, null, 2),
+      );
+    }
+    for (const sourceId of [
+      'google_calendar_mcp_config',
+      'google_workspace_mcp_config',
+      'google_calendar_api_overview',
+      'google_calendar_addons_create_conference',
+      'google_calendar_addons_sync_conference_changes',
+      'openai_codex_mcp_docs',
+      'bmad_workspace_capability_contract',
+    ]) {
+      assert(
+        JSON.stringify(googleCalendarCapabilityRequestExample.observations).includes(sourceId),
+        `Google Calendar Capability Request example cites source id ${sourceId}`,
+        JSON.stringify(googleCalendarCapabilityRequestExample.observations, null, 2),
       );
     }
 
@@ -1952,9 +2144,26 @@ function runTests() {
       'codex mcp',
       'project `.codex/config.toml`',
       'live MCP output',
+      'Browser Affordance Authoring',
+      'Playwright MCP',
+      'Playwright CLI',
+      'Agent Browser',
+      'Browser Use',
+      'Computer Use',
+      'advisory affordances',
+      'browser-derived observations',
       '_bmad/custom',
       'authoring override example',
       'not verifier authority',
+      'host.mcp.google-calendar.remote',
+      'capability-request.google-calendar-mcp.example.json',
+      'Google Workspace docs MCP',
+      'Calendar API',
+      'Codex Google Calendar connector',
+      'local Google Workspace add-on target repo',
+      'tokens, secrets, client IDs, or local OAuth setup as verifier proof',
+      'indirect prompt injection',
+      'human review before any',
     ]) {
       assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
     }
@@ -1978,6 +2187,12 @@ function runTests() {
       'exact push/PR next step',
       'quality gate, not TDD provenance',
       'Workspace records evidence; it does not execute or authorize the closeout',
+      'host.mcp.google-calendar.remote',
+      'google-calendar-capability-planning.md',
+      'Google Workspace docs MCP',
+      'Codex Google Calendar connector',
+      'Calendar API enablement',
+      'indirect prompt injection',
     ]) {
       assert(workspaceSkill.includes(text), `bmad-workspace source skill includes evidence-gate closeout ${text}`, workspaceSkill);
     }
@@ -2307,6 +2522,110 @@ function runTests() {
   }
 
   {
+    const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Google Calendar remote MCP declaration', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.request.id === 'host.mcp.google-calendar.remote',
+      'Google Calendar verifier echoes exact id',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.provider === 'google-calendar-mcp',
+      'Google Calendar verifier records provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Google Calendar verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { id: 'host.google-calendar.local' } }));
+    assert(verdict.ok === false, 'capability verifier rejects invalid Google Calendar capability id', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'CAPABILITY_NOT_DECLARED'),
+      'invalid Google Calendar id names CAPABILITY_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { sessionType: 'base-improvement' } }));
+    assert(
+      verdict.ok === false,
+      'capability verifier rejects Google Calendar capability in base-improvement session',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'SESSION_NOT_ALLOWED'),
+      'Google Calendar base-improvement denial names SESSION_NOT_ALLOWED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { writes: ['target-repo/appsscript'] } }));
+    assert(verdict.ok === false, 'capability verifier rejects appsscript-derived writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'appsscript write rejection names WRITE_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
+      'appsscript write rejection names WRITE_FORBIDDEN',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    for (const field of [
+      'appsscriptJson',
+      'installedConnectorAvailable',
+      'liveMcpDiscovery',
+      'calendarApiEnabled',
+      'triggerInstalled',
+      'deployPermission',
+      'targetRuntimeState',
+      'localOauthSetup',
+    ]) {
+      const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { [field]: true } }));
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Google Calendar ambient proof field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
+        `${field} rejection names REQUEST_INVALID and request path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of ['liveMcpDiscovery', 'codexConnectorAvailable', 'calendarApiEnabled', 'targetRepoManifest']) {
+      const verdict = verifyCapabilityRequest(
+        validGoogleCalendarCapabilityRequest({
+          capabilities: [{ ...googleCalendarCapabilityDeclaration(), [field]: true }],
+        }),
+      );
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Google Calendar ambient declaration field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.capabilities[0].${field}`),
+        `${field} declaration rejection names REQUEST_INVALID and declaration path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
     const contractsSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'contracts.js'), 'utf8');
     const verifierSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'capability-verifier.js'), 'utf8');
     for (const forbidden of [
@@ -2318,6 +2637,10 @@ function runTests() {
       'node:child_process',
       'node:http',
       'node:https',
+      'playwright',
+      'agent-browser',
+      'browser-use',
+      'computer-use',
     ]) {
       assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
       assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);

@@ -66,6 +66,24 @@
       "repairHint": "Refresh official Codex app-server references and keep any Workspace use framed as manual evidence recording only."
     },
     {
+      "profileId": "google-calendar.remote-mcp.operator-affordance",
+      "capabilityId": "host.mcp.google-calendar.remote",
+      "toolName": "Google Calendar MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Google Calendar remote MCP can expose operator-granted Calendar event tools, but live MCP server discovery, OAuth state, Codex connector availability, target repo manifests, Calendar API enablement, trigger install, deployment state, and Codex config are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://developers.google.com/workspace/calendar/api/guides/configure-mcp-server",
+        "https://developers.google.com/workspace/guides/configure-mcp-servers",
+        "https://developers.google.com/workspace/calendar/api/guides/overview",
+        "https://developers.openai.com/codex/mcp",
+        "docs/workspace/google-calendar-capability-planning.md",
+        "docs/workspace/templates/capability-request.google-calendar-mcp.example.json",
+        "tools/workspace/capability-contract.js",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh official Google Calendar MCP docs, source register, fixture, capability contract, and tests before changing support claims."
+    },
+    {
       "profileId": "graphify.query.static-graph-navigation",
       "capabilityId": "evidence.graph.repo-intake",
       "toolName": "Graphify",

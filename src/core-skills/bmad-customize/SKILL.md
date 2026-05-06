@@ -11,6 +11,20 @@ Scope v1: per-skill `[agent]` overrides (`bmad-agent-<role>.toml` / `.user.toml`
 
 When the target's `customize.toml` doesn't expose what the user wants, say so plainly. Don't invent fields.
 
+## BMAD Loop Instance Authoring
+
+For `bmad-loop` and predefined loop instances such as `bmad-self-improve`,
+Customize may author exposed `[workflow]` instance defaults only: goal refs,
+scope, branch prefix, checkpoint location, caps, quality command, allowed write
+roots, hooks, facts, and completion text. The runtime loop resolver must still
+reject missing goal input, unsafe branches, missing finite stop conditions, or
+gate-bypass attempts.
+
+Do not imply that `_bmad/custom/*.toml` creates runtime authority, schedules a
+loop, grants writes, bypasses dirty preflight, weakens no-push, changes
+Workspace schema, proves verifier compatibility, or permits continuation.
+Customize is authoring and education only.
+
 ## Capability Verification Authoring
 
 For Workspace capability verification, use BMad Customize as the authoring and
@@ -57,6 +71,73 @@ checklists. It may also add per-skill reminders through exposed
 `customize.toml` fields. Customize must not imply that Workspace reads Codex
 MCP host config, calls live MCP servers, or treats MCP availability as declared
 capability compatibility.
+
+## Browser Affordance Authoring
+
+When the user says "use Playwright MCP", "use Playwright", "use Agent Browser",
+"use Browser Use", "use Computer Use", or asks for browser-aware Customize
+planning, treat those tools as advisory affordances only. Browser affordances
+may help an operator inspect, test, screenshot, navigate, or summarize UI state;
+they are not sealed verifier evidence and not verifier authority.
+
+Separate the surfaces before authoring:
+
+- **Playwright MCP** — the official `@playwright/mcp` browser automation server.
+  It may provide navigation, accessibility snapshots, clicks, typing,
+  screenshots, and optional tool groups to an operator. Its live availability is
+  not Workspace verifier authority.
+- **Playwright CLI** — terminal-driven browser automation, including wrapper
+  scripts. Command output is manual evidence only when an operator records it.
+- **Agent Browser** — CLI browser automation with refs, snapshots, screenshots,
+  and interaction loops. Local `PATH` availability is operator context only.
+- **Browser Use** — browser automation provider or plugin context. Provider
+  state, sessions, and cloud browser availability are not Workspace authority.
+- **Computer Use** — desktop/UI automation MCP context. Live app accessibility
+  state is not verifier input.
+- **Workspace evidence path** — browser-derived observations may be recorded as
+  manual result/review/closeout evidence with timestamp, source/tool, operator
+  context, summary, artifact refs, and an explicit "not verifier input"
+  boundary.
+- **Sealed verifier evidence** — only the self-contained Capability Request JSON
+  and declared capability entries passed to `bmad workspace verify-capability`.
+
+Use browser affordance facts to improve guidance, examples, warnings, prompts,
+and evidence checklists. Do not make deterministic validators or
+`bmad workspace verify-capability` call live browser tools, read local browser
+tool config, read MCP host config, probe the network, or infer runtime
+availability. Do not use `_bmad/custom/*.toml` to declare Playwright MCP,
+Playwright CLI, Agent Browser, Browser Use, or Computer Use availability, grant
+authority, runtime authority, verifier compatibility, or environment truth.
+Profile or registry work for browser affordances requires a separate
+architecture decision; it is not a `bmad-customize` v1 output.
+
+When the user says "use Google Calendar", "use Calendar MCP", "use Google
+Workspace MCP", or mentions a local Google Workspace add-on target repo,
+separate the surfaces before authoring:
+
+- **Calendar MCP** — the official Google Calendar remote MCP surface. Use
+  `host.mcp.google-calendar.remote` and
+  `docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
+- **Google Workspace docs MCP** — official documentation context only, never
+  live Calendar account access or verifier authority.
+- **Calendar API** — REST API and resource planning context only; API
+  enablement is not verifier proof.
+- **Codex Google Calendar connector** — Codex operator context only, not
+  official Calendar MCP proof and not Workspace authority.
+- **Workspace verifier** — self-contained Capability Request JSON only.
+- **Target repo** — local Google Workspace add-on target repo planning context
+  only unless implementation is explicitly approved; `appsscript.json`, add-on
+  triggers, deploy state, and advanced services never prove verifier
+  compatibility.
+
+Use `docs/workspace/google-calendar-capability-planning.md` as the source
+register and boundary map. Because this `bmad-customize` source skill has no
+exposed `customize.toml`, Google Calendar capability behavior changes require
+source/docs edits, not `_bmad/custom`. Customize may add per-skill reminders
+through exposed `persistent_facts` only. It must not ask the user to paste
+tokens, secrets, client IDs, or local OAuth setup as verifier proof. Name the
+indirect prompt injection risk and require human review before any
+Calendar-affecting action.
 If a Graphify request includes command claims, explain that `commandEvidence`
 is informational operator evidence only and use
 `uv tool run --from graphifyy graphify ...` for separate smoke checks against a

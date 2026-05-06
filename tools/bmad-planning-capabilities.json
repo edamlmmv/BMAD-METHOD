@@ -8,7 +8,22 @@
       "operatorUse": "Run one bounded reframing pass before committing to a plan when work risks overfitting to one bug, agent, or workflow.",
       "partyModeUse": "Use as a named reframing round for the problem, constraints, alternatives, and chosen path.",
       "boundary": "Operator-invoked capability, not automatic background behavior.",
-      "docsSurfaces": ["help", "workspace", "selfImprove", "partyMode", "guide", "prompt", "resume", "checkpoint", "moduleHelp"]
+      "docsSurfaces": [
+        "help",
+        "workspace",
+        "bmadLoop",
+        "selfImprove",
+        "partyMode",
+        "bmadLoopGuide",
+        "bmadLoopPrompt",
+        "bmadLoopResume",
+        "bmadLoopCheckpoint",
+        "guide",
+        "prompt",
+        "resume",
+        "checkpoint",
+        "moduleHelp"
+      ]
     },
     {
       "slug": "tdd",
@@ -17,7 +32,22 @@
       "operatorUse": "Produce failing-test-first implementation guidance when implementation risk warrants it.",
       "partyModeUse": "Use for implementation-ready test guidance when the round involves code, prompts, validators, or policy enforcement.",
       "boundary": "Required for implementation-risk work, but not a mandate to turn every discussion into test ceremony.",
-      "docsSurfaces": ["help", "workspace", "selfImprove", "partyMode", "guide", "prompt", "resume", "checkpoint", "moduleHelp"]
+      "docsSurfaces": [
+        "help",
+        "workspace",
+        "bmadLoop",
+        "selfImprove",
+        "partyMode",
+        "bmadLoopGuide",
+        "bmadLoopPrompt",
+        "bmadLoopResume",
+        "bmadLoopCheckpoint",
+        "guide",
+        "prompt",
+        "resume",
+        "checkpoint",
+        "moduleHelp"
+      ]
     },
     {
       "slug": "ubiquitous-language",
@@ -26,7 +56,22 @@
       "operatorUse": "Align terms across skills, docs, prompts, module help, and code-facing names when terminology drifts.",
       "partyModeUse": "Use as a named term-alignment round across docs, prompts, module help, agents, and code-facing names.",
       "boundary": "Use for terminology-sensitive work; do not create glossary ceremony for unrelated implementation chores.",
-      "docsSurfaces": ["help", "workspace", "selfImprove", "partyMode", "guide", "prompt", "resume", "checkpoint", "moduleHelp"]
+      "docsSurfaces": [
+        "help",
+        "workspace",
+        "bmadLoop",
+        "selfImprove",
+        "partyMode",
+        "bmadLoopGuide",
+        "bmadLoopPrompt",
+        "bmadLoopResume",
+        "bmadLoopCheckpoint",
+        "guide",
+        "prompt",
+        "resume",
+        "checkpoint",
+        "moduleHelp"
+      ]
     },
     {
       "slug": "grill-me",
@@ -35,7 +80,22 @@
       "operatorUse": "Run an opt-in or checkpoint-only challenge round that records objections plus decisions changed or deferred.",
       "partyModeUse": "Use as an opt-in challenge round, recommended at checkpoint boundaries or when confidence is low.",
       "boundary": "Never default background behavior; use only when requested or when checkpoint risk justifies a visible challenge pass.",
-      "docsSurfaces": ["help", "workspace", "selfImprove", "partyMode", "guide", "prompt", "resume", "checkpoint", "moduleHelp"]
+      "docsSurfaces": [
+        "help",
+        "workspace",
+        "bmadLoop",
+        "selfImprove",
+        "partyMode",
+        "bmadLoopGuide",
+        "bmadLoopPrompt",
+        "bmadLoopResume",
+        "bmadLoopCheckpoint",
+        "guide",
+        "prompt",
+        "resume",
+        "checkpoint",
+        "moduleHelp"
+      ]
     }
   ]
 }

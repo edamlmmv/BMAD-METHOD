@@ -1,17 +1,14 @@
 ---
-title: 'Self-Improvement Checkpoint Template'
-description: Checkpoint template for BMAD self-improvement automation runs
+title: "BMAD Loop Checkpoint Template"
+description: Checkpoint template for generic BMAD loop runs
 ---
 
-# BMAD Self-Improvement Checkpoint
+# BMAD Loop Checkpoint
 
-Store completed run checkpoints under `{output_folder}/self-improvement/`. Do not commit generated run checkpoints by default.
+Store completed run checkpoints under the resolved `workflow.checkpoint_subdir`.
+Do not commit generated run checkpoints by default.
 
 ## Objective
-
--
-
-## Question
 
 -
 
@@ -22,7 +19,6 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 - `scope`:
 - Input source:
 - Input conflict recorded:
-- Goal created by Party Mode: false
 
 ## Mode and Inputs
 
@@ -43,8 +39,6 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 - Original branch:
 - Baseline policy hash:
 - Baseline policy path:
-- Generic policy path: `docs/workspace/bmad-loop-automation-policy.md`
-- SI alias mapping checked:
 
 ## State Machine
 
@@ -59,18 +53,19 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 - Install/refresh evidence:
 - Local commit:
 - Checkpoint:
+- Complete, blocked, or continuation-ready:
 - Outcome:
 
 ## Lock Evidence
 
-- Lock path: `{output_folder}/self-improvement/automation.lock`
+- Lock path:
 - Lock acquired:
 - Stale lock handling:
 - Lock released:
 
 ## Branch Evidence
 
-- Self-improve branch:
+- Loop branch:
 - Branch created from:
 - Main guard result:
 - Push guard result:
@@ -86,12 +81,6 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 - Preservation commit:
 
 ## Party Mode Decision
-
-- Instantiated goal:
-- Refined target:
-- Goal creation attempted:
-
-## Plan Status
 
 -
 
@@ -109,18 +98,6 @@ Shared BMAD planning capabilities are operator-invoked planning/setup aids disco
 - `capability:grill-me` challenge findings:
 - Capability decisions changed or deferred:
 
-## Policy Consensus Evidence
-
-- Policy changed:
-- Generic loop changed:
-- Self-improve instance changed:
-- Party Mode voices:
-- Developer included:
-- Architect included:
-- Consensus summary:
-- `npm run validate:bmad-loop-invariants` result:
-- `npm run validate:self-improve-invariants` result:
-
 ## Implementation Evidence
 
 -
@@ -133,19 +110,15 @@ Shared BMAD planning capabilities are operator-invoked planning/setup aids disco
 
 -
 
-## Pass/Fail Output
+## Quality Gate Output
 
--
-
-## Full Gate Output
-
-- Command: `npm ci && npm run quality`
+- Command:
 - Result:
 
 ## compile/install Evidence
 
 - Repo-local/test target:
-- `/Users/edam/.agents` target:
+- User target:
 - Installer command:
 - Result:
 
@@ -168,8 +141,6 @@ activation_state:
   refresh_state: known_good|failed|blocked|unknown
 ```
 
-`refresh_state: unknown` never allows continuation. Repo readiness may pass while active user skill readiness remains blocked.
-
 ## Resume Contract
 
 ```yaml
@@ -180,16 +151,9 @@ resume_contract:
     - string
 ```
 
-Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.
-
-Before continuing from this checkpoint, validate resume readiness:
-
-```text
-node tools/validate-bmad-loop-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
-node tools/validate-self-improve-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
-```
-
-The default `npm run validate:self-improve-invariants` remains repo-contract-only. Resume-mode failures use `SI_CHECKPOINT_CONTINUATION_BLOCKED`, `SI_CHECKPOINT_HEAD_MISSING`, and `SI_CHECKPOINT_STALE_HEAD`.
+Continuation is allowed only when quality passes, repo-local install passes,
+active user install is not failed or blocked, active skill hash matches
+expected, and refresh state is known_good.
 
 ## Session Identity
 
@@ -199,8 +163,6 @@ session_identity:
   workspace_session_id: string|null
   classification: valid_workspace_session|codex_thread_only|session_not_found|unknown
 ```
-
-Codex thread ids are not BMAD Workspace Session ids. Treat `SESSION_NOT_FOUND` from a Codex thread id as classification evidence, not missing-run evidence.
 
 ## Local Commits
 

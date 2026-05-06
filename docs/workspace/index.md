@@ -25,6 +25,8 @@ CLI records reviewable evidence.
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
 | Advisory capability profiles | [Capability Profile Registry](./capability-profile-registry.json) |
 | Customize and Codex MCP planning boundary | [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) |
+| Google Calendar MCP capability planning boundary | [Google Calendar Capability Planning](./google-calendar-capability-planning.md) |
+| Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
 | Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
@@ -73,10 +75,19 @@ when a customization discussion mentions Codex MCP. Customize may use Codex MCP
 as advisory authoring context, but Workspace accepts only self-contained
 Capability Request JSON as sealed verifier evidence.
 
+Use [Google Calendar Capability Planning](./google-calendar-capability-planning.md)
+when a customization or Workspace discussion mentions Calendar MCP, Google
+Workspace MCP, Google Calendar API, a Codex Google Calendar connector, or the
+target repo `/Users/edam/Documents/TODA/toda-gsuite-plugin`. The portable
+example is
+[Google Calendar MCP Capability Request](./templates/capability-request.google-calendar-mcp.example.json).
+
+Use [BMAD Loop Codex Prompt](./templates/bmad-loop-codex-prompt.md) when Codex
+should run a generic local BMAD loop with explicit goal input, branch safety,
+quality gates, install/refresh evidence, and checkpointed continuation.
+
 Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
-when Codex should improve BMAD itself with a local automation-capable loop or
-foreground operator run, Party Mode planning, TDD execution, compile/install
-evidence, refresh checks, and checkpointed continuation.
+when Codex should improve BMAD itself as a predefined `bmad-loop` instance.
 
 ## Doctrine
 

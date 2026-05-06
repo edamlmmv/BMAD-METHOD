@@ -115,6 +115,9 @@ jobs:
       - name: Test Workspace CLI contracts
         run: npm run test:workspace
 
+      - name: Test BMAD loop invariants
+        run: npm run test:bmad-loop
+
       - name: Test self-improvement automation invariants
         run: npm run test:self-improve
 
@@ -123,6 +126,9 @@ jobs:
 
       - name: Validate skills
         run: npm run validate:skills
+
+      - name: Validate BMAD loop invariants
+        run: npm run validate:bmad-loop-invariants
 
       - name: Validate self-improvement automation invariants
         run: npm run validate:self-improve-invariants

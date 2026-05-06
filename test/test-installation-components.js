@@ -3529,15 +3529,21 @@ async function runTests() {
   let tempProjectDir45;
   try {
     const sourceSkill45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
+    const sourceLoopSkill45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-loop', 'SKILL.md');
+    const sourceSelfCustomize45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-self-improve', 'customize.toml');
+    const sourceLoopCustomize45 = path.join(projectRoot, 'src', 'core-skills', 'bmad-loop', 'customize.toml');
     const sourceHelp45 = path.join(projectRoot, 'src', 'core-skills', 'module-help.csv');
     const guide45 = path.join(projectRoot, 'docs', 'workspace', 'self-improvement-codex.md');
-    const policy45 = path.join(projectRoot, 'docs', 'workspace', 'self-improvement-automation-policy.md');
+    const policy45 = path.join(projectRoot, 'docs', 'workspace', 'bmad-loop-automation-policy.md');
     const prompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md');
     const resumePrompt45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md');
     const checkpointTemplate45 = path.join(projectRoot, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md');
     const validator45 = path.join(projectRoot, 'tools', 'validate-self-improve-invariants.js');
 
     assert(await fs.pathExists(sourceSkill45), 'bmad-self-improve source skill exists');
+    assert(await fs.pathExists(sourceLoopSkill45), 'bmad-loop source skill exists');
+    assert(await fs.pathExists(sourceSelfCustomize45), 'bmad-self-improve customize.toml exists');
+    assert(await fs.pathExists(sourceLoopCustomize45), 'bmad-loop customize.toml exists');
 
     const skillContent45 = (await fs.pathExists(sourceSkill45)) ? await fs.readFile(sourceSkill45, 'utf8') : '';
     const firstPartyModeIndex45 = skillContent45.indexOf('Run `skill:bmad-party-mode` before writing any plan');
@@ -3559,14 +3565,14 @@ async function runTests() {
       'bmad-self-improve records checkpoints under output_folder self-improvement',
     );
     for (const automationTerm45 of [
-      'local Codex automation loop',
+      'skill:bmad-loop',
       'fresh non-main branch',
       'Never push',
       'max_fix_attempts=5',
       'npm ci && npm run quality',
+      'npm run validate:bmad-loop-invariants',
       'npm run validate:self-improve-invariants',
-      'Party Mode consensus',
-      'Vercel Workflow WDK',
+      'SI-AUTO-*',
     ]) {
       assert(skillContent45.includes(automationTerm45), `bmad-self-improve documents ${automationTerm45}`);
     }
@@ -3579,59 +3585,55 @@ async function runTests() {
     ]) {
       assert(!skillContent45.includes(retiredPhrase45), `bmad-self-improve removed retired phrase: ${retiredPhrase45}`);
     }
-    for (const requiredInput45 of ['repo_path', 'base_ref', 'scope', 'stop_condition', 'max_iterations', 'daily_cap', 'max_fix_attempts']) {
+    for (const requiredInput45 of ['repo_path', 'goal_ref', 'scope', 'stop_condition', 'max_iterations', 'daily_cap', 'max_fix_attempts']) {
       assert(skillContent45.includes(requiredInput45), `bmad-self-improve requires ${requiredInput45}`);
     }
-    assert(
-      skillContent45.includes('Required input or finite stop condition is missing'),
-      'bmad-self-improve stops on missing input or non-finite stop condition',
-    );
+    assert(skillContent45.includes('BMAD loop needs one of'), 'bmad-self-improve stops on missing input or non-finite stop condition');
 
     const helpContent45 = await fs.readFile(sourceHelp45, 'utf8');
+    assert(helpContent45.includes('Core,bmad-loop,'), 'module-help.csv routes bmad-loop');
     assert(helpContent45.includes('Core,bmad-self-improve,'), 'module-help.csv routes bmad-self-improve');
-    assert(
-      helpContent45.includes('local Codex automation-capable BMAD self-improvement'),
-      'module-help.csv describes automation-capable self-improvement',
-    );
+    assert(helpContent45.includes('predefined bmad-loop instance'), 'module-help.csv describes self-improve as bmad-loop instance');
 
     for (const docPath45 of [guide45, policy45, prompt45, resumePrompt45, checkpointTemplate45, validator45]) {
       assert(await fs.pathExists(docPath45), `${path.basename(docPath45)} exists`);
     }
     const policyContent45 = (await fs.pathExists(policy45)) ? await fs.readFile(policy45, 'utf8') : '';
     for (const invariantId45 of [
-      'SI-AUTO-001',
-      'SI-AUTO-002',
-      'SI-AUTO-003',
-      'SI-AUTO-004',
-      'SI-AUTO-005',
-      'SI-AUTO-006',
-      'SI-AUTO-007',
-      'SI-AUTO-008',
-      'SI-AUTO-009',
-      'SI-AUTO-010',
-      'SI-AUTO-011',
-      'SI-AUTO-012',
-      'SI-AUTO-013',
+      'LOOP-AUTO-001',
+      'LOOP-AUTO-002',
+      'LOOP-AUTO-003',
+      'LOOP-AUTO-004',
+      'LOOP-AUTO-005',
+      'LOOP-AUTO-006',
+      'LOOP-AUTO-007',
+      'LOOP-AUTO-008',
+      'LOOP-AUTO-009',
+      'LOOP-AUTO-010',
+      'LOOP-AUTO-011',
+      'LOOP-AUTO-012',
+      'LOOP-AUTO-013',
     ]) {
-      assert(policyContent45.includes(invariantId45), `self-improvement policy includes ${invariantId45}`);
+      assert(policyContent45.includes(invariantId45), `bmad-loop policy includes ${invariantId45}`);
     }
     assert(policyContent45.includes('Vercel Workflow WDK'), 'self-improvement policy documents WDK future adapter boundary');
 
     const guideContent45 = (await fs.pathExists(guide45)) ? await fs.readFile(guide45, 'utf8') : '';
-    assert(guideContent45.includes('local Codex automation loop'), 'self-improvement guide documents local Codex automation loop');
-    assert(guideContent45.includes('Self-Improvement Automation Policy'), 'self-improvement guide links automation policy');
-    assert(guideContent45.includes('Vercel Workflow WDK'), 'self-improvement guide documents WDK future adapter boundary');
+    assert(guideContent45.includes('bmad-loop'), 'self-improvement guide documents bmad-loop instance');
+    assert(guideContent45.includes('Migration Notes'), 'self-improvement guide documents migration notes');
+    assert(guideContent45.includes('Old baked self-improve goal selection is removed'), 'self-improvement guide removes baked goal');
 
     const promptContent45 = (await fs.pathExists(prompt45)) ? await fs.readFile(prompt45, 'utf8') : '';
     assert(promptContent45.includes('Mode: local Codex automation loop'), 'self-improvement prompt includes automation mode');
-    for (const requiredInput45 of ['Base ref:', 'Scope:', 'Stop condition:', 'max_iterations:', 'daily_cap:', 'max_fix_attempts:']) {
+    for (const requiredInput45 of ['Base ref:', 'Goal source:', 'Stop condition:', 'max_iterations:', 'daily_cap:', 'max_fix_attempts:']) {
       assert(promptContent45.includes(requiredInput45), `self-improvement prompt includes ${requiredInput45}`);
     }
-    assert(promptContent45.includes('Vercel Workflow WDK is not part of this run'), 'self-improvement prompt excludes WDK from Phase 1/2');
+    assert(promptContent45.includes('Do not let Party Mode silently create a goal'), 'self-improvement prompt protects goal boundary');
 
     const checkpointContent45 = (await fs.pathExists(checkpointTemplate45)) ? await fs.readFile(checkpointTemplate45, 'utf8') : '';
     for (const checkpointField45 of [
       'Mode and Inputs',
+      'Resolved Input',
       'Baseline Evidence',
       'Lock Evidence',
       'Branch Evidence',
@@ -3656,6 +3658,7 @@ async function runTests() {
     await generator45.generateManifests(bmadDir45, ['core'], [], { ides: ['codex'], moduleConfigs: { core: {} } });
 
     const generatedCsv45 = await fs.readFile(path.join(bmadDir45, '_config', 'skill-manifest.csv'), 'utf8');
+    assert(generatedCsv45.includes('"bmad-loop"'), 'generated skill-manifest.csv includes bmad-loop');
     assert(generatedCsv45.includes('"bmad-self-improve"'), 'generated skill-manifest.csv includes bmad-self-improve');
 
     tempProjectDir45 = await fs.mkdtemp(path.join(os.tmpdir(), 'bmad-self-improve-codex-'));
@@ -3668,8 +3671,20 @@ async function runTests() {
 
     assert(setupResult45.success === true, 'Codex setup succeeds for generated bmad-self-improve fixture');
     assert(
+      await fs.pathExists(path.join(tempProjectDir45, '.agents', 'skills', 'bmad-loop', 'SKILL.md')),
+      'Codex install copies bmad-loop SKILL.md into .agents/skills',
+    );
+    assert(
+      await fs.pathExists(path.join(tempProjectDir45, '.agents', 'skills', 'bmad-loop', 'customize.toml')),
+      'Codex install copies bmad-loop customize.toml into .agents/skills',
+    );
+    assert(
       await fs.pathExists(path.join(tempProjectDir45, '.agents', 'skills', 'bmad-self-improve', 'SKILL.md')),
       'Codex install copies bmad-self-improve SKILL.md into .agents/skills',
+    );
+    assert(
+      await fs.pathExists(path.join(tempProjectDir45, '.agents', 'skills', 'bmad-self-improve', 'customize.toml')),
+      'Codex install copies bmad-self-improve customize.toml into .agents/skills',
     );
   } catch (error) {
     assert(false, 'Codex self-improvement skill test succeeds', error.message);

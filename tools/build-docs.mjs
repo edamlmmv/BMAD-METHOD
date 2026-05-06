@@ -419,7 +419,26 @@ function cleanBuildDirectory() {
   console.log('Cleaning previous build...');
 
   if (fs.existsSync(BUILD_DIR)) {
-    fs.rmSync(BUILD_DIR, { recursive: true });
+    const removeOptions = {
+      recursive: true,
+      force: true,
+      maxRetries: 3,
+      retryDelay: 100,
+    };
+
+    try {
+      fs.rmSync(BUILD_DIR, removeOptions);
+    } catch (error) {
+      if (error?.code !== 'ENOTEMPTY') {
+        throw error;
+      }
+
+      // Finder can recreate .DS_Store while the directory is being removed.
+      for (const entry of fs.readdirSync(BUILD_DIR)) {
+        fs.rmSync(path.join(BUILD_DIR, entry), removeOptions);
+      }
+      fs.rmSync(BUILD_DIR, removeOptions);
+    }
   }
   fs.mkdirSync(BUILD_DIR, { recursive: true });
 }

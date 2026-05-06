@@ -32,6 +32,10 @@ const BMAD_PLANNING_CAPABILITY_FILES = {
     label: 'bmad-workspace skill',
     relativePath: path.join('src', 'core-skills', 'bmad-workspace', 'SKILL.md'),
   },
+  bmadLoop: {
+    label: 'bmad-loop skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-loop', 'SKILL.md'),
+  },
   selfImprove: {
     label: 'bmad-self-improve skill',
     relativePath: path.join('src', 'core-skills', 'bmad-self-improve', 'SKILL.md'),
@@ -44,17 +48,33 @@ const BMAD_PLANNING_CAPABILITY_FILES = {
     label: 'self-improvement runbook',
     relativePath: path.join('docs', 'workspace', 'self-improvement-codex.md'),
   },
+  bmadLoopGuide: {
+    label: 'BMAD loop runbook',
+    relativePath: path.join('docs', 'workspace', 'bmad-loop.md'),
+  },
   prompt: {
     label: 'self-improvement prompt',
     relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'),
+  },
+  bmadLoopPrompt: {
+    label: 'BMAD loop prompt',
+    relativePath: path.join('docs', 'workspace', 'templates', 'bmad-loop-codex-prompt.md'),
   },
   resume: {
     label: 'self-improvement resume prompt',
     relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md'),
   },
+  bmadLoopResume: {
+    label: 'BMAD loop resume prompt',
+    relativePath: path.join('docs', 'workspace', 'templates', 'bmad-loop-codex-resume-prompt.md'),
+  },
   checkpoint: {
     label: 'self-improvement checkpoint template',
     relativePath: path.join('docs', 'workspace', 'templates', 'self-improvement-checkpoint.template.md'),
+  },
+  bmadLoopCheckpoint: {
+    label: 'BMAD loop checkpoint template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'bmad-loop-checkpoint.template.md'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -76,8 +96,13 @@ const BMAD_PLANNING_SETUP_REFS = Object.freeze({
 const REQUIRED_CAPABILITY_SURFACES = Object.freeze([
   'help',
   'workspace',
+  'bmadLoop',
   'selfImprove',
   'partyMode',
+  'bmadLoopGuide',
+  'bmadLoopPrompt',
+  'bmadLoopResume',
+  'bmadLoopCheckpoint',
   'guide',
   'prompt',
   'resume',
@@ -85,7 +110,7 @@ const REQUIRED_CAPABILITY_SURFACES = Object.freeze([
   'moduleHelp',
 ]);
 
-const REQUIRED_MODULE_HELP_SKILLS = Object.freeze(['bmad-help', 'bmad-workspace', 'bmad-self-improve', 'bmad-party-mode']);
+const REQUIRED_MODULE_HELP_SKILLS = Object.freeze(['bmad-help', 'bmad-workspace', 'bmad-loop', 'bmad-self-improve', 'bmad-party-mode']);
 
 const FORBIDDEN_CAPABILITY_AUTOMATION_CLAIMS = Object.freeze([
   'auto-run capability',
@@ -216,7 +241,21 @@ function validateBmadPlanningCapabilities(options = {}) {
   validateModuleHelpRows(contents.moduleHelp, Object.keys(BMAD_PLANNING_SETUP_REFS), files.moduleHelp.relativePath, errors);
   validatePackageScripts(packageJson, files.packageJson.relativePath, errors);
 
-  for (const key of ['help', 'workspace', 'selfImprove', 'partyMode', 'guide', 'prompt', 'resume', 'checkpoint']) {
+  for (const key of [
+    'help',
+    'workspace',
+    'bmadLoop',
+    'selfImprove',
+    'partyMode',
+    'bmadLoopGuide',
+    'bmadLoopPrompt',
+    'bmadLoopResume',
+    'bmadLoopCheckpoint',
+    'guide',
+    'prompt',
+    'resume',
+    'checkpoint',
+  ]) {
     requireTerms(contents[key], [CANONICAL_PLANNING_CAPABILITY_SENTENCE], files[key].label, errors, files[key].relativePath);
     requireNoTerms(contents[key], FORBIDDEN_CAPABILITY_AUTOMATION_CLAIMS, files[key].label, errors, files[key].relativePath);
   }

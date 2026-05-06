@@ -37,6 +37,7 @@ Thumbs.db
 
 # AI assistant files
 CLAUDE.md
+.hermes.md
 .ai/*
 .history/
 cursor

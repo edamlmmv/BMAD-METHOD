@@ -31,7 +31,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI |
 | `runtime.session` | Provide sessions, tasks, goals, Cron, or Heartbeat. | OpenClaw, Hermes |
 | `repo.git` | Create worktrees, diff, status, commit, rollback. | Git |
-| `host.mcp` | Expose bounded tool and context surfaces. | MCP servers |
+| `host.mcp` | Expose bounded tool and context surfaces. | MCP servers, Google Calendar MCP |
 | `collab.github` | Inspect issues, PRs, CI, and reviews. | GitHub |
 
 ## Contract Sketch
@@ -118,6 +118,22 @@ the verifier depend on hand-authored TOML or customization merge internals.
 Codex and Graphify examples live at
 `docs/workspace/templates/capability-request.codex-manual.example.json` and
 `docs/workspace/templates/capability-request.graphify-repo-intake.example.json`.
+
+### Google Calendar Remote MCP Candidate
+
+`host.mcp.google-calendar.remote` declares an experimental `host.mcp`
+capability for the official Google Calendar remote MCP surface. It uses
+`provider: google-calendar-mcp`, `interface: remote-calendar-mcp`,
+`requiresGrant: true`, `writes: ["external/google-calendar/events"]`, and
+`outputs: ["calendar-mcp-operator-evidence.json"]`.
+
+This declaration is not a statement that Calendar MCP is configured locally, a
+Codex Google Calendar connector is installed, a Google Cloud project has enabled
+the Calendar API or Calendar MCP API, or an Apps Script target repo can deploy,
+install triggers, or satisfy its manifest. The official-source planning
+boundary and portable verifier example live at
+`docs/workspace/google-calendar-capability-planning.md` and
+`docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
 
 ## Capability Profile Registry
 

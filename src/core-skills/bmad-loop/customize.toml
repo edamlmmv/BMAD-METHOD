@@ -1,0 +1,35 @@
+[workflow]
+# Generic loop identity. Instance skills may override these sparse fields.
+loop_skill = "bmad-loop"
+loop_slug = ""
+
+# Goal input. A run starts only when direct operator goal, goal_ref, or scope is
+# present. Direct operator goal wins for the current run.
+goal_ref = ""
+scope = ""
+
+# Repo and safety defaults.
+repo_path = ""
+branch_prefix = "codex/loop-"
+checkpoint_subdir = "{output_folder}/loops"
+allowed_write_roots = []
+
+# Contract refs. Paths are documentation/template refs, not runtime authority.
+policy_ref = "docs/workspace/bmad-loop-automation-policy.md"
+runbook_ref = "docs/workspace/bmad-loop.md"
+prompt_template = "docs/workspace/templates/bmad-loop-codex-prompt.md"
+resume_prompt_template = "docs/workspace/templates/bmad-loop-codex-resume-prompt.md"
+checkpoint_template = "docs/workspace/templates/bmad-loop-checkpoint.template.md"
+
+# Finite loop controls.
+stop_condition = "checkpoint written or max caps reached"
+quality_command = "npm ci && npm run quality"
+max_iterations = 1
+daily_cap = 1
+max_fix_attempts = 5
+
+# Context hooks. These append context only and cannot weaken policy or gates.
+persistent_facts = []
+activation_steps_prepend = []
+activation_steps_append = []
+on_complete = ""

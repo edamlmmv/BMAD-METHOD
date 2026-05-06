@@ -1,8 +1,7 @@
 /**
  * BMAD Self-Improve Invariant Tests
  *
- * Public behavior checks for the self-improvement automation policy validator.
- * Usage: node test/test-self-improve-invariants.js
+ * Public behavior checks for self-improve as a bmad-loop instance.
  */
 
 const assert = require('node:assert/strict');
@@ -11,25 +10,11 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+const { LOOP_REFUSAL_MESSAGE, validateGoalResolution } = require('../tools/validate-bmad-loop-invariants');
 const { REQUIRED_INVARIANTS, validateSelfImproveInvariants } = require('../tools/validate-self-improve-invariants');
 
 const repoRoot = path.join(__dirname, '..');
 const validatorPath = path.join(repoRoot, 'tools', 'validate-self-improve-invariants.js');
-
-/*
- * Contract source map:
- *
- * AC-SI-001 missing files: validator file loader, all contract files, temp fixture deletion.
- * AC-SI-002 invariant identity: policy Non-Negotiable Invariants, duplicate id fixture.
- * AC-SI-003 checkpoint contract: checkpoint template fields/enums, missing field fixture.
- * AC-SI-004 template parseability: prompt/resume/checkpoint placeholders and fences, malformed template fixtures.
- * AC-SI-005 ordered sequence: bmad-self-improve Required Sequence plus runbook/prompt ordering fixtures.
- * AC-SI-006 retired phrases: self-improve contract file denylist, scoped fixture injection.
- * AC-SI-007 package wiring: package scripts, quality path fixture mutations.
- * AC-SI-008 Party Mode contract: thread lifecycle, Codex agent budget/config boundary, and TDD voice injection.
- * AC-SI-009 shared BMAD planning capabilities: registry, setup refs, public surface anchors, and vendored snapshots.
- * AC-SI-010 operator-safe resume evidence: runbook quickstart, checkpoint example, and unsafe continuation gates.
- */
 
 function copyDir(source, target) {
   fs.mkdirSync(target, { recursive: true });
@@ -44,15 +29,28 @@ function copyDir(source, target) {
   }
 }
 
+function copyFile(root, relativePath) {
+  const sourcePath = path.join(repoRoot, relativePath);
+  const targetPath = path.join(root, relativePath);
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.copyFileSync(sourcePath, targetPath);
+}
+
 function makeFixture() {
-  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-self-improve-invariants-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-self-improve-invariants-'));
   for (const relativePath of [
     'tools/bmad-planning-capabilities.json',
-    'tools/self-improve-checkpoint-contract.json',
     'tools/validate-bmad-planning-capabilities.js',
+    'tools/validate-bmad-loop-invariants.js',
+    'tools/validate-self-improve-invariants.js',
     'tools/workspace/packet.js',
-    'docs/workspace/self-improvement-automation-policy.md',
+    'docs/workspace/bmad-loop-automation-policy.md',
+    'docs/workspace/bmad-loop.md',
     'docs/workspace/self-improvement-codex.md',
+    'docs/workspace/templates/bmad-loop-codex-prompt.md',
+    'docs/workspace/templates/bmad-loop-codex-resume-prompt.md',
+    'docs/workspace/templates/bmad-loop-checkpoint.template.md',
+    'docs/workspace/templates/bmad-loop-checkpoint.example.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
@@ -60,20 +58,16 @@ function makeFixture() {
     'src/core-skills/bmad-help/SKILL.md',
     'src/core-skills/bmad-party-mode/SKILL.md',
     'src/core-skills/bmad-workspace/SKILL.md',
+    'src/core-skills/bmad-customize/SKILL.md',
     'src/core-skills/module-help.csv',
     'package.json',
   ]) {
-    const sourcePath = path.join(repoRoot, relativePath);
-    const targetPath = path.join(fixtureRoot, relativePath);
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.copyFileSync(sourcePath, targetPath);
+    copyFile(root, relativePath);
   }
-  copyDir(path.join(repoRoot, 'src/core-skills/bmad-self-improve'), path.join(fixtureRoot, 'src/core-skills/bmad-self-improve'));
-  copyDir(
-    path.join(repoRoot, 'docs/workspace/vendor/mattpocock-skills'),
-    path.join(fixtureRoot, 'docs/workspace/vendor/mattpocock-skills'),
-  );
-  return fixtureRoot;
+  copyDir(path.join(repoRoot, 'src/core-skills/bmad-loop'), path.join(root, 'src/core-skills/bmad-loop'));
+  copyDir(path.join(repoRoot, 'src/core-skills/bmad-self-improve'), path.join(root, 'src/core-skills/bmad-self-improve'));
+  copyDir(path.join(repoRoot, 'docs/workspace/vendor/mattpocock-skills'), path.join(root, 'docs/workspace/vendor/mattpocock-skills'));
+  return root;
 }
 
 function replaceInFile(root, relativePath, search, replacement) {
@@ -82,16 +76,8 @@ function replaceInFile(root, relativePath, search, replacement) {
   fs.writeFileSync(filePath, content.replaceAll(search, replacement));
 }
 
-function deleteFixtureFile(root, relativePath) {
-  fs.unlinkSync(path.join(root, relativePath));
-}
-
-function validate(root, extra = {}) {
-  return validateSelfImproveInvariants({ projectRoot: root, ...extra });
-}
-
-function assertInvalid(root, expectedFragment, extra = {}) {
-  const result = validate(root, extra);
+function assertInvalid(root, expectedFragment) {
+  const result = validateSelfImproveInvariants({ projectRoot: root });
   assert.equal(result.ok, false, 'fixture should fail validation');
   assert(
     result.errors.some((error) => error.includes(expectedFragment)),
@@ -99,780 +85,123 @@ function assertInvalid(root, expectedFragment, extra = {}) {
   );
 }
 
-function assertInvalidWithAll(root, expectedFragments, extra = {}) {
-  const result = validate(root, extra);
-  assert.equal(result.ok, false, 'fixture should fail validation');
-  for (const expectedFragment of expectedFragments) {
-    assert(
-      result.errors.some((error) => error.includes(expectedFragment)),
-      `expected error containing "${expectedFragment}", got:\n${result.errors.join('\n')}`,
-    );
-  }
-}
-
-function runValidatorCli(root, extraArgs = []) {
-  return spawnSync(process.execPath, [validatorPath, '--project-root', root, ...extraArgs], {
+function runValidatorCli(root) {
+  return spawnSync(process.execPath, [validatorPath, '--project-root', root], {
     encoding: 'utf8',
     env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
   });
-}
-
-function currentRepoHead() {
-  const result = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], {
-    encoding: 'utf8',
-  });
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  return result.stdout.trim();
-}
-
-function writeTempCheckpoint({
-  finalHeadSha = currentRepoHead(),
-  includeFinalHeadSha = true,
-  continuationAllowed = true,
-  overrides = {},
-} = {}) {
-  const checkpointPath = path.join(os.tmpdir(), `bmad-self-improve-checkpoint-${process.pid}-${Date.now()}.md`);
-  const activationState = {
-    repo_quality: 'pass',
-    repo_local_install: 'pass',
-    active_user_install: 'pass',
-    active_skill_hash: 'match',
-    refresh_state: 'known_good',
-    ...overrides.activation_state,
-  };
-  const evidenceGates = {
-    quality_gate: 'pass',
-    repo_local_install_gate: 'pass',
-    active_user_install_gate: 'pass',
-    hash_gate: 'match',
-    refresh_gate: 'known_good',
-    ...overrides.evidence_gates,
-  };
-  const finalHeadLine = includeFinalHeadSha ? `- Final HEAD SHA: ${finalHeadSha}` : '';
-  const checkpoint = `# BMAD Self-Improvement Checkpoint
-
-## Objective
-
-- Test checkpoint.
-
-## Activation State
-
-\`\`\`yaml self_improvement_checkpoint
-activation_state:
-  repo_quality: ${activationState.repo_quality}
-  repo_local_install: ${activationState.repo_local_install}
-  active_user_install: ${activationState.active_user_install}
-  active_skill_hash: ${activationState.active_skill_hash}
-  refresh_state: ${activationState.refresh_state}
-resume_contract:
-  continuation_allowed: ${continuationAllowed}
-  reason: "Fixture resume contract."
-  required_before_resume: []
-session_identity:
-  codex_thread_id: "codex-thread-example"
-  workspace_session_id: null
-  classification: codex_thread_only
-evidence_gates:
-  quality_gate: ${evidenceGates.quality_gate}
-  repo_local_install_gate: ${evidenceGates.repo_local_install_gate}
-  active_user_install_gate: ${evidenceGates.active_user_install_gate}
-  hash_gate: ${evidenceGates.hash_gate}
-  refresh_gate: ${evidenceGates.refresh_gate}
-\`\`\`
-
-## Local Commits
-
-${finalHeadLine}
-`;
-  fs.writeFileSync(checkpointPath, checkpoint);
-  return checkpointPath;
-}
-
-function replaceCheckpointExample(root, fixtureName) {
-  const sourcePath = path.join(repoRoot, 'test', 'fixtures', 'self-improve', fixtureName);
-  const targetPath = path.join(root, 'docs', 'workspace', 'templates', 'self-improvement-checkpoint.example.md');
-  fs.copyFileSync(sourcePath, targetPath);
 }
 
 function testCurrentRepoValidates() {
-  const result = validate(repoRoot);
-  assert.deepEqual(result, { ok: true, errors: [] });
-}
-
-function testSelfImproveRunbookExposesCheckpointResumeWorkflow() {
-  const runbook = fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8');
-  const resumePrompt = fs.readFileSync(
-    path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-resume-prompt.md'),
-    'utf8',
-  );
-
-  for (const requiredRunbookText of [
-    '## Foreground Resume Quickstart',
-    '_bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md',
-    'automation.lock',
-    'git status --porcelain --untracked-files=all',
-    'Party Mode Decision',
-    'Party Mode Critique',
-    'red-green-refactor',
-    'compile/install Evidence',
-    'Refresh Evidence',
-    'npm ci && npm run quality',
-    'on `HEAD` of the exact checkout',
-    'yaml self_improvement_checkpoint',
-  ]) {
-    assert(runbook.includes(requiredRunbookText), `runbook exposes checkpoint-resume marker: ${requiredRunbookText}`);
-  }
-
-  for (const requiredPromptText of [
-    'Foreground Resume Quickstart',
-    'latest checkpoint under `{output_folder}/self-improvement/`',
-    '`{output_folder}/self-improvement/automation.lock`',
-    'Activation State',
-    'Resume Contract',
-    'Session Identity',
-    'next operator decision',
-  ]) {
-    assert(resumePrompt.includes(requiredPromptText), `resume prompt exposes checkpoint-resume marker: ${requiredPromptText}`);
-  }
-}
-
-function testSelfImproveConsumesWorkspaceGraphEvidenceOnly() {
-  const surfaces = {
-    runbook: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8'),
-    prompt: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'), 'utf8'),
-    workspaceSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace', 'SKILL.md'), 'utf8'),
-    selfImproveSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8'),
-  };
-
-  for (const [surface, content] of Object.entries(surfaces)) {
-    for (const requiredText of [
-      'Workspace graph evidence',
-      'intake/graph.json',
-      'Graph evidence is advisory',
-      'source files remain authority',
-      'does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration',
-    ]) {
-      assert(content.includes(requiredText), `${surface} exposes Workspace graph evidence boundary: ${requiredText}`);
-    }
-  }
-
-  for (const [surface, content] of Object.entries({
-    runbook: surfaces.runbook,
-    prompt: surfaces.prompt,
-    selfImproveSkill: surfaces.selfImproveSkill,
-  })) {
-    for (const requiredText of [
-      'Self-Improve consumes Workspace graph evidence only',
-      'must not call Graphify ad hoc',
-      'must not silently regenerate graph artifacts',
-    ]) {
-      assert(content.includes(requiredText), `${surface} keeps Self-Improve on Workspace graph evidence: ${requiredText}`);
-    }
-  }
-}
-
-function testSelfImproveEvidenceGateV1IsFutureCompatibleOnly() {
-  const surfaces = {
-    runbook: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'self-improvement-codex.md'), 'utf8'),
-    prompt: fs.readFileSync(path.join(repoRoot, 'docs', 'workspace', 'templates', 'self-improvement-codex-prompt.md'), 'utf8'),
-    selfImproveSkill: fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8'),
-  };
-
-  for (const [surface, content] of Object.entries(surfaces)) {
-    for (const requiredText of [
-      'Evidence Gate v1',
-      'future-compatible',
-      'packet v5',
-      'Self-Improve does not actively enforce Evidence Gate v1 in v1',
-      'does not mark gates pass/fail',
-    ]) {
-      assert(content.includes(requiredText), `${surface} keeps Evidence Gate v1 future-compatible: ${requiredText}`);
-    }
-  }
-}
-
-function testSelfImproveRejectsActiveEvidenceGateV1Claim() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'src/core-skills/bmad-self-improve/SKILL.md',
-    'Self-Improve does not actively enforce Evidence Gate v1 in v1',
-    'Self-Improve actively enforces Evidence Gate v1',
-  );
-  assertInvalidWithAll(root, ['SI_EVIDENCE_GATE_V1_BOUNDARY', 'Self-Improve actively enforces Evidence Gate v1']);
-}
-
-function testSelfImproveNamesCapabilityContractAndTddCloseoutBoundary() {
-  const selfImproveSkill = fs.readFileSync(path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md'), 'utf8');
-
-  for (const requiredText of [
-    '## Capability Improvement Workflow',
-    'Party Mode may provide ideation, critique, and consensus evidence',
-    'advisory only',
-    'not approval authority',
-    'acceptance gate',
-    'Capability Request JSON',
-    'Capability Contract',
-    'exact-id, JSON-only, and read-only',
-    'bmad-customize is authoring and education only',
-    '_bmad/custom/*.toml',
-    'never verifier authority',
-    'Self-Improve remains non-customizable in v1',
-    'Do not add `customize.toml`',
-    'new Workspace schema',
-    'new Capability Request fields',
-    'central config surface',
-    'Executor Contract is manual readiness only',
-    'Workspace Result, Review, and Closeout are manual evidence only',
-    'They do not execute, approve, merge, promote, push, restore, replay, schedule, watch, or activate adapters',
-    'TDD red-green provenance',
-    'quality gate, not TDD provenance',
-    'warning/LOW disposition',
-    'accepted',
-    'fixed',
-    'deferred',
-    'false-positive',
-    'file links',
-    'dirty worktree impact',
-    'exact push/PR next step',
-  ]) {
-    assert(selfImproveSkill.includes(requiredText), `self-improve names capability/contract/TDD boundary: ${requiredText}`);
-  }
-}
-
-function testRequiredInvariantIdsExist() {
-  const ids = REQUIRED_INVARIANTS.map((item) => item.id);
-  assert.equal(ids.length, 13);
-  assert.deepEqual([...new Set(ids)], ids);
-}
-
-function testMissingRequiredFileReportsStableError() {
-  const root = makeFixture();
-  deleteFixtureFile(root, 'docs/workspace/templates/self-improvement-codex-resume-prompt.md');
-  assertInvalidWithAll(root, [
-    'SI_FILE_MISSING',
-    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
-    'missing required file',
-  ]);
-}
-
-function testCliMissingRequiredFileUsesInvariantPrefix() {
-  const root = makeFixture();
-  deleteFixtureFile(root, 'docs/workspace/templates/self-improvement-codex-resume-prompt.md');
-  const result = runValidatorCli(root);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_FILE_MISSING'), output);
-  assert(output.includes('docs/workspace/templates/self-improvement-codex-resume-prompt.md'), output);
-}
-
-function testDuplicatePolicyInvariantIdsFail() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/self-improvement-automation-policy.md',
-    '### SI-AUTO-007: Iteration Caps',
-    '### SI-AUTO-007: Iteration Caps\n\n### SI-AUTO-007: Duplicate Iteration Caps',
-  );
-  assertInvalidWithAll(root, ['SI_ID_DUPLICATE', 'SI-AUTO-007']);
-}
-
-function testNeverMainInvariantCannotBeRemoved() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'SI-AUTO-002', 'SI-AUTO-XXX');
-  assertInvalid(root, 'policy missing invariant id SI-AUTO-002');
-}
-
-function testNeverPushTermCannotBeRemoved() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'pushes to any remote', 'publishes when useful');
-  assertInvalid(root, 'policy SI-AUTO-002 missing required term: pushes');
-}
-
-function testMaxFixAttemptsCannotBeWeakened() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'max_fix_attempts=5', 'max_fix_attempts=50');
-  assertInvalid(root, 'policy SI-AUTO-006 missing required term: max_fix_attempts=5');
-}
-
-function testDirtyPreflightPorcelainDefinitionCannotDisappear() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'git status --porcelain --untracked-files=all', 'git status');
-  assertInvalid(root, 'policy SI-AUTO-004 missing required term: git status --porcelain --untracked-files=all');
-}
-
-function testDirtyPreflightBranchMutationGuardCannotDisappear() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/self-improvement-automation-policy.md',
-    'abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits',
-    'abort later',
-  );
-  assertInvalid(
-    root,
-    'policy SI-AUTO-004 missing required term: abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits',
-  );
-}
-
-function testFreshBranchCurrentRunDefinitionCannotDisappear() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/self-improvement-automation-policy.md',
-    'created for the current run before improvement edits',
-    'created sometime before edits',
-  );
-  assertInvalid(root, 'policy SI-AUTO-001 missing required term: created for the current run before improvement edits');
-}
-
-function testExactCheckoutGateCannotDisappear() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'on `HEAD` of the exact checkout', 'on the checkout');
-  assertInvalid(root, 'policy SI-AUTO-005 missing required term: on `HEAD` of the exact checkout');
-}
-
-function testCheckpointRequiresActivationStateContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', '## Activation State', '## Runtime State');
-  assertInvalid(root, 'checkpoint template missing required term: Activation State');
-}
-
-function testCheckpointRequiresResumeContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', 'resume_contract:', 'resume_next:');
-  assertInvalid(root, 'checkpoint template missing required term: resume_contract:');
-}
-
-function testRefreshUnknownCannotAllowContinuation() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-checkpoint.template.md',
-    'refresh_state: known_good|failed|blocked|unknown',
-    'refresh: unknown',
-  );
-  assertInvalid(root, 'checkpoint template missing required term: refresh_state: known_good|failed|blocked|unknown');
-}
-
-function testActiveHashMismatchBlocksContinuation() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-checkpoint.template.md',
-    'active_skill_hash: match|mismatch|unknown',
-    'active_skill_hash: match|unknown',
-  );
-  assertInvalid(root, 'checkpoint template missing required term: active_skill_hash: match|mismatch|unknown');
-}
-
-function testSessionIdentityClassifiesCodexThreads() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-checkpoint.template.md',
-    'classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
-    'classification: valid_workspace_session|unknown',
-  );
-  assertInvalid(
-    root,
-    'checkpoint template missing required term: classification: valid_workspace_session|codex_thread_only|session_not_found|unknown',
-  );
-}
-
-function testCheckpointRequiresFinalHeadSha() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', '- Final HEAD SHA:', '- Final SHA:');
-  assertInvalidWithAll(root, ['SI_CHECKPOINT_CONTRACT', 'Final HEAD SHA']);
-}
-
-function testValidCheckpointExampleParses() {
-  const result = validate(repoRoot);
+  const result = validateSelfImproveInvariants({ projectRoot: repoRoot });
   assert.equal(result.ok, true, result.errors.join('\n'));
 }
 
-function testCheckpointExampleRequiresLabeledEvidenceBlock() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.example.md', '```yaml self_improvement_checkpoint', '```yaml');
-  assertInvalidWithAll(root, ['SI_CHECKPOINT_EVIDENCE_MISSING', 'self-improvement-checkpoint.example.md']);
-}
-
-function testCheckpointExampleRejectsDuplicateLabeledEvidenceBlocks() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-checkpoint.example.md',
-    '```yaml self_improvement_checkpoint',
-    '```yaml self_improvement_checkpoint\nactivation_state: {}\n```\n\n```yaml self_improvement_checkpoint',
-  );
-  assertInvalidWithAll(root, ['SI_CHECKPOINT_EVIDENCE_MALFORMED', 'self-improvement-checkpoint.example.md']);
-}
-
-function testPromptRejectsUnknownPlaceholders() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-codex-prompt.md',
-    '[PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]',
-    '[PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]\n{bad-placeholder}',
-  );
-  assertInvalidWithAll(root, ['SI_PLACEHOLDER_UNKNOWN', '{bad-placeholder}']);
-}
-
-function testResumePromptRejectsUnbalancedMarkdownFences() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
-    'remaining risks\n````',
-    'remaining risks\n````\n```',
-  );
-  assertInvalidWithAll(root, ['SI_MARKDOWN_FENCE_UNBALANCED', 'self-improvement-codex-resume-prompt.md']);
-}
-
-function testRequiredSequenceOrderCannotRegress() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-codex-prompt.md',
-    '7. Before branch creation',
-    '7. Create or switch to the fresh branch before preflight.\n8. Before branch creation',
-  );
-  assertInvalidWithAll(root, ['SI_SEQUENCE_ORDER', 'fresh branch']);
-}
-
-function testContinuationRequiresAllActivationGates() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/self-improvement-automation-policy.md',
-    'Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.',
-    'Continuation is allowed when quality passes.',
-  );
-  assertInvalid(
-    root,
-    'policy SI-AUTO-008 missing required term: Continuation is allowed only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good.',
+function testRequiredInvariantAliasesExist() {
+  assert.equal(REQUIRED_INVARIANTS.length, 13);
+  assert.deepEqual(
+    REQUIRED_INVARIANTS.map((item) => item.id),
+    [
+      'SI-AUTO-001',
+      'SI-AUTO-002',
+      'SI-AUTO-003',
+      'SI-AUTO-004',
+      'SI-AUTO-005',
+      'SI-AUTO-006',
+      'SI-AUTO-007',
+      'SI-AUTO-008',
+      'SI-AUTO-009',
+      'SI-AUTO-010',
+      'SI-AUTO-011',
+      'SI-AUTO-012',
+      'SI-AUTO-013',
+    ],
   );
 }
 
-function testContinuationGateCannotBeRemoved() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'install/refresh evidence', 'operator vibes');
-  assertInvalid(root, 'policy SI-AUTO-008 missing required term: install/refresh evidence');
+function testSelfImproveCustomizeSurfaceShipsEmptyGoal() {
+  const customize = fs.readFileSync(path.join(repoRoot, 'src/core-skills/bmad-self-improve/customize.toml'), 'utf8');
+  for (const required of [
+    'loop_skill = "bmad-loop"',
+    'loop_slug = "self-improve"',
+    'goal_ref = ""',
+    'scope = ""',
+    'branch_prefix = "codex/self-improve-"',
+    'checkpoint_subdir = "{output_folder}/self-improvement"',
+  ]) {
+    assert(customize.includes(required), `self-improve customize includes ${required}`);
+  }
 }
 
-function testScheduleAwarenessCannotBeRemoved() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'effective automation schedule/config', 'weekly schedule');
-  assertInvalid(root, 'policy SI-AUTO-008 missing required term: effective automation schedule/config');
+function testEmptySelfImproveGoalRefuses() {
+  const result = validateGoalResolution({
+    workflow: {
+      goal_ref: '',
+      scope: '',
+      stop_condition: 'checkpoint written or max caps reached',
+      quality_command: 'npm ci && npm run quality',
+    },
+  });
+  assert.deepEqual(result, { ok: false, error: LOOP_REFUSAL_MESSAGE, inputSource: null });
 }
 
-function testInstallRefreshFailureContractCannotDisappear() {
+function testAliasRemovalFails() {
   const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'source and installed SHA-256 hashes', 'basic note');
-  assertInvalid(root, 'policy SI-AUTO-009 missing required term: source and installed SHA-256 hashes');
+  replaceInFile(root, 'src/core-skills/bmad-self-improve/SKILL.md', 'SI-AUTO-011', 'SI-AUTO-REMOVED');
+  assertInvalid(root, 'SI_ALIAS');
+  assertInvalid(root, 'SI-AUTO-011');
 }
 
-function testFailClosedAmbiguityCannotDisappear() {
+function testLoopCoreWeakeningFailsSelfImprove() {
   const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'deterministic invariant checker', 'manual skim');
-  assertInvalid(root, 'policy SI-AUTO-010 missing required term: deterministic invariant checker');
+  replaceInFile(root, 'docs/workspace/bmad-loop-automation-policy.md', 'LOOP-AUTO-002', 'LOOP-AUTO-999');
+  assertInvalid(root, 'SI_LOOP_CORE');
+  assertInvalid(root, 'LOOP-AUTO-002');
 }
 
-function testSelfEditContractRequiresSkillTerms() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-self-improve/SKILL.md', 'Party Mode consensus', 'group chat');
-  assertInvalid(root, 'bmad-self-improve skill missing required term: Party Mode consensus');
-}
-
-function testPartyModeRequiresThreadLifecycleContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'Close stale Party Mode threads', 'Reuse stale Party Mode threads');
-  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'thread/session hygiene']);
-}
-
-function testPartyModeRequiresCodexAgentBudgetContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'max_threads', 'thread_limit');
-  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'Codex agent budget']);
-}
-
-function testPartyModeRequiresCodexConfigBoundaryContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'features.codex_hooks', 'feature hooks');
-  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'Codex config boundary']);
-}
-
-function testPartyModeRequiresTddVoiceInjectionContract() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-party-mode/SKILL.md', 'red-green-refactor', 'test later');
-  assertInvalidWithAll(root, ['SI_PARTY_MODE_CONTRACT', 'TDD voice injection']);
-}
-
-function testPolicyBaselineBlocksRemovedIds() {
-  const root = makeFixture();
-  const baselinePath = path.join(root, 'baseline-policy.md');
-  fs.copyFileSync(path.join(root, 'docs/workspace/self-improvement-automation-policy.md'), baselinePath);
-  replaceInFile(root, 'docs/workspace/self-improvement-automation-policy.md', 'SI-AUTO-012', 'SI-AUTO-999');
-  assertInvalid(root, 'candidate policy removed baseline invariant id: SI-AUTO-012', { baselinePolicy: baselinePath });
-}
-
-function testRetiredManualOnlyPhrasesStayRemoved() {
+function testPartyModeCannotCreateGoalTextDisappear() {
   const root = makeFixture();
   replaceInFile(
     root,
     'src/core-skills/bmad-self-improve/SKILL.md',
-    '# BMAD Self-Improve',
-    '# BMAD Self-Improve\n\nMissing automation is expected.',
+    'Party Mode must not silently create a goal',
+    'Party Mode can pick a goal',
   );
-  assertInvalid(root, 'contains retired manual-only phrase: Missing automation is expected');
+  assertInvalid(root, 'Party Mode must not silently create a goal');
 }
 
-function testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles() {
+function testPromptRequiresGoalSource() {
   const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
-    '# Self-Improvement Resume Prompt',
-    '# Self-Improvement Resume Prompt\n\nMissing automation is expected.',
-  );
-  assertInvalidWithAll(root, ['SI_RETIRED_PHRASE', 'self-improvement-codex-resume-prompt.md', 'Missing automation is expected']);
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-codex-prompt.md', 'Goal source:', 'Goal:');
+  assertInvalid(root, 'Goal source:');
 }
 
-function testPackageWiringUsesStableErrorCode() {
+function testCliUsesInvariantPrefix() {
   const root = makeFixture();
-  replaceInFile(
-    root,
-    'package.json',
-    '"validate:self-improve-invariants": "node tools/validate-self-improve-invariants.js"',
-    '"validate:self-improve-invariants": "node tools/other-validator.js"',
-  );
-  assertInvalidWithAll(root, ['SI_PACKAGE_SCRIPT', 'validate:self-improve-invariants']);
-}
-
-function testPlanningCapabilityRegistryIsRequired() {
-  const root = makeFixture();
-  deleteFixtureFile(root, 'tools/bmad-planning-capabilities.json');
-  assertInvalidWithAll(root, ['BPC_FILE_MISSING', 'tools/bmad-planning-capabilities.json']);
-}
-
-function testPlanningCapabilityValidatorAcceptsSharedRegistryPath() {
-  const root = makeFixture();
-  const result = spawnSync('npm', ['run', '--silent', 'validate:bmad-planning-capabilities', '--', '--project-root', root], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
-  });
-
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-}
-
-function testPlanningCapabilityMissingSurfaceFails() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/bmad-help/SKILL.md', 'capability:grill-me', 'capability:removed-grill');
-  assertInvalidWithAll(root, ['BPC_SURFACE', 'capability:grill-me', 'bmad-help skill']);
-}
-
-function testPlanningCapabilitySetupRefMismatchFails() {
-  const root = makeFixture();
-  replaceInFile(root, 'tools/bmad-planning-capabilities.json', '"setupGateRef": "tddPlan"', '"setupGateRef": "tdd"');
-  assertInvalidWithAll(root, ['BPC_SETUP_REF', 'tdd', 'tddPlan']);
-}
-
-function testPlanningCapabilityModuleHelpRowsRequired() {
-  const root = makeFixture();
-  replaceInFile(root, 'src/core-skills/module-help.csv', 'capability:zoom-out', 'capability:removed-zoom');
-  assertInvalidWithAll(root, ['BPC_MODULE_HELP', 'bmad-help', 'capability:zoom-out']);
-}
-
-function testPlanningCapabilityVendorManifestEntryRequired() {
-  const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/vendor/mattpocock-skills/MANIFEST.json', '"name": "grill-me"', '"name": "grill-missing"');
-  assertInvalidWithAll(root, ['BPC_VENDOR', 'grill-me']);
-}
-
-function testResumeModeAllowsBlockedCheckpointWithoutContinuationRequirement() {
-  const checkpointPath = writeTempCheckpoint({
-    continuationAllowed: false,
-    overrides: {
-      activation_state: {
-        active_user_install: 'blocked',
-        active_skill_hash: 'unknown',
-        refresh_state: 'unknown',
-      },
-      evidence_gates: {
-        active_user_install_gate: 'blocked',
-        hash_gate: 'unknown',
-        refresh_gate: 'unknown',
-      },
-    },
-  });
-  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath]);
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-}
-
-function testResumeModeBlocksCheckpointWhenContinuationFalse() {
-  const checkpointPath = writeTempCheckpoint({
-    continuationAllowed: false,
-    overrides: {
-      activation_state: {
-        active_user_install: 'blocked',
-        active_skill_hash: 'unknown',
-        refresh_state: 'unknown',
-      },
-      evidence_gates: {
-        active_user_install_gate: 'blocked',
-        hash_gate: 'unknown',
-        refresh_gate: 'unknown',
-      },
-    },
-  });
-  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_CONTINUATION_BLOCKED'), output);
-  assert(output.includes(checkpointPath), output);
-  assert(output.includes('resume_contract.continuation_allowed'), output);
-}
-
-function testResumeModeRequiresFinalHeadSha() {
-  const checkpointPath = writeTempCheckpoint({ includeFinalHeadSha: false });
-  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_HEAD_MISSING'), output);
-  assert(output.includes(checkpointPath), output);
-  assert(output.includes('Final HEAD SHA'), output);
-}
-
-function testResumeModeRejectsStaleFinalHeadSha() {
-  const checkpointPath = writeTempCheckpoint({ finalHeadSha: 'a'.repeat(40) });
-  const result = runValidatorCli(repoRoot, ['--checkpoint', checkpointPath, '--require-continuation-allowed']);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_STALE_HEAD'), output);
-  assert(output.includes(checkpointPath), output);
-  assert(output.includes('Final HEAD SHA'), output);
-}
-
-function testPlanningCapabilityRejectsUnknownAnchors() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'src/core-skills/bmad-party-mode/SKILL.md',
-    'capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.',
-    'capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.\n- `capability:ghost`: should fail.',
-  );
-  assertInvalidWithAll(root, ['BPC_UNKNOWN_CAPABILITY_ANCHOR', 'capability:ghost', 'bmad-party-mode skill']);
-}
-
-function testPlanningCapabilityRejectsCodexConfigAuthorityClaims() {
-  const root = makeFixture();
-  replaceInFile(
-    root,
-    'docs/workspace/self-improvement-codex.md',
-    'Codex Advanced Configuration is optional operator-local setup.',
-    'Codex Advanced Configuration is optional operator-local setup.\n\nCodex config grants authority.',
-  );
-  assertInvalidWithAll(root, ['BPC_FORBIDDEN_AUTOMATION_CLAIM', 'Codex config grants authority']);
-}
-
-function testInvalidCheckpointActivationStateFails() {
-  const root = makeFixture();
-  replaceCheckpointExample(root, 'invalid-activation-state.md');
+  replaceInFile(root, 'src/core-skills/bmad-self-improve/customize.toml', 'goal_ref = ""', 'goal_pointer = ""');
   const result = runValidatorCli(root);
   const output = `${result.stdout}\n${result.stderr}`;
   assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_INVALID_ENUM'), output);
-  assert(output.includes('repo_quality'), output);
-}
-
-function testInvalidCheckpointContinuationAllowedFails() {
-  const root = makeFixture();
-  replaceCheckpointExample(root, 'invalid-continuation-allowed.md');
-  const result = runValidatorCli(root);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_UNSAFE_CONTINUATION'), output);
-  assert(output.includes('resume_contract.continuation_allowed'), output);
-}
-
-function testInvalidCheckpointFailedGateFails() {
-  const root = makeFixture();
-  replaceCheckpointExample(root, 'invalid-gate-failed.md');
-  const result = runValidatorCli(root);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert(output.includes('SELF_IMPROVE_INVARIANT: SI_CHECKPOINT_UNSAFE_CONTINUATION'), output);
-  assert(output.includes('evidence_gates.quality_gate'), output);
+  assert(output.includes('SELF_IMPROVE_INVARIANT:'), output);
+  assert(output.includes('goal_ref = ""'), output);
 }
 
 function run() {
   const tests = [
     testCurrentRepoValidates,
-    testSelfImproveRunbookExposesCheckpointResumeWorkflow,
-    testSelfImproveConsumesWorkspaceGraphEvidenceOnly,
-    testSelfImproveEvidenceGateV1IsFutureCompatibleOnly,
-    testSelfImproveRejectsActiveEvidenceGateV1Claim,
-    testSelfImproveNamesCapabilityContractAndTddCloseoutBoundary,
-    testRequiredInvariantIdsExist,
-    testMissingRequiredFileReportsStableError,
-    testCliMissingRequiredFileUsesInvariantPrefix,
-    testDuplicatePolicyInvariantIdsFail,
-    testNeverMainInvariantCannotBeRemoved,
-    testNeverPushTermCannotBeRemoved,
-    testMaxFixAttemptsCannotBeWeakened,
-    testDirtyPreflightPorcelainDefinitionCannotDisappear,
-    testDirtyPreflightBranchMutationGuardCannotDisappear,
-    testFreshBranchCurrentRunDefinitionCannotDisappear,
-    testExactCheckoutGateCannotDisappear,
-    testCheckpointRequiresActivationStateContract,
-    testCheckpointRequiresResumeContract,
-    testRefreshUnknownCannotAllowContinuation,
-    testActiveHashMismatchBlocksContinuation,
-    testSessionIdentityClassifiesCodexThreads,
-    testCheckpointRequiresFinalHeadSha,
-    testValidCheckpointExampleParses,
-    testCheckpointExampleRequiresLabeledEvidenceBlock,
-    testCheckpointExampleRejectsDuplicateLabeledEvidenceBlocks,
-    testPromptRejectsUnknownPlaceholders,
-    testResumePromptRejectsUnbalancedMarkdownFences,
-    testRequiredSequenceOrderCannotRegress,
-    testContinuationRequiresAllActivationGates,
-    testContinuationGateCannotBeRemoved,
-    testScheduleAwarenessCannotBeRemoved,
-    testInstallRefreshFailureContractCannotDisappear,
-    testFailClosedAmbiguityCannotDisappear,
-    testSelfEditContractRequiresSkillTerms,
-    testPartyModeRequiresThreadLifecycleContract,
-    testPartyModeRequiresCodexAgentBudgetContract,
-    testPartyModeRequiresCodexConfigBoundaryContract,
-    testPartyModeRequiresTddVoiceInjectionContract,
-    testPolicyBaselineBlocksRemovedIds,
-    testRetiredManualOnlyPhrasesStayRemoved,
-    testRetiredManualOnlyPhrasesAreRejectedAcrossContractFiles,
-    testPackageWiringUsesStableErrorCode,
-    testPlanningCapabilityRegistryIsRequired,
-    testPlanningCapabilityValidatorAcceptsSharedRegistryPath,
-    testPlanningCapabilityMissingSurfaceFails,
-    testPlanningCapabilitySetupRefMismatchFails,
-    testPlanningCapabilityModuleHelpRowsRequired,
-    testPlanningCapabilityVendorManifestEntryRequired,
-    testResumeModeAllowsBlockedCheckpointWithoutContinuationRequirement,
-    testResumeModeBlocksCheckpointWhenContinuationFalse,
-    testResumeModeRequiresFinalHeadSha,
-    testResumeModeRejectsStaleFinalHeadSha,
-    testPlanningCapabilityRejectsUnknownAnchors,
-    testPlanningCapabilityRejectsCodexConfigAuthorityClaims,
-    testInvalidCheckpointActivationStateFails,
-    testInvalidCheckpointContinuationAllowedFails,
-    testInvalidCheckpointFailedGateFails,
+    testRequiredInvariantAliasesExist,
+    testSelfImproveCustomizeSurfaceShipsEmptyGoal,
+    testEmptySelfImproveGoalRefuses,
+    testAliasRemovalFails,
+    testLoopCoreWeakeningFailsSelfImprove,
+    testPartyModeCannotCreateGoalTextDisappear,
+    testPromptRequiresGoalSource,
+    testCliUsesInvariantPrefix,
   ];
-
   for (const test of tests) {
     test();
-    console.log(`✓ ${test.name}`);
   }
+  console.log(`BMAD self-improve invariant tests passed (${tests.length}).`);
 }
 
 run();

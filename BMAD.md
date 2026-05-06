@@ -6,7 +6,7 @@ This workspace is BMAD framework itself, not downstream product implementation.
 
 ## Operating Rule
 
-Run manifest-first. Use `bmad.config.yaml` as entrypoint, then this contract, then Hermes context, then local ops state.
+Run manifest-first. Use `bmad.config.yaml` as entrypoint, then this contract, then ignored/local Hermes context under `_bmad-output/`, then local ops state.
 
 ## Current Focus
 

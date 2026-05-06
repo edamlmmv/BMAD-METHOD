@@ -1,32 +1,29 @@
 ---
-title: "Self-Improvement Resume Prompt"
-description: Prompt template for resuming BMAD self-improvement as a bmad-loop instance
+title: "BMAD Loop Resume Prompt"
+description: Prompt template for resuming a generic BMAD loop
 ---
 
-# Self-Improvement Resume Prompt
+# BMAD Loop Resume Prompt
 
-Use this prompt when context runs low or a fresh Codex chat must continue a BMAD
-self-improvement run.
+Use this prompt when context runs low or a fresh Codex chat must continue a
+generic BMAD loop.
 
 ````md
 [$bmad-help]({skill-root}/bmad-help/SKILL.md)
 [$bmad-workspace]({skill-root}/bmad-workspace/SKILL.md)
 [$bmad-party-mode]({skill-root}/bmad-party-mode/SKILL.md)
 [$bmad-loop]({skill-root}/bmad-loop/SKILL.md)
-[$bmad-self-improve]({skill-root}/bmad-self-improve/SKILL.md)
 
 You are Codex working in `{project-root}`.
 
-Resume `bmad-self-improve` from the latest checkpoint under
-`{output_folder}/self-improvement/` unless the resolved `checkpoint_subdir`
-points elsewhere.
+Resume the BMAD loop from the latest checkpoint under the resolved
+`workflow.checkpoint_subdir`.
 
 First read:
 
 - `docs/workspace/bmad-loop-automation-policy.md`
-- `docs/workspace/self-improvement-codex.md`
 - latest checkpoint
-- `{output_folder}/self-improvement/automation.lock`
+- `automation.lock`
 - effective automation schedule/config or explicit operator parameters
 - current git branch and diff
 - dirty preflight scan result
@@ -44,7 +41,7 @@ records those rounds.
 Before continuing, verify:
 
 - checkpoint final HEAD matches current HEAD
-- current branch is a fresh non-main `codex/self-improve-*` branch for the current loop
+- current branch is a fresh non-main branch for the current loop
 - no dirty non-ignored worktree state remains unpreserved
 - preflight scan did not report suspected secrets or huge generated artifacts
 - no push is required
@@ -54,7 +51,6 @@ Before continuing, verify:
 - Activation State gates support continuation
 - Resume Contract permits continuation
 - Session Identity distinguishes Codex thread ids from BMAD Workspace Session ids
-- Party Mode decisions refine an instantiated goal and did not create one silently
 
 Resume from the next exact task. Do not restart discovery unless the checkpoint
 says the plan is invalid.

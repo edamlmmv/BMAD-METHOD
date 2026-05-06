@@ -14,6 +14,17 @@ good yet.
 - Active user install has not been confirmed.
 - Active skill hash is still unknown.
 - Refresh state is unknown, so continuation is not allowed.
+- The run used an explicit operator goal; Party Mode refined the target but did
+  not create the goal.
+
+## Resolved Input
+
+- Direct operator goal: "Improve one BMAD self-improvement behavior."
+- `goal_ref`: null
+- `scope`: null
+- Input source: direct_operator_goal
+- Input conflict recorded: false
+- Goal created by Party Mode: false
 
 ## Operator Checks
 

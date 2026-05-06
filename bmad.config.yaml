@@ -19,7 +19,7 @@ openclaw:
   handoff_file: _bmad-output/openclaw-hermes/handoff.md
 artifacts:
   contract: BMAD.md
-  hermes_context: .hermes.md
+  hermes_context: _bmad-output/hermes-context.md
   sprint_status: _bmad-output/sprint-status.yaml
   ops_state_dir: _bmad-output
 guardrails:

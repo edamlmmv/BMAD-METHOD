@@ -155,6 +155,18 @@ a guarantee that a runnable local Codex CLI exists. Record any actual operator
 observation through `bmad workspace result` or `bmad workspace closeout`; never
 treat the profile as execution evidence.
 
+For Google Calendar remote MCP planning, use
+`docs/workspace/google-calendar-capability-planning.md` and
+`docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
+The exact declared id is `host.mcp.google-calendar.remote`. Keep Calendar MCP,
+Google Workspace docs MCP, Calendar API, Codex Google Calendar connector,
+Workspace verifier, and any local Google Workspace add-on target repo separate.
+Live MCP discovery, connector availability, Codex config, local OAuth setup,
+`appsscript.json`, Calendar API enablement, Apps Script triggers, and deployment
+state are not verifier input, grant authority, or runtime guarantees. Name
+indirect prompt injection as a security risk and require human review before
+Calendar-affecting actions.
+
 ## Codex Operator Affordances
 
 Codex slash commands, tools, hooks, plugins, and future UI commands are operator

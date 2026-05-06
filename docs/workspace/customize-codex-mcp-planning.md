@@ -16,6 +16,12 @@ This keeps `bmad-customize` useful when users say "use Codex MCP" while keeping
 `bmad workspace verify-capability` deterministic, offline-friendly, and
 reproducible on the exact `HEAD` being checked.
 
+The same boundary applies when users ask Customize to leverage browser
+affordances such as Playwright MCP, Playwright CLI, Agent Browser, Browser Use,
+or Computer Use. Browser-derived observations may become manual evidence, but
+they are not verifier input, capability grants, runtime authority, or
+environment truth.
+
 ## Source Of Truth
 
 Source authority: `src/core-skills/bmad-customize/SKILL.md`.
@@ -39,6 +45,13 @@ docs, and tests are updated.
 | Codex MCP host | Codex CLI/app capability to configure and manage MCP servers through `mcp_servers.*` and `codex mcp`. |
 | Codex MCP server | One configured MCP server, such as OpenAI Docs MCP, that can supply context to an operator. |
 | OpenAI Docs MCP | Official documentation source for Codex/OpenAI developer product facts. |
+| Browser affordance | Operator-facing browser or desktop automation aid used to inspect, test, screenshot, or navigate UI state. |
+| Advisory affordance | Useful operator context that may guide Customize wording or evidence checklists, never sealed verifier evidence. |
+| Playwright MCP | Official `@playwright/mcp` browser automation server; live availability is operator context only. |
+| Playwright CLI | CLI or wrapper-driven Playwright automation; command output is manual evidence only when recorded by an operator. |
+| Agent Browser | Vercel browser automation CLI for agent-driven navigation, snapshots, screenshots, and interaction. |
+| Browser Use | Browser automation provider or plugin context; never Workspace verifier authority. |
+| Computer Use | Desktop/UI automation MCP context; never Workspace verifier authority. |
 | `_bmad/custom` | Customization output/config area; never verifier input. |
 
 ## Boundary Model
@@ -63,6 +76,7 @@ flowchart LR
 Allowed Customize outputs:
 
 - Documentation explaining Codex MCP-aware authoring.
+- Documentation explaining browser-affordance authoring.
 - Capability Request examples that remain self-contained JSON.
 - Prompts and warnings that explain what MCP can inform and what it cannot prove.
 - Evidence checklists for declared contract, executable proof, and human decision.
@@ -74,23 +88,93 @@ Forbidden Workspace couplings:
 - No verifier reads from `~/.codex/config.toml` or project `.codex/config.toml`.
 - No verifier calls to app-server APIs, live MCP servers, live Graphify, or
   Workspace Session artifacts.
+- No verifier calls to Playwright MCP, Playwright CLI, Agent Browser, Browser
+  Use, Computer Use, browser tooling, desktop automation, or network probes.
 - No network deps in verifier behavior.
 - No new capability id, schema, API, or verifier behavior without a separate
   architecture decision.
 - No claim that `executor.codex.manual` proves live MCP behavior.
+- No registry/profile mutation in this slice.
 
 ## Evidence Model
 
 | Layer | Authority | Output |
 | --- | --- | --- |
 | Declared contract | `bmad workspace verify-capability` | Verdict over a self-contained Capability Request JSON fixture. |
-| Advisory authoring context | OpenAI Docs MCP, Codex config docs, capability profile registry, local observations | User-facing guidance, examples, warnings, and evidence checklists. |
+| Advisory authoring context | OpenAI Docs MCP, Codex config docs, capability profile registry, local observations, and browser affordances | User-facing guidance, examples, warnings, and evidence checklists. |
 | Executable proof | Codex CLI, Codex Desktop, or `codex mcp-server` transcript | Command-backed evidence with version, cwd, timestamp, exit code, and result summary. |
-| Human decision | Workspace result/review/closeout/archive | Reviewer judgment, evidence refs, unresolved gaps, and next action. |
+| Human decision | Workspace result/review/closeout/archive | Reviewer judgment, browser-derived observations, evidence refs, unresolved gaps, and next action. |
 
 `mcp_servers.*`, `codex mcp`, and Codex config output can explain operator
 context. They are not declared capability compatibility. OpenAI Docs MCP can
 ground documentation facts about Codex MCP behavior. It is not runtime proof.
+
+## Evidence Authority Model
+
+Authority order:
+
+1. Sealed verifier evidence: Capability Request JSON and embedded declarations.
+2. Repo source, committed docs, tests, and templates.
+3. Operator observations recorded as manual result/review/closeout evidence.
+4. Speculation or unstored observations.
+
+Browser-derived observations from Playwright MCP, Playwright CLI, Agent Browser,
+Browser Use, Computer Use, screenshots, snapshots, or desktop automation live at
+layer 3 only after they are recorded with timestamp, source/tool, operator
+context, summary, and an explicit "not verifier input" boundary.
+
+## Browser Affordance Taxonomy
+
+| Surface | Trust label | Customize use | Workspace boundary |
+| --- | --- | --- | --- |
+| Playwright MCP | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain browser navigation, snapshots, clicks, typing, screenshots, and optional MCP capability groups. | Never verifier input or capability grant. |
+| Playwright CLI | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain wrapper or CLI probes as operator-run evidence prep. | Never deterministic validator dependency. |
+| Agent Browser | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain CLI refs, snapshots, screenshots, and interaction loops. | Missing CLI on `PATH` is local observation only. |
+| Browser Use | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain provider/plugin context for browser automation. | Provider/session availability is not Workspace authority. |
+| Computer Use | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain desktop accessibility inspection or UI action context. | Live app state is not verifier input. |
+
+## Workspace Evidence Path
+
+Browser findings belong in manual Workspace result, review, closeout, or archive
+evidence only. Record:
+
+- source/tool, such as Playwright MCP, Playwright CLI, Agent Browser, Browser
+  Use, or Computer Use;
+- timestamp and operator context;
+- command or interaction summary when available;
+- artifact refs such as screenshot, snapshot, transcript, or note;
+- explicit statement that the observation is not verifier input, not grant
+  authority, not runtime authority, and not environment truth.
+
+Do not make deterministic Workspace checks, capability verification, skill
+validation, or plan acceptance depend on live browser/tool/config/network reads.
+
+## Planning Backlog
+
+1. Baseline current authority across `bmad-customize`, Workspace docs,
+   capability templates, verifier tests, registry context, and `_bmad/custom`
+   reminders.
+2. Define browser affordance taxonomy and trust labels before implementation.
+3. Design Customize wording for prompts, examples, warnings, and evidence
+   checklists without implying verifier compatibility.
+4. Design Workspace evidence examples for browser-derived manual observations.
+5. Write a later implementation plan at
+   `docs/superpowers/plans/2026-05-06-customize-browser-affordance-planning.md`
+   only after consensus accepts the authority model.
+
+## Consensus Decision Log
+
+- Accepted: browser tooling is advisory and may support manual evidence.
+- Accepted: Base Improvement Workspace path is the later implementation path.
+- Accepted: docs plus `bmad-customize` source guidance are enough for this
+  slice unless a later consensus gate chooses profile work.
+- Rejected: verifier schema changes, public Workspace CLI changes, MCP config
+  mutation, live browser/tool/network reads, and runtime probes.
+- Rejected: registry/profile mutation in this slice.
+- Gate 1: authority model accepted by PM, Architect, Developer, and Writer.
+- Gate 2: decide whether docs plus skill guidance are enough, or profile work is
+  needed.
+- Gate 3: write red-green-refactor implementation tasks only after Gate 2.
 
 ## Examples
 

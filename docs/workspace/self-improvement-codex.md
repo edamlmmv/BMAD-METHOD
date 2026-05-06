@@ -1,289 +1,150 @@
 ---
-title: 'bmad-self-improve Codex Automation Runbook'
-description: Local Codex automation-capable BMAD self-improvement workflow
+title: "bmad-self-improve Instance Runbook"
+description: BMAD repository improvement as a predefined bmad-loop instance
 ---
 
-# `bmad-self-improve` Codex Automation Runbook
+# `bmad-self-improve` Instance Runbook
 
-`bmad-self-improve` runs BMAD improvement work from Codex. It supports local Codex automation loops and foreground operator runs through the same policy, tests, install, refresh, and checkpoint gates.
+`bmad-self-improve` is the BMAD repository instance of
+[BMAD Loop](./bmad-loop.md). It keeps the public self-improvement entrypoint and
+uses generic `bmad-loop` mechanics for branch safety, Party Mode planning, TDD,
+quality gates, install/refresh evidence, checkpointing, and continuation.
+This remains a local Codex automation loop for improving BMAD itself.
 
-The source policy is [Self-Improvement Automation Policy](./self-improvement-automation-policy.md). Read it before running or editing this workflow.
+Read [BMAD Loop Automation Policy](./bmad-loop-automation-policy.md) before
+running or editing this workflow. Self-Improvement Automation Policy is the
+legacy name for this self-improve instance policy surface.
 
-Vercel Workflow WDK is a future optional hosted adapter, not part of Phase 1 or Phase 2. The starter contract stays local to Codex and this Node CLI/skills repo.
+## Foreground Resume Quickstart
+
+Resume a foreground run by reading the latest checkpoint, validating Activation
+State, Resume Contract, and Session Identity, then continuing only when the
+checkpoint allows continuation and current repo state still matches the recorded
+evidence.
+
+## Evidence Gate v1 Boundary
+
+Evidence Gate v1 language is future-compatible with Workspace packet v5.
+Self-Improve does not actively enforce Evidence Gate v1 in v1 and does not mark
+gates pass/fail. Hosted orchestrators such as Vercel Workflow WDK remain future
+optional adapters and are not part of the local self-improve run.
+
+## Migration Notes
+
+- Existing `bmad-self-improve` users now provide a direct operator goal,
+  readable `workflow.goal_ref`, or non-empty `workflow.scope`.
+- Old baked self-improve goal selection is removed. Party Mode may refine an
+  instantiated goal, but it must not silently create one.
+- Existing checkpoints remain under `_bmad-output/self-improvement` unless the
+  resolved `workflow.checkpoint_subdir` changes.
+- `SI-AUTO-*` invariant names remain compatibility aliases only. New docs prefer
+  `LOOP-AUTO-*`.
+- SI-AUTO-* invariant names remain compatibility aliases only.
 
 ## Required Launch Inputs
 
 Every run defines:
 
-- `repo_path`: repository to improve.
+- `repo_path`: BMAD repository path, default `{project-root}`.
 - `base_ref`: optional; default is current `HEAD`.
-- `scope` or goal: optional; Party Mode may choose any BMAD repo target.
-- `stop_condition`: finite endpoint such as checkpoint written, max iterations, max fix attempts, or operator review.
-- `automation_schedule_config`: effective automation schedule/config or explicit operator-provided cadence parameters; never infer cadence from name or prompt text.
-- `max_iterations`: default `1`; starter automation may set `3`.
-- `daily_cap`: starter automation may set `3`.
+- direct operator goal, `goal_ref`, or `scope`.
+- `stop_condition`: finite endpoint such as checkpoint written, max iterations,
+  max fix attempts, or operator review.
+- `quality_command`: default `npm ci && npm run quality`.
+- `max_iterations`: default `1`.
+- `daily_cap`: default `1`.
 - `max_fix_attempts`: fixed at `5`.
+- effective automation schedule/config or explicit operator-provided cadence
+  parameters.
 
-Stop before implementation if required inputs, policy baseline, or finite stop condition cannot be recorded.
-
-## Allowed Modes
-
-Recommended mode:
+When goal input or finite controls are missing, stop before mutation with:
 
 ```text
-Mode: local Codex automation loop
+BMAD loop needs one of: direct operator goal, workflow.goal_ref, or workflow.scope, plus finite stop_condition and quality_command. Provide input or use bmad-customize to author instance fields.
 ```
 
-Allowed foreground mode:
+## Resolved Instance Defaults
 
-```text
-Mode: foreground operator run
-```
+`src/core-skills/bmad-self-improve/customize.toml` defines the shipped instance
+defaults:
 
-Future optional mode:
+- `loop_skill = "bmad-loop"`
+- `loop_slug = "self-improve"`
+- `repo_path = "{project-root}"`
+- `branch_prefix = "codex/self-improve-"`
+- `checkpoint_subdir = "{output_folder}/self-improvement"`
+- `quality_command = "npm ci && npm run quality"`
+- `max_fix_attempts = 5`
+- `goal_ref = ""`
+- `scope = ""`
 
-```text
-Mode: hosted orchestrator adapter
-```
+`bmad-customize` may author minimal Customize instance config for these exposed
+workflow fields. Customize does not bypass branch safety, dirty preflight,
+quality gates, install/refresh evidence, validators, or checkpoint requirements.
 
-The hosted adapter mode is documentation-only for now. It must wrap the same policy, invariant checker, install, refresh, and checkpoint contract.
+## Capability Verifier Boundary
+
+`bmad workspace verify-capability` remains a declared-contract compatibility
+check only. A successful verdict is planning evidence, not runtime availability,
+write authorization, continuation permission, install readiness, quality
+success, or Evidence Gate pass state.
+
+## Required Sequence
+
+1. Resolve self-improve workflow customization.
+2. Resolve direct operator goal first, else `workflow.goal_ref`, else
+   `workflow.scope`; stop if none exists.
+3. Read `docs/workspace/bmad-loop-automation-policy.md`.
+4. Capture base SHA, resolved instance fields, and baseline policy hash before
+   edits.
+5. Acquire `{output_folder}/self-improvement/automation.lock`.
+6. Run `git status --porcelain --untracked-files=all` before branch creation.
+7. Scan dirty non-ignored files for suspected secrets and huge generated
+   artifacts before preservation.
+8. Use a fresh non-main branch matching `codex/self-improve-*`.
+9. Run `skill:bmad-party-mode` before writing any plan. Party Mode may refine
+   the instantiated goal and choose BMAD repo targets inside it.
+10. Write a decision-complete plan with acceptance criteria, TDD slices,
+    compile/install steps, refresh probe, checkpoint path, and continuation
+    preconditions.
+11. Run `skill:bmad-party-mode` again before implementation to critique the
+    plan.
+12. Implement with TDD, one vertical slice at a time.
+13. Run targeted validation after each slice.
+14. Run `npm ci && npm run quality` on `HEAD` of the exact checkout before local
+    code commit, install, refresh, or continuation.
+15. Run `npm run validate:bmad-loop-invariants` when generic loop surfaces
+    change.
+16. Run `npm run validate:self-improve-invariants` when self-improve instance
+    surfaces or `SI-AUTO-*` alias behavior changes.
+17. compile/install updated BMAD skills with the existing installer when skills
+    change.
+18. Verify Codex refresh behavior when active skills change. Codex App Server
+    facts such as `skills/list` with `forceReload: true`, `skills/changed`, and
+    thread start/resume are optional launcher evidence only, never BMAD
+    authority.
+19. Record Activation State, Resume Contract, Session Identity, local commits,
+    warning/LOW disposition, dirty worktree impact, residual risk, and exact
+    push/PR next step.
+20. Write checkpoint under `_bmad-output/self-improvement` unless
+    `checkpoint_subdir` resolves elsewhere. Never push.
 
 ## Shared BMAD Planning Capabilities
 
 Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
 
-Self-Improve consumes these shared capabilities when its run needs them:
+Self-Improve consumes these shared capabilities through `bmad-loop` when the
+instantiated goal needs them:
 
-- `capability:zoom-out` `zoom-out` runs one bounded reframing pass for problem, constraints, alternatives, and chosen path.
-- `capability:tdd` `tdd` produces failing-test-first implementation guidance when implementation risk warrants it.
-- `capability:ubiquitous-language` `ubiquitous-language` aligns terms across skills, docs, prompts, module help, and code-facing names.
-- `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
+- `capability:zoom-out` `zoom-out`
+- `capability:tdd` `tdd`
+- `capability:ubiquitous-language` `ubiquitous-language`
+- `capability:grill-me` `grill-me`
 
-## Workspace Graph Evidence
+## Completion
 
-Self-Improve consumes Workspace graph evidence only. Use `intake/graph.json`,
-`intake/repo-intake.json`, and `intake/provenance.json` from BMAD Workspace as
-session evidence; must not call Graphify ad hoc and must not silently regenerate graph artifacts.
-
-Graph evidence is advisory. It may guide repo topology analysis, docs/code link
-checks, and agent/tool boundary work, but source files remain authority before
-any recommendation or edit. Workspace graph evidence does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration.
-
-## Evidence Gate v1 Boundary
-
-Evidence Gate v1 is future-compatible Self-Improve context through BMAD
-Workspace packet v5. Self-Improve does not actively enforce Evidence Gate v1 in v1,
-does not make continuation decisions from packet gates, and does not mark gates pass/fail.
-A later phase may consume packet v5 gates after packet v5 stabilizes and after Party Mode
-consensus plus tests preserve the no-Graphify-runtime boundary.
-
-## Capability Verifier Boundary
-
-`bmad workspace verify-capability` is a declared-contract compatibility check.
-Self-Improve may cite its verdict as planning evidence that an exact capability
-id and requested contract fields are declared. It must not use `ok: true` as
-runtime tool availability, write authorization, continuation permission, install
-readiness, quality success, or Evidence Gate pass state. Codex/tool observations
-and checked-in graph refs in verifier fixtures remain advisory only.
-
-## Codex Advanced Configuration
-
-Codex Advanced Configuration is optional operator-local setup. It can change
-local tool behavior, but BMAD authority still comes from user approval, story
-scope, BMAD Work Packets, grants, and repository process. Use the official Codex
-docs as references only: [Advanced Configuration](https://developers.openai.com/codex/config-advanced),
-[Configuration Reference](https://developers.openai.com/codex/config-reference),
-and [Sandbox Defaults](https://developers.openai.com/codex/concepts/sandboxing#configure-defaults).
-
-BMAD-relevant Codex configuration notes, reviewed on 2026-05-05:
-
-- User configuration lives in `~/.codex/config.toml`.
-- Project configuration can live in `.codex/config.toml`, but it loads only for
-  trusted projects; relative paths inside that file resolve from `.codex/`.
-- Profiles and hooks are experimental. Do not rely on them for BMAD invariants,
-  approval, refresh authority, hidden execution, schedulers, or Workspace writes.
-- Hooks require `features.codex_hooks`; this workflow does not require hooks.
-- `[agents]` configuration is optional subagent role tuning only. It does not
-  create story authority, grants, acceptance criteria, or delegation authority.
-- The lower-risk local automation preset is
-  `sandbox_mode = "workspace-write"` with `approval_policy = "on-request"`.
-- The full-access preset, `sandbox_mode = "danger-full-access"` with
-  `approval_policy = "never"`, is high-risk trusted-local behavior documented
-  for awareness, not the recommended default.
-- `openai_base_url` can route Codex through a configured OpenAI-compatible
-  endpoint or proxy when supported; verify behavior against official docs and
-  organization policy. It does not grant BMAD authority or create compliance
-  guarantees.
-- Multi-agent features are normally available, with documented defaults of
-  `max_threads=6` and `max_depth=1` when unset.
-
-## What It Does
-
-The workflow runs:
-
-1. Repo instruction and CLI verification.
-2. Baseline policy capture and loop lock acquisition.
-3. Dirty worktree preflight with `git status --porcelain --untracked-files=all`.
-4. Secret and oversized/generated artifact scan when preservation is needed.
-5. Dirty worktree preservation commit when needed.
-6. Fresh non-main branch creation and freshness verification.
-7. Party Mode target decision.
-8. Plan.
-9. Party Mode critique.
-10. Revised plan.
-11. TDD implementation.
-12. Targeted validation and fix attempts.
-13. `npm ci && npm run quality` on `HEAD` of the exact checkout.
-14. BMAD compile/install.
-15. Codex refresh evidence.
-16. Activation State, Resume Contract, and Session Identity evidence.
-17. Local Conventional Commit.
-18. Final checkpoint.
-19. Continuation decision.
-
-## Preflight Contract
-
-Before branch creation or improvement edits, run:
-
-```bash
-git status --porcelain --untracked-files=all
-```
-
-If it reports only ignored files or no files, continue to branch creation. If it reports tracked, deleted, or untracked non-ignored files, scan those pending files for suspected secrets and disallowed huge generated artifacts. If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
-
-If the scan passes and the operator prompt requires preservation before branch creation, commit the current checkout with:
-
-```text
-chore: preserve pre-automation worktree state
-```
-
-Then create or switch to a fresh non-main `codex/self-improve-*` branch from the preserved state. Fresh means not `main` or `master`, matching `codex/self-improve-*`, and created for the current run before improvement edits. No implementation, docs, test, install, refresh, or continuation mutation may occur until that branch freshness is verified. Never push.
-
-## Activation And Resume Contract
-
-Every checkpoint records stable fenced YAML for `activation_state`, `resume_contract`, and `session_identity`.
-
-`activation_state` separates repo readiness from active user skill readiness:
-
-- `repo_quality`: `pass`, `fail`, or `unknown`
-- `repo_local_install`: `pass`, `fail`, or `unknown`
-- `active_user_install`: `pass`, `fail`, `blocked`, or `unknown`
-- `active_skill_hash`: `match`, `mismatch`, or `unknown`
-- `refresh_state`: `known_good`, `failed`, `blocked`, or `unknown`
-
-`resume_contract.continuation_allowed` is true only when quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, and refresh state is known_good. `refresh_state: unknown` never allows continuation.
-
-`session_identity.classification` records whether a supplied id is a BMAD Workspace Session id, Codex thread id, missing session, or unknown. Codex thread ids are not BMAD Workspace Session ids, so `SESSION_NOT_FOUND` from a Codex thread id is classification evidence, not missing-run evidence.
-
-## Foreground Resume Quickstart
-
-Use this when a foreground operator run resumes from an existing checkpoint.
-Record evidence in the checkpoint before continuing implementation work.
-
-1. Read `docs/workspace/self-improvement-automation-policy.md`.
-2. Open the latest checkpoint at `_bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md`.
-3. Check `_bmad-output/self-improvement/automation.lock` and record whether the lock is current, stale with evidence, or absent.
-4. Confirm current branch and diff, then run `git status --porcelain --untracked-files=all`.
-5. Read checkpoint sections `Party Mode Decision` and `Party Mode Critique`; do not claim Party Mode evidence unless those sections name the voices, decision, critique, and unresolved objections.
-6. Read `capability:tdd` or TDD evidence in the checkpoint; continue only from a named red-green-refactor slice with one failing public behavior test, smallest green change, and validation command.
-7. Inspect `compile/install Evidence` and `Refresh Evidence`; separate repo-local install readiness from active user skill readiness.
-8. Update `Activation State`, `Resume Contract`, `Session Identity`, and `Next Operator Decision` before continuing or stopping.
-9. Before any commit, install, refresh, or continuation claim, run `npm ci && npm run quality` on `HEAD` of the exact checkout and record the output.
-
-Checkpoint examples that need machine validation store one evidence block with
-the exact info string `yaml self_improvement_checkpoint`. The block must record
-`activation_state`, `resume_contract`, `session_identity`, and `evidence_gates`.
-`resume_contract.continuation_allowed` may be true only when all activation
-state fields and matching evidence gates prove readiness.
-
-Before continuing from a real checkpoint, run:
-
-```text
-node tools/validate-self-improve-invariants.js --checkpoint <checkpoint-path> --require-continuation-allowed
-```
-
-The default `npm run validate:self-improve-invariants` remains repo-contract-only and does not scan ignored local checkpoints. Resume-mode failures use stable codes: `SI_CHECKPOINT_CONTINUATION_BLOCKED`, `SI_CHECKPOINT_HEAD_MISSING`, and `SI_CHECKPOINT_STALE_HEAD`.
-
-## Launch Prompt
-
-```text
-Run bmad-self-improve on /Users/edam/Documents/TODA/BMAD-METHOD.
-
-Mode: local Codex automation loop
-Base ref: current HEAD
-Scope: any BMAD repo target selected by Party Mode
-Stop condition: checkpoint written or max caps reached
-Automation schedule/config: read effective automation metadata or operator-provided params; do not infer cadence from name or prompt text
-max_iterations: 3
-daily_cap: 3
-max_fix_attempts: 5
-
-Required policy:
-- Read docs/workspace/self-improvement-automation-policy.md.
-- Capture SELF_IMPROVE_BASE_REF before edits.
-- Run git status --porcelain --untracked-files=all before branch creation.
-- Scan dirty non-ignored files for suspected secrets and huge generated artifacts before preservation.
-- If scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
-- Preserve dirty worktree in a separate commit before branch creation when the operator prompt requires it.
-- Use a fresh codex/self-improve-* branch.
-- Never run implementation work on main.
-- Never push.
-- Use local Conventional Commits only.
-- Run Party Mode before plan and before implementation.
-- Use TDD for scoped code/docs/skill changes.
-- Run npm ci && npm run quality on HEAD of the exact checkout before code commit, install, refresh, or continuation.
-- Run npm run validate:self-improve-invariants for policy or self-edit changes.
-- Install repo-local/test target first, then /Users/edam/.agents when applicable.
-- Actively request Codex skill reload when available; otherwise record fallback evidence.
-- Record Activation State, Resume Contract, and Session Identity.
-- Treat `/Users/edam` sandbox failure as active install readiness blocker, not repo failure.
-- Treat `SESSION_NOT_FOUND` for Codex thread ids as Session Identity evidence, not missing-run evidence.
-- Write checkpoint under _bmad-output/self-improvement/.
-- Allow continuation only after quality passes, repo-local install passes, active user install is not failed or blocked, active skill hash matches expected, refresh state is known_good, checkpoint, effective schedule/config, and caps pass.
-
-Task:
-[PASTE OPTIONAL SELF-IMPROVEMENT GOAL HERE]
-```
-
-## Self-Edit and Policy-Edit
-
-Automation may edit `bmad-self-improve` and the policy file. The current loop uses baseline rules captured at start. Party Mode consensus for policy changes requires at least three BMAD voices, including Developer and Architect, and the checkpoint records that evidence.
-
-The deterministic invariant checker blocks weakened non-negotiables. If the checker cannot classify a policy change, the loop stops for human review with no install, no refresh, and continuation blocked.
-
-## Stop Conditions
-
-Stop and report before continuing when:
-
-- Required input or finite stop condition is missing.
-- Policy baseline cannot be captured.
-- Lock exists without checkpointed stale-lock failure evidence.
-- Fresh non-main branch cannot be created.
-- Push would be required.
-- Dirty state contains a secret or huge generated artifact.
-- Tests or quality still fail after `max_fix_attempts=5`.
-- Install or refresh fails after quality passes.
-- Active skill hash mismatches expected after repo-local install passes.
-- Refresh state is `unknown`, `failed`, or `blocked`.
-- Party Mode conflicts with repo rules, tests, or policy.
-- Policy change weakens a non-negotiable invariant.
-- The invariant checker cannot classify a policy change.
-- compile/install evidence is missing when generated skills change.
-- Refresh status cannot be recorded.
-
-## Checkpoint Evidence
-
-Write checkpoints under:
-
-```text
-_bmad-output/self-improvement/<YYYYMMDD-HHMM>-<slug>.md
-```
-
-Each checkpoint records objective, question, mode and inputs, effective automation schedule/config, base SHA, baseline policy hash, branch, dirty preservation commit, Party Mode decision and critique, policy consensus evidence, plan status, changed files, tests run, pass/fail output, full gate output, compile/install evidence, refresh evidence, Activation State, Resume Contract, Session Identity, local commit SHAs, lock result, continuation decision, resume command, unresolved risks, and next operator decision.
-
-## Contract Maintenance
-
-When a self-improvement policy, prompt, resume prompt, checkpoint template,
-skill, or module-help contract changes, update
-`tools/validate-self-improve-invariants.js` and the matching fixture coverage in
-`test/test-self-improve-invariants.js` in the same change.
+Complete only after the instantiated loop writes a checkpoint that records
+resolved input, branch, commits, tests, full gate evidence, install/refresh
+evidence when relevant, Activation State, Resume Contract, Session Identity,
+warning/LOW disposition, dirty worktree impact, residual risk, exact push/PR
+next step, and continuation decision.

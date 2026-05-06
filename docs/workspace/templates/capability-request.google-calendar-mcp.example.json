@@ -1,0 +1,196 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.google-calendar.remote",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "google-calendar-mcp",
+    "interface": "remote-calendar-mcp",
+    "writes": ["external/google-calendar/events"],
+    "outputs": ["calendar-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.google-calendar.remote",
+      "group": "host.mcp",
+      "provider": "google-calendar-mcp",
+      "interface": "remote-calendar-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": false,
+      "requiresGrant": true,
+      "writes": ["external/google-calendar/events"],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "target-repo/appsscript",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "apps-script-runtime",
+        "calendar-api-enablement",
+        "trigger-install",
+        "deployment"
+      ],
+      "outputs": ["calendar-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "GOOGLE_CALENDAR_MCP_SOURCE_REGISTER",
+      "message": "Official Google and OpenAI sources reviewed for Google Calendar MCP planning context only.",
+      "details": {
+        "reviewedAt": "2026-05-06",
+        "sources": [
+          {
+            "source_id": "google_calendar_mcp_config",
+            "title": "Configure the Calendar MCP server",
+            "url": "https://developers.google.com/workspace/calendar/api/guides/configure-mcp-server",
+            "publisher": "Google for Developers",
+            "stability": "Developer Preview",
+            "used_for": ["Calendar MCP endpoint", "OAuth 2.0", "HTTP transport", "Calendar MCP tools", "indirect prompt injection warning"],
+            "do_not_use_for": ["Apps Script runtime proof", "target repo manifest proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "google_workspace_mcp_config",
+            "title": "Configure Google Workspace MCP servers",
+            "url": "https://developers.google.com/workspace/guides/configure-mcp-servers",
+            "publisher": "Google for Developers",
+            "stability": "Developer Preview",
+            "used_for": ["Google Workspace MCP family", "dedicated Calendar MCP server", "Calendar MCP tool list"],
+            "do_not_use_for": ["Codex connector proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "google_calendar_api_overview",
+            "title": "Google Calendar API overview",
+            "url": "https://developers.google.com/workspace/calendar/api/guides/overview",
+            "publisher": "Google for Developers",
+            "stability": "API guide",
+            "used_for": ["Calendar API boundary", "calendar and event resource terms"],
+            "do_not_use_for": ["Calendar MCP endpoint proof", "trigger installation proof"]
+          },
+          {
+            "source_id": "google_calendar_addons_create_conference",
+            "title": "Create third-party conferences",
+            "url": "https://developers.google.com/workspace/add-ons/calendar/conferencing/create-conference",
+            "publisher": "Google for Developers",
+            "stability": "Add-ons guide",
+            "used_for": ["Calendar add-on conferencing planning"],
+            "do_not_use_for": ["Calendar MCP support proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "google_calendar_addons_sync_conference_changes",
+            "title": "Sync calendar conference changes",
+            "url": "https://developers.google.com/workspace/add-ons/calendar/conferencing/sync-calendar-changes",
+            "publisher": "Google for Developers",
+            "stability": "Add-ons guide",
+            "used_for": ["Apps Script trigger and event-sync planning context"],
+            "do_not_use_for": ["Calendar MCP support proof", "trigger installation guarantee", "Workspace verifier input"]
+          },
+          {
+            "source_id": "openai_codex_mcp_docs",
+            "title": "Model Context Protocol for Codex",
+            "url": "https://developers.openai.com/codex/mcp",
+            "publisher": "OpenAI Developers",
+            "stability": "Product docs",
+            "used_for": ["Codex MCP host configuration", "streamable HTTP MCP", "OAuth login semantics"],
+            "do_not_use_for": ["Google Calendar product claims", "Workspace verifier input"]
+          },
+          {
+            "source_id": "bmad_workspace_capability_contract",
+            "title": "BMAD Workspace Capability Contract",
+            "url": "docs/workspace/capability-contract.md",
+            "publisher": "BMAD-METHOD",
+            "stability": "Repo-owned contract",
+            "used_for": ["declared capability schema", "exact id matching", "sealed verifier invariant"],
+            "do_not_use_for": ["Google external product claims"]
+          }
+        ]
+      }
+    },
+    {
+      "code": "GOOGLE_CALENDAR_MCP_CONTRACT_DRAFT",
+      "message": "Calendar MCP declaration metadata is source-referenced advisory context; unsupported fields stay out of capabilities[].",
+      "details": {
+        "candidateId": "host.mcp.google-calendar.remote",
+        "contractDraft": {
+          "supportState": {
+            "value": "experimental",
+            "source_ids": ["google_calendar_mcp_config", "google_workspace_mcp_config"]
+          },
+          "auth": {
+            "value": "operator_oauth_2_0",
+            "source_ids": ["google_calendar_mcp_config", "openai_codex_mcp_docs"]
+          },
+          "transport": {
+            "value": "remote HTTP MCP endpoint",
+            "source_ids": ["google_calendar_mcp_config", "openai_codex_mcp_docs"]
+          },
+          "endpoint": {
+            "value": "https://calendarmcp.googleapis.com/mcp/v1",
+            "source_ids": ["google_calendar_mcp_config"]
+          },
+          "boundary": {
+            "value": "operator-granted live Calendar access only; no Apps Script runtime, deploy, trigger, manifest, Calendar API enablement, target repo, connector, or Codex config guarantee",
+            "source_ids": ["google_calendar_mcp_config", "google_calendar_api_overview", "bmad_workspace_capability_contract"]
+          }
+        },
+        "declarationFieldSources": {
+          "id": ["bmad_workspace_capability_contract"],
+          "group": ["bmad_workspace_capability_contract"],
+          "provider": ["google_calendar_mcp_config"],
+          "interface": ["google_calendar_mcp_config", "google_workspace_mcp_config"],
+          "allowedInNormalSession": ["bmad_workspace_capability_contract"],
+          "allowedInBaseImprovement": ["bmad_workspace_capability_contract"],
+          "requiresGrant": ["google_calendar_mcp_config", "bmad_workspace_capability_contract"],
+          "writes": ["google_calendar_mcp_config", "google_workspace_mcp_config"],
+          "forbiddenWrites": [
+            "bmad_workspace_capability_contract",
+            "google_calendar_api_overview",
+            "google_calendar_addons_sync_conference_changes"
+          ],
+          "outputs": ["bmad_workspace_capability_contract"],
+          "upstreamGapProofRequired": ["bmad_workspace_capability_contract"]
+        }
+      }
+    },
+    {
+      "code": "GOOGLE_CALENDAR_MCP_BOUNDARY_MAP",
+      "message": "Calendar MCP, Google Workspace docs MCP, Calendar API, Codex connector, Workspace verifier, and target repo are separate surfaces.",
+      "details": {
+        "calendarMcp": "Operator-granted live Calendar MCP access only.",
+        "googleWorkspaceDocsMcp": "Documentation context only.",
+        "calendarApi": "REST API planning vocabulary and resource behavior only.",
+        "codexGoogleCalendarConnector": "Operator context only; not official Calendar MCP proof.",
+        "workspaceVerifier": "Self-contained request JSON only.",
+        "targetRepo": "/Users/edam/Documents/TODA/toda-gsuite-plugin is planning context only unless implementation is explicitly approved."
+      }
+    },
+    {
+      "code": "GOOGLE_CALENDAR_SECURITY_REVIEW_REQUIRED",
+      "message": "Indirect prompt injection is a named risk; human review is required before Calendar-affecting actions.",
+      "details": {
+        "source_ids": ["google_calendar_mcp_config", "google_workspace_mcp_config"],
+        "reviewedAt": "2026-05-06"
+      }
+    },
+    {
+      "code": "GOOGLE_CALENDAR_NEGATIVE_BOUNDARIES",
+      "message": "These observations must not be treated as verifier proof or support promotion.",
+      "details": {
+        "rejectAsVerifierProof": [
+          "appsscript.json",
+          "installed Codex Google Calendar connector availability",
+          "live MCP discovery",
+          "Calendar API enablement",
+          "Apps Script trigger install",
+          "Apps Script deploy permissions",
+          "_bmad/custom",
+          "Codex config",
+          "local OAuth setup"
+        ]
+      }
+    }
+  ]
+}

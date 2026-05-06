@@ -24,7 +24,7 @@ Party Mode is an orchestration contract, not a claim that Codex can force runtim
 
 ### Thread/session hygiene
 
-- Before a new major topic, consensus loop, or resumed self-improvement run, inspect active Party Mode agent threads if the platform exposes them.
+- Before a new major topic, consensus loop, resumed `bmad-loop`, or resumed self-improvement run, inspect active Party Mode agent threads if the platform exposes them.
 - Close stale Party Mode threads when they are no longer task-relevant, especially after a checkpoint, context reset, failed install, stale skill refresh, or completed consensus loop.
 - Start fresh threads for new consensus loops when old threads may carry stale skill text, stale project context, or stale conclusions.
 - Avoid orphan threads: after presenting a round, close completed agent threads unless the user asks to continue that exact thread.
@@ -49,6 +49,7 @@ Party Mode is an orchestration contract, not a claim that Codex can force runtim
 - When Party Mode is used for implementation planning, add TDD voice injection to the agent prompts for Developer, QA, Architect, or any implementation-focused voice.
 - The injected expectation is: propose one failing behavior test first, prefer public behavior checks, implement the smallest green change, refactor only after green, and use red-green-refactor language.
 - Party Mode surfaces TDD expectations; it does not prove runtime enforcement. Evidence still comes from tests, quality gates, install/refresh results, and checkpoints.
+- For `bmad-loop` and `bmad-self-improve`, Party Mode may refine an instantiated goal and critique a plan. It must not silently create a goal when direct operator goal, `workflow.goal_ref`, and `workflow.scope` are absent.
 
 ### Shared BMAD planning capability rounds
 
