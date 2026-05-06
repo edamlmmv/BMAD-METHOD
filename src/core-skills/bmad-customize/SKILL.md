@@ -28,6 +28,35 @@ When the user says "use Codex" or "use Graphify", you may point at
 exact capability ids, support states, trust boundaries, evidence refs, and
 repair hints. The registry helps authors choose and explain a Capability
 Request. It is not a customization surface and not verifier authority.
+When the user says "use Codex MCP", "use MCP", or "use OpenAI Docs MCP",
+separate the surfaces before authoring:
+
+- **Advisory authoring context** — Codex MCP facts may inform Customize
+  guidance, examples, prompts, and evidence checklists. They are never sealed verifier evidence.
+- **Codex MCP host** — Codex configuration and CLI affordances such as
+  `mcp_servers.*`, `~/.codex/config.toml`, trusted project `.codex/config.toml`,
+  and `codex mcp`. These facts are operator context only.
+- **Codex MCP server** — a configured MCP server, such as OpenAI Docs MCP, that
+  can supply documentation or tool context to a human or Codex operator.
+- **Workspace declared capability** — the self-contained Capability Request JSON
+  passed to `bmad workspace verify-capability`, such as
+  `docs/workspace/templates/capability-request.codex-manual.example.json`.
+- **Sealed verifier evidence** — the self-contained Capability Request JSON and
+  declared capability entries are the only inputs to the Workspace verifier.
+- **Executable proof and human decision** — command-backed proof and reviewer
+  judgment recorded later through Workspace result/review/closeout evidence.
+
+Use the OpenAI Docs MCP server as the preferred source for Codex product facts.
+For Codex MCP authoring, use
+`https://developers.openai.com/codex/config-reference#configtoml` for
+`mcp_servers.*` and config scope, and
+`https://developers.openai.com/codex/cli/reference#codex-mcp` for `codex mcp`
+management semantics. Do not copy those facts into verifier inputs as proof.
+Customize may write docs, templates, prompts, warnings, examples, and evidence
+checklists. It may also add per-skill reminders through exposed
+`customize.toml` fields. Customize must not imply that Workspace reads Codex
+MCP host config, calls live MCP servers, or treats MCP availability as declared
+capability compatibility.
 If a Graphify request includes command claims, explain that `commandEvidence`
 is informational operator evidence only and use
 `uv tool run --from graphifyy graphify ...` for separate smoke checks against a
@@ -58,11 +87,12 @@ workflow instruction. It is authoring and education only, never verifier
 authority, and never central capability config. These reminders are never verifier authority.
 
 Do not make `bmad workspace verify-capability` read `_bmad/custom`, hand-authored
-TOML, local Codex config, app-server APIs, or live Graphify output. The verifier
-accepts a self-contained Capability Request JSON fixture and returns a declared
-contract verdict. If the user wants central capability declaration generation,
-say that central config is outside bmad-customize v1 and point to the Workspace
-Capability Contract docs and the template.
+TOML, local Codex config, project `.codex/config.toml`, app-server APIs, live MCP output,
+live Graphify output, or Workspace Session artifacts. The verifier accepts a
+self-contained Capability Request JSON fixture and returns a declared contract
+verdict. If the user wants central capability declaration generation, say that
+central config is outside bmad-customize v1 and point to the Workspace Capability
+Contract docs and the template.
 
 ## Preflight
 

@@ -20,6 +20,12 @@ read `_bmad/custom`, local Codex config, project `.codex/config.toml`,
 app-server APIs, live Graphify output, or Workspace Session artifacts.
 
 BMad Customize is authoring and education only; it is not executable evidence.
+For Codex MCP-aware customization, use
+[BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) to
+keep Codex MCP host context, Codex MCP server context, declared capability,
+executable proof, and human decision separate.
+Codex MCP is advisory authoring context for Customize; self-contained
+Capability Request JSON is sealed verifier evidence for Workspace.
 
 ## Evidence Classes
 
@@ -27,7 +33,7 @@ BMad Customize is authoring and education only; it is not executable evidence.
 | --- | --- | --- | --- |
 | Declared contract | Capability Request JSON passed to `bmad workspace verify-capability` | No | Check declared capability shape and constraints. |
 | Authoring guidance | BMad Customize docs, reminders, and resolver output | No | Teach authors how to prepare requests and reviews. |
-| Docs/config context | AGENTS.md, OpenAI docs, Codex config, project `.codex` files | No | Explain local affordances and operator context. |
+| Docs/config context | AGENTS.md, OpenAI docs, Codex config, project `.codex` files, `mcp_servers.*`, `codex mcp`, MCP server listings | No | Explain local affordances and operator context. |
 | Executable CLI proof | Codex CLI command transcripts | Yes | Prove a local Codex command surface ran. |
 | Executable Desktop proof | Codex Desktop launch or observed Desktop run | Yes | Prove a Desktop operator flow ran and was reviewed. |
 | MCP proof | `codex mcp-server` JSON-RPC stdio transcript | Yes | Prove the Codex MCP server initialized and exposed expected tools. |
@@ -148,6 +154,7 @@ Gaps to close outside the verifier:
 | Core operator skills have limited safe customization surfaces | Add append-only reminders only through exposed `customize.toml` fields. |
 | Existing overrides can look like proof | State that `_bmad/custom/*.toml` is authoring and education only. |
 | Codex MCP-server evidence was not first-class | Treat `codex mcp-server` JSON-RPC transcript as executable CLI proof. |
+| Codex MCP host config can look like verifier input | State that `mcp_servers.*`, `codex mcp`, `~/.codex/config.toml`, and project `.codex/config.toml` are planning context only. |
 
 No central `_bmad/custom/config.toml` generation is part of this plan.
 

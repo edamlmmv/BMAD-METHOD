@@ -1341,6 +1341,7 @@ function runTests() {
       'capability-request.graphify-repo-intake.example.json',
     );
     const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
+    const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
@@ -1367,6 +1368,7 @@ function runTests() {
       'architecture.md',
       'prd.md',
       'capability-contract.md',
+      'customize-codex-mcp-planning.md',
       'self-improvement-codex.md',
       'release-note-6.6.0.md',
     ]) {
@@ -1376,6 +1378,7 @@ function runTests() {
     assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
+    assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
@@ -1408,6 +1411,7 @@ function runTests() {
       './architecture.md',
       './capability-contract.md',
       './capability-profile-registry.json',
+      './customize-codex-mcp-planning.md',
       './release-note-6.6.0.md',
       './history/index.md',
     ]) {
@@ -1422,6 +1426,9 @@ function runTests() {
       index,
     );
     const codexEvidencePlan = fs.existsSync(codexEvidencePlanPath) ? fs.readFileSync(codexEvidencePlanPath, 'utf8') : '';
+    const customizeCodexMcpPlanning = fs.existsSync(customizeCodexMcpPlanningPath)
+      ? fs.readFileSync(customizeCodexMcpPlanningPath, 'utf8')
+      : '';
     const codexExecutableEvidenceTemplate = fs.existsSync(codexExecutableEvidenceTemplatePath)
       ? fs.readFileSync(codexExecutableEvidenceTemplatePath, 'utf8')
       : '';
@@ -1437,8 +1444,38 @@ function runTests() {
       'codex-mcp-server-transcript.jsonl',
       'codex-cli-evidence.jsonl',
       'Workspace result/review/closeout artifacts are evidence containers',
+      'mcp_servers.*',
+      'codex mcp',
+      'Codex MCP host config can look like verifier input',
     ]) {
       assert(codexEvidencePlan.includes(required), `Codex evidence plan includes ${required}`, codexEvidencePlan);
+    }
+    for (const required of [
+      'Codex MCP support is advisory authoring context only',
+      'sealed verifier evidence',
+      'Source authority: `src/core-skills/bmad-customize/SKILL.md`',
+      '`.agents/` is a gitignored install artifact',
+      'Codex MCP host',
+      'Codex MCP server',
+      'OpenAI Docs MCP',
+      'Declared capability',
+      'Executable proof',
+      'Human decision',
+      'Allowed Customize outputs',
+      'Forbidden Workspace couplings',
+      'mcp_servers.*',
+      'codex mcp',
+      '~/.codex/config.toml',
+      '.codex/config.toml',
+      'No verifier calls to app-server APIs, live MCP servers, live Graphify, or',
+      'No network deps in verifier behavior.',
+      'executor.codex.manual',
+      'AC5',
+      'AC6',
+      'Red-Test Matrix',
+      'OpenAI Codex CLI MCP Reference',
+    ]) {
+      assert(customizeCodexMcpPlanning.includes(required), `Customize Codex MCP planning includes ${required}`, customizeCodexMcpPlanning);
     }
     for (const required of [
       '"surface"',
@@ -1906,6 +1943,15 @@ function runTests() {
       'capability-request.template.json',
       'commandEvidence',
       'uv tool run --from graphifyy graphify',
+      'advisory authoring context',
+      'sealed verifier evidence',
+      'Codex MCP host',
+      'Codex MCP server',
+      'OpenAI Docs MCP server',
+      'mcp_servers.*',
+      'codex mcp',
+      'project `.codex/config.toml`',
+      'live MCP output',
       '_bmad/custom',
       'authoring override example',
       'not verifier authority',
@@ -2110,6 +2156,25 @@ function runTests() {
           error.message.includes('Workspace result/review/closeout'),
       ),
       'executable evidence rejection names declaration path and Workspace evidence boundary',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(
+      validCapabilityRequest({
+        extraFields: { executableEvidence: { command: 'codex mcp-server' } },
+      }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects top-level executable evidence', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some(
+        (error) =>
+          error.code === 'REQUEST_INVALID' &&
+          error.path === '$.executableEvidence' &&
+          error.message.includes('Workspace result/review/closeout'),
+      ),
+      'top-level executable evidence rejection names Workspace evidence boundary',
       JSON.stringify(verdict, null, 2),
     );
   }

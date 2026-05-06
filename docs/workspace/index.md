@@ -24,6 +24,7 @@ CLI records reviewable evidence.
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
 | Advisory capability profiles | [Capability Profile Registry](./capability-profile-registry.json) |
+| Customize and Codex MCP planning boundary | [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) |
 | Explicit guardrails and unsupported behavior | [Guardrails](./guardrails.md) |
 | Fresh-chat operator prompt and templates | [Workspace Templates](./templates/index.md) |
 | Release validation checklist | [Release Checklist](./release-checklist.md) |
@@ -66,6 +67,11 @@ to author a declared-contract compatibility check for
 declared capabilities and advisory observations from the request fixture only;
 it does not inspect `_bmad/custom`, local Codex config, app-server APIs, or live
 Graphify state.
+
+Use [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md)
+when a customization discussion mentions Codex MCP. Customize may use Codex MCP
+as advisory authoring context, but Workspace accepts only self-contained
+Capability Request JSON as sealed verifier evidence.
 
 Use [Self-Improvement Codex Prompt](./templates/self-improvement-codex-prompt.md)
 when Codex should improve BMAD itself with a local automation-capable loop or

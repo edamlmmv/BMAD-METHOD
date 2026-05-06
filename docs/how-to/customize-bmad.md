@@ -359,7 +359,7 @@ The override wins over whatever each developer answered during their local insta
 
 | Need | Use |
 |---|---|
-| Add MCP tool calls to every dev workflow | Per-skill: `_bmad/custom/bmad-agent-dev.toml` `persistent_facts` |
+| Add MCP advisory authoring context reminders to every dev workflow | Per-skill: `_bmad/custom/bmad-agent-dev.toml` `persistent_facts`; MCP config remains operator context, not sealed verifier evidence |
 | Add a menu item to an agent | Per-skill: `_bmad/custom/bmad-agent-{role}.toml` `[[agent.menu]]` |
 | Swap a workflow's output template | Per-skill: `_bmad/custom/{workflow}.toml` scalar override |
 | Rebrand an agent's public descriptor | **Central**: `_bmad/custom/config.toml` `[agents.<code>]` |
