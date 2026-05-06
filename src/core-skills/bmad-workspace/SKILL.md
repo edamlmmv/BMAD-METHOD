@@ -140,6 +140,13 @@ capability ids, support states, trust boundaries, evidence refs, and repair
 hints. It is not verifier input, grant authority, runtime availability proof,
 or support-promotion authority.
 
+Use the profile registry to explain known Codex and Graphify affordances before
+authoring a Capability Request: Codex config and app-server context remain
+operator context, while Graphify query, MCP, hook, watch, and regeneration
+surfaces remain advisory graph context. Record any actual operator observation
+through `bmad workspace result` or `bmad workspace closeout`; never treat the
+profile as execution evidence.
+
 ## Codex Operator Affordances
 
 Codex slash commands, tools, hooks, plugins, and future UI commands are operator

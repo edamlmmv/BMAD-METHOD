@@ -1537,10 +1537,34 @@ function runTests() {
     const capabilityProfileRegistry = JSON.parse(fs.readFileSync(capabilityProfileRegistryPath, 'utf8'));
     assert(capabilityProfileRegistry.schemaVersion === 1, 'capability profile registry uses schema version 1');
     assert(Array.isArray(capabilityProfileRegistry.profiles), 'capability profile registry has profiles array');
-    assert(capabilityProfileRegistry.profiles.length === 2, 'capability profile registry seeds current declared capabilities');
+    assert(capabilityProfileRegistry.profiles.length >= 7, 'capability profile registry inventories Codex and Graphify advisory profiles');
     const supportedProfileStates = new Set(['proposed', 'experimental', 'supported', 'stale', 'deprecated', 'invalid', 'removed']);
     const declaredCapabilityIds = new Set(createCapabilityContract(repoRoot).capabilities.map((capability) => capability.id));
+    const expectedProfileIds = new Set([
+      'codex.manual-executor-contract',
+      'codex.config.operator-affordances',
+      'codex.app-server.thread-and-tool-context',
+      'graphify.repo-intake.static-graph-evidence',
+      'graphify.query.static-graph-navigation',
+      'graphify.mcp.static-graph-tools',
+      'graphify.hooks.watch-regeneration',
+    ]);
+    const forbiddenProfileAuthorityFields = new Set([
+      'allowedInNormalSession',
+      'allowedInBaseImprovement',
+      'requiresGrant',
+      'writes',
+      'forbiddenWrites',
+      'outputs',
+      'upstreamGapProofRequired',
+      'verifierAuthority',
+      'grantAuthority',
+      'runtimeAuthority',
+      'customizeToml',
+      'capabilityDeclaration',
+    ]);
     const profileIds = new Set();
+    const profilesByToolName = new Map();
     for (const [index, profile] of capabilityProfileRegistry.profiles.entries()) {
       const label = `capability profile registry profiles[${index}]`;
       for (const field of ['profileId', 'capabilityId', 'toolName', 'supportState', 'trustBoundary', 'evidenceRefs', 'repairHint']) {
@@ -1548,9 +1572,29 @@ function runTests() {
       }
       assert(!profileIds.has(profile.profileId), `${label} profileId is unique`, JSON.stringify(profile, null, 2));
       profileIds.add(profile.profileId);
+      profilesByToolName.set(profile.toolName, (profilesByToolName.get(profile.toolName) || 0) + 1);
       assert(declaredCapabilityIds.has(profile.capabilityId), `${label} maps to declared capability id`, JSON.stringify(profile, null, 2));
       assert(supportedProfileStates.has(profile.supportState), `${label} uses known support state`, JSON.stringify(profile, null, 2));
       assert(Array.isArray(profile.evidenceRefs), `${label} evidenceRefs is array`, JSON.stringify(profile, null, 2));
+      assert(
+        typeof profile.repairHint === 'string' && profile.repairHint.trim() !== '',
+        `${label} keeps repair hint`,
+        JSON.stringify(profile, null, 2),
+      );
+      assert(
+        /not (?:verifier input|Workspace authority|verifier authority)|never (?:verifier input|Workspace authority)/i.test(
+          profile.trustBoundary,
+        ),
+        `${label} trustBoundary states advisory boundary`,
+        JSON.stringify(profile, null, 2),
+      );
+      for (const forbiddenField of forbiddenProfileAuthorityFields) {
+        assert(
+          !(forbiddenField in profile),
+          `${label} excludes verifier-authority field ${forbiddenField}`,
+          JSON.stringify(profile, null, 2),
+        );
+      }
       if (profile.supportState === 'supported') {
         assert(profile.evidenceRefs.length > 0, `${label} supported profile has evidence refs`, JSON.stringify(profile, null, 2));
       }
@@ -1562,6 +1606,11 @@ function runTests() {
         );
       }
     }
+    for (const profileId of expectedProfileIds) {
+      assert(profileIds.has(profileId), `capability profile registry includes ${profileId}`);
+    }
+    assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
+    assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
 
     const templateIndex = fs.readFileSync(templateIndexPath, 'utf8');
     assert(templateIndex.includes('capability-request.template.json'), 'template index links capability request template', templateIndex);
@@ -1670,7 +1719,13 @@ function runTests() {
     }
 
     const customizeSkill = fs.readFileSync(customizeSkillPath, 'utf8');
-    for (const text of ['Capability Verification Authoring', 'capability-request.template.json', '_bmad/custom']) {
+    for (const text of [
+      'Capability Verification Authoring',
+      'capability-request.template.json',
+      '_bmad/custom',
+      'authoring override example',
+      'not verifier authority',
+    ]) {
       assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
     }
 

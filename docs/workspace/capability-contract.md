@@ -134,6 +134,17 @@ Support states are `proposed`, `experimental`, `supported`, `stale`,
 `removed` profiles must keep a repair hint so unsupported or broken capability
 knowledge stays visible instead of disappearing.
 
+Profile entries may inventory multiple tool affordances for one declared
+capability id. For example, Codex config, Codex app-server, Graphify query,
+Graphify MCP, and Graphify hook/watch profiles can all help an author understand
+how to write or explain a request, while the verifier still matches only the
+embedded declared capability id in the submitted JSON.
+
+Profile evidence refs may cite committed docs, tests, source files, and source
+URLs used for authoring context. They are not support promotion by themselves.
+Any Workspace result or closeout that mentions Codex or Graphify tool output
+must be recorded as explicit manual evidence, not as hidden validation.
+
 ## Support Promotion
 
 This support promotion rule is separate from Workspace Base promotion or target

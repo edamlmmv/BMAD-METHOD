@@ -29,6 +29,80 @@
         "test/test-workspace-contracts.js"
       ],
       "repairHint": "Keep Executor Contract docs, Capability Request fixtures, and Workspace tests aligned before claiming support."
+    },
+    {
+      "profileId": "codex.config.operator-affordances",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Codex",
+      "supportState": "supported",
+      "trustBoundary": "Codex config may describe operator affordances such as sandboxing, approvals, apps, MCP servers, skills, hooks, and multi-agent tools; config is not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://developers.openai.com/codex/config-reference#configtoml",
+        "docs/workspace/capability-contract.md",
+        "src/core-skills/bmad-workspace/SKILL.md",
+        "src/core-skills/bmad-customize/SKILL.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh official Codex config references, Workspace boundary docs, and registry tests before changing this profile."
+    },
+    {
+      "profileId": "codex.app-server.thread-and-tool-context",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Codex",
+      "supportState": "experimental",
+      "trustBoundary": "Codex app-server APIs can describe threads, goals, tools, skills, plugins, MCP servers, and config state for an operator; app-server state is not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://developers.openai.com/codex/app-server#api-overview",
+        "docs/workspace/capability-contract.md",
+        "src/core-skills/bmad-workspace/SKILL.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh official Codex app-server references and keep any Workspace use framed as manual evidence recording only."
+    },
+    {
+      "profileId": "graphify.query.static-graph-navigation",
+      "capabilityId": "evidence.graph.repo-intake",
+      "toolName": "Graphify",
+      "supportState": "supported",
+      "trustBoundary": "Graphify query, path, and explain commands may help an operator navigate committed graph artifacts; command output is not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://github.com/safishamsi/graphify#full-command-reference",
+        "https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md",
+        "docs/workspace/capability-contract.md",
+        "src/core-skills/bmad-workspace/SKILL.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Keep Graphify command references, graph evidence docs, and Workspace tests aligned before claiming query-profile support."
+    },
+    {
+      "profileId": "graphify.mcp.static-graph-tools",
+      "capabilityId": "evidence.graph.repo-intake",
+      "toolName": "Graphify",
+      "supportState": "experimental",
+      "trustBoundary": "Graphify MCP can expose structured graph access for an operator, but live MCP activation is not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://github.com/safishamsi/graphify#using-the-graph-directly",
+        "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md",
+        "docs/workspace/capability-contract.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Keep MCP references advisory, and require explicit manual evidence before any Workspace result mentions live graph-tool output."
+    },
+    {
+      "profileId": "graphify.hooks.watch-regeneration",
+      "capabilityId": "evidence.graph.repo-intake",
+      "toolName": "Graphify",
+      "supportState": "proposed",
+      "trustBoundary": "Graphify hooks, watch mode, cache refresh, and regeneration may explain graph freshness risk; automation output is not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://github.com/safishamsi/graphify#full-command-reference",
+        "https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md",
+        "docs/workspace/capability-contract.md",
+        "src/core-skills/bmad-workspace/SKILL.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Promote only after committed Workspace evidence proves explicit, bounded hook or regeneration handling without hidden execution."
     }
   ]
 }

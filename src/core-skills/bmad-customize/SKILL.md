@@ -25,6 +25,20 @@ exact capability ids, support states, trust boundaries, evidence refs, and
 repair hints. The registry helps authors choose and explain a Capability
 Request. It is not a customization surface and not verifier authority.
 
+Use a per-skill authoring override example only when the target skill exposes
+the field in `customize.toml`:
+
+```toml
+# _bmad/custom/bmad-agent-dev.toml
+[agent]
+persistent_facts = [
+  "When authoring Workspace Capability Requests, use docs/workspace/capability-profile-registry.json as advisory context only; pass self-contained JSON to verify-capability."
+]
+```
+
+This teaches an agent how to author requests. It does not create verifier trust,
+capability declarations, central config, grants, or runtime availability.
+
 Do not make `bmad workspace verify-capability` read `_bmad/custom`, hand-authored
 TOML, local Codex config, app-server APIs, or live Graphify output. The verifier
 accepts a self-contained Capability Request JSON fixture and returns a declared
