@@ -132,7 +132,11 @@ not read `_bmad/custom`, local Codex config, app-server APIs, live Graphify
 state, or Workspace Session artifacts. `requiresGrant` is reported as advisory;
 `bmad workspace authorize` remains the grant authority. Use
 `docs/workspace/templates/capability-request.template.json` as the authoring
-example.
+example. Use
+`docs/workspace/templates/capability-request.codex-manual.example.json` for a
+Codex manual executor fixture and
+`docs/workspace/templates/capability-request.graphify-repo-intake.example.json`
+for a Graphify repo-intake fixture.
 
 `docs/workspace/capability-profile-registry.json` is advisory authoring context
 for named tools such as Codex and Graphify. It maps profiles to exact

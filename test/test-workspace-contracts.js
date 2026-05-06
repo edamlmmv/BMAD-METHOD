@@ -1291,6 +1291,12 @@ function runTests() {
     const selfImprovementCodexPath = path.join(workspaceDocsRoot, 'self-improvement-codex.md');
     const templateIndexPath = path.join(workspaceDocsRoot, 'templates', 'index.md');
     const capabilityRequestTemplatePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.template.json');
+    const codexCapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.codex-manual.example.json');
+    const graphifyCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.graphify-repo-intake.example.json',
+    );
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
     const packageLockPath = path.join(repoRoot, 'package-lock.json');
@@ -1321,6 +1327,8 @@ function runTests() {
       assert(fs.existsSync(path.join(workspaceDocsRoot, docName)), `Current Workspace doc exists: ${docName}`);
     }
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
+    assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
+    assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
@@ -1615,6 +1623,16 @@ function runTests() {
 
     const templateIndex = fs.readFileSync(templateIndexPath, 'utf8');
     assert(templateIndex.includes('capability-request.template.json'), 'template index links capability request template', templateIndex);
+    assert(
+      templateIndex.includes('capability-request.codex-manual.example.json'),
+      'template index links Codex capability request example',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('capability-request.graphify-repo-intake.example.json'),
+      'template index links Graphify capability request example',
+      templateIndex,
+    );
 
     const capabilityRequestTemplate = JSON.parse(fs.readFileSync(capabilityRequestTemplatePath, 'utf8'));
     assert(
@@ -1646,6 +1664,47 @@ function runTests() {
       'Capability Request template keeps Codex docs advisory',
       JSON.stringify(capabilityTemplateVerdict, null, 2),
     );
+
+    const codexCapabilityRequestExample = JSON.parse(fs.readFileSync(codexCapabilityRequestExamplePath, 'utf8'));
+    const codexExampleVerdict = verifyCapabilityRequest(codexCapabilityRequestExample);
+    assert(codexExampleVerdict.ok === true, 'Codex Capability Request example verifies', JSON.stringify(codexExampleVerdict, null, 2));
+    assert(
+      codexExampleVerdict.request.id === 'executor.codex.manual',
+      'Codex Capability Request example persists manual executor capability',
+      JSON.stringify(codexExampleVerdict, null, 2),
+    );
+    assert(
+      codexCapabilityRequestExample.observations.some(
+        (observation) => observation.details?.sourceUrl === 'https://developers.openai.com/codex/config-reference#configtoml',
+      ),
+      'Codex Capability Request example cites config reference',
+      JSON.stringify(codexCapabilityRequestExample.observations, null, 2),
+    );
+
+    const graphifyCapabilityRequestExample = JSON.parse(fs.readFileSync(graphifyCapabilityRequestExamplePath, 'utf8'));
+    const graphifyExampleVerdict = verifyCapabilityRequest(graphifyCapabilityRequestExample);
+    assert(
+      graphifyExampleVerdict.ok === true,
+      'Graphify Capability Request example verifies',
+      JSON.stringify(graphifyExampleVerdict, null, 2),
+    );
+    assert(
+      graphifyExampleVerdict.request.id === 'evidence.graph.repo-intake',
+      'Graphify Capability Request example persists repo-intake capability',
+      JSON.stringify(graphifyExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://github.com/safishamsi/graphify#full-command-reference',
+      'https://github.com/safishamsi/graphify/blob/v7/ARCHITECTURE.md',
+      'https://github.com/safishamsi/graphify/blob/v7/docs/docker-mcp-sqlite.md',
+      'https://github.com/safishamsi/graphify/blob/v7/docs/how-it-works.md',
+    ]) {
+      assert(
+        graphifyCapabilityRequestExample.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
+        `Graphify Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(graphifyCapabilityRequestExample.observations, null, 2),
+      );
+    }
 
     const operatorGuide = fs.readFileSync(path.join(workspaceDocsRoot, 'operator-guide.md'), 'utf8');
     for (const text of ['Codex Goals and Slash Commands', '`/goal`', 'goal file passed to', 'manual evidence']) {

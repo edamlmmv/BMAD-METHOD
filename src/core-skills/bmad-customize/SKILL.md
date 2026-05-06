@@ -18,8 +18,9 @@ education control plane only. Help the user start from
 `docs/workspace/templates/capability-request.template.json`, explain the
 declared capability fields, and route any per-skill behavior changes through the
 normal exposed `customize.toml` surfaces. For named-tool examples, point Codex
-requests at `docs/workspace/templates/capability-request.codex-manual.example.json`
-and Graphify requests at
+requests at
+`docs/workspace/templates/capability-request.codex-manual.example.json` and
+Graphify requests at
 `docs/workspace/templates/capability-request.graphify-repo-intake.example.json`.
 
 When the user says "use Codex" or "use Graphify", you may point at
