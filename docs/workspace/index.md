@@ -30,6 +30,7 @@ CLI records reviewable evidence.
 | Google Calendar MCP capability planning boundary | [Google Calendar Capability Planning](./google-calendar-capability-planning.md) |
 | Outlook Calendar MCP capability planning boundary | [Outlook Calendar Capability Planning](./outlook-calendar-capability-planning.md) |
 | Docker MCP Toolkit and Context7 secret-safe planning | [Docker MCP Toolkit And Context7 Planning](./docker-mcp-context7-planning.md) |
+| Zsh Shell MCP capability planning boundary | [Zsh Shell MCP Capability Planning](./zsh-shell-mcp-capability-planning.md) |
 | PostgreSQL MCP capability planning boundary | [PostgreSQL MCP Capability Planning](./postgresql-mcp-capability-planning.md) |
 | Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
 | Thin pre-established loop platform | [Loop Platform v1](./loop-platform-v1.md) |
@@ -126,6 +127,14 @@ portable example is
 PostgreSQL MCP is optional/operator-provided read-only evidence only; record
 `POSTGRES_URL=set|unset`, allowed schemas/tables, denied writes, and why DB
 evidence is needed, never the connection string or query results.
+
+Use [Zsh Shell MCP Capability Planning](./zsh-shell-mcp-capability-planning.md)
+when a customization or Workspace discussion mentions zsh shell MCP, Desktop
+Commander MCP, or local shell MCP evidence. The portable example is
+[Zsh Shell MCP Capability Request](./templates/capability-request.zsh-shell-mcp.example.json).
+Zsh shell MCP is optional/operator-provided evidence only; no auto-install,
+auto-start, host write, process control, secret access, or live Desktop
+Commander state is verifier input.
 
 Use [Context7 Docs MCP Capability Request](./templates/capability-request.context7-docs.example.json)
 when a Workspace discussion needs Context7 as optional docs evidence. Use

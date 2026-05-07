@@ -7,6 +7,12 @@ on_complete = "Review generated artifacts before using bmad-customize, verify-ca
 
 persistent_facts = [
   "Capability Pack Forge consumes local evidence files and emits draft artifacts only.",
+  "Forge canonical input is local forge-request.json; TOML is generated authoring draft output only and Forge does not parse TOML input in v1.",
+  "Forge v2 commands require .capability-forge/forge.toml with workspace.write_mode=draft_only and treat pack-draft.toml as reviewable contract only.",
+  "Forge v2 BMAD review exports are handoff/input packets only; Forge must not invoke, satisfy, approve, or mark complete BMAD workflows.",
+  "Forge v2 infrastructure uses direct pg-backed PostgreSQL compiler state; PostgreSQL MCP remains advisory/operator evidence only.",
+  "Generated PostgreSQL packs declare capabilityDomain=postgresql as a pack domain only; PostgreSQL is not Forge infrastructure.",
+  "Allowed PostgreSQL credential signal is POSTGRES_URL=set|unset; raw connection strings, query results, live schema/sample rows, Docker/MCP state, and network proof are forbidden.",
   "Forge does not call live Context7, MCP, Docker, PostgreSQL, Git, Codex app-server, Apple Passwords, keychain, or network.",
   "Forge does not add Workspace commands, change verify-capability, install skills, configure MCP, grant authority, or treat _bmad/custom as authority.",
   "Generated customization-draft.toml is inactive until routed through bmad-customize.",

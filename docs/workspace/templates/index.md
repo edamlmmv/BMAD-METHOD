@@ -27,6 +27,7 @@ description: Index of BMAD Workspace templates
 - [capability-request.outlook-calendar-mcp.example.json](./capability-request.outlook-calendar-mcp.example.json)
 - [capability-request.postgresql-mcp-readonly.example.json](./capability-request.postgresql-mcp-readonly.example.json)
 - [capability-request.template.json](./capability-request.template.json)
+- [capability-request.zsh-shell-mcp.example.json](./capability-request.zsh-shell-mcp.example.json)
 - [browser-affordance-evidence.template.json](./browser-affordance-evidence.template.json)
 - [codex-executable-evidence.template.json](./codex-executable-evidence.template.json)
 - [context7-docs-operator-evidence.template.json](./context7-docs-operator-evidence.template.json)
@@ -44,3 +45,4 @@ description: Index of BMAD Workspace templates
 - [workflow-bundle.template.md](./workflow-bundle.template.md)
 - [workspace-runbook.md](./workspace-runbook.md)
 - [worktree-review-checklist.md](./worktree-review-checklist.md)
+- [zsh-shell-mcp-operator-evidence.template.json](./zsh-shell-mcp-operator-evidence.template.json)

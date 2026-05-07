@@ -5,6 +5,7 @@ const { verifyCapabilityRequest } = require('./workspace/contracts');
 
 const USAGE = 'Usage: node tools/capability-pack-forge.js --input <forge-request.json> --output <dir>';
 const PACK_SCHEMA_PATH = path.join(__dirname, 'schemas', 'bmad-capability-pack.schema.json');
+const CAPABILITY_FORGE_V2_COMMANDS = new Set(['migrate', 'ingest', 'search', 'draft', 'validate', 'export-bmad', 'promote', 'reset-dev']);
 const ARTIFACTS = Object.freeze([
   {
     path: 'capability-pack.json',
@@ -44,6 +45,18 @@ const ARTIFACTS = Object.freeze([
 ]);
 const PACK_MODES = Object.freeze(['verifier-ready', 'draft-authoring']);
 const SOURCE_TYPES = Object.freeze(['context7', 'local_docs', 'manual_contract', 'repo_template', 'other']);
+const CAPABILITY_DOMAINS = Object.freeze(['postgresql']);
+const DRAFT_AUTHORING_MODES = Object.freeze(['toml']);
+const FORBIDDEN_LIVE_EVIDENCE_FIELDS = Object.freeze([
+  'queryResults',
+  'liveMcp',
+  'postgres_live',
+  'dockerRuntime',
+  'network',
+  'liveSchema',
+  'sampleRows',
+  'sampleRow',
+]);
 
 function parseArgs(argv) {
   const args = {};
@@ -63,8 +76,24 @@ function parseArgs(argv) {
   return args;
 }
 
-function main() {
+async function main() {
   try {
+    if (process.argv[2] === '--help' || process.argv[2] === '-h' || process.argv[2] === 'help') {
+      const { getCapabilityForgeV2Help } = require('./capability-forge/cli');
+      process.stdout.write(`${USAGE}\n\n${getCapabilityForgeV2Help()}\n`);
+      return;
+    }
+    if (CAPABILITY_FORGE_V2_COMMANDS.has(process.argv[2]) && (process.argv.includes('--help') || process.argv.includes('-h'))) {
+      const { getCapabilityForgeV2Help } = require('./capability-forge/cli');
+      process.stdout.write(`${getCapabilityForgeV2Help()}\n`);
+      return;
+    }
+    if (CAPABILITY_FORGE_V2_COMMANDS.has(process.argv[2])) {
+      const { runCapabilityForgeV2Cli } = require('./capability-forge/cli');
+      const result = await runCapabilityForgeV2Cli(process.argv.slice(2));
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
     const args = parseArgs(process.argv);
     const result = runForge({
       inputPath: args.input,
@@ -173,6 +202,12 @@ function validateForgeRequest(request) {
   if (!PACK_MODES.includes(packMode)) {
     throw forgeError('FORGE_REQUEST_INVALID', '$.packMode must be verifier-ready or draft-authoring');
   }
+  if ('capabilityDomain' in request && !CAPABILITY_DOMAINS.includes(request.capabilityDomain)) {
+    throw forgeError('FORGE_REQUEST_INVALID', '$.capabilityDomain must be postgresql when present');
+  }
+  if ('draftAuthoring' in request && !DRAFT_AUTHORING_MODES.includes(request.draftAuthoring)) {
+    throw forgeError('FORGE_REQUEST_INVALID', '$.draftAuthoring must be toml when present');
+  }
   if (packMode === 'verifier-ready') {
     requireLocalRefString(request.capabilityRequestRef, '$.capabilityRequestRef');
   } else if ('capabilityRequestRef' in request) {
@@ -265,6 +300,8 @@ function createCapabilityPack({ request, inputs, packMode }) {
     metadata: {
       source: 'capability-pack-forge',
       generatorVersion: 1,
+      ...(request.capabilityDomain ? { capabilityDomain: request.capabilityDomain } : {}),
+      ...(request.draftAuthoring ? { draftAuthoring: request.draftAuthoring } : {}),
     },
     capability: {
       id: request.capability.id,
@@ -314,6 +351,12 @@ function validateCapabilityPack(pack) {
   requireExact(pack.schemaVersion, 1, '$.schemaVersion');
   requireExact(pack.metadata?.source, 'capability-pack-forge', '$.metadata.source');
   requireExact(pack.metadata?.generatorVersion, 1, '$.metadata.generatorVersion');
+  if ('capabilityDomain' in pack.metadata && !CAPABILITY_DOMAINS.includes(pack.metadata.capabilityDomain)) {
+    throw forgeError('FORGE_PACK_INVALID', '$.metadata.capabilityDomain must be supported');
+  }
+  if ('draftAuthoring' in pack.metadata && !DRAFT_AUTHORING_MODES.includes(pack.metadata.draftAuthoring)) {
+    throw forgeError('FORGE_PACK_INVALID', '$.metadata.draftAuthoring must be supported');
+  }
   requireNonEmptyString(pack.capability?.id, '$.capability.id');
   requireNonEmptyString(pack.capability?.displayName, '$.capability.displayName');
   requireNonEmptyString(pack.capability?.summary, '$.capability.summary');
@@ -370,6 +413,8 @@ function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
     schemaVersion: 1,
     capabilityId: request.capability.id,
     packMode,
+    ...(request.capabilityDomain ? { capabilityDomain: request.capabilityDomain } : {}),
+    ...(request.draftAuthoring ? { draftAuthoring: request.draftAuthoring } : {}),
     observer: 'Codex operator',
     evidenceRefs: evidenceRefs.map((ref) => ({
       id: ref.id,
@@ -377,7 +422,10 @@ function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
       role: ref.role,
       sourceType: ref.sourceType,
     })),
-    credentialEvidence: 'Record set|unset only when evidence source needs a credential.',
+    credentialEvidence:
+      request.capabilityDomain === 'postgresql'
+        ? 'POSTGRES_URL=set|unset'
+        : 'Record set|unset only when evidence source needs a credential.',
     credentialValue: '[REDACTED]',
     pass: false,
     boundary:
@@ -387,14 +435,25 @@ function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
 
 function createCustomizationDraft(request) {
   const target = request.targetCustomizationSurface || 'bmad-agent-dev';
+  const facts = [
+    `Capability Pack Forge draft for ${request.capability.id} is advisory only; review generated artifacts before use.`,
+    `Generated artifacts from ${target} customization drafts are inactive until bmad-customize verifies the exposed surface.`,
+  ];
+  if (request.draftAuthoring === 'toml') {
+    facts.push('TOML authoring is draft-only; route customization-draft.toml through bmad-customize before use.');
+  }
+  if (request.capabilityDomain === 'postgresql') {
+    facts.push(
+      'PostgreSQL capability packs use local evidence refs only; record POSTGRES_URL=set|unset and never connection strings/query results.',
+    );
+  }
   return [
     '# Draft only. Route through bmad-customize before writing any override.',
     '# This file does not grant verifier authority, runtime authority, or Workspace authority.',
     '',
     '[workflow]',
     'persistent_facts = [',
-    `  "Capability Pack Forge draft for ${escapeTomlString(request.capability.id)} is advisory only; review generated artifacts before use.",`,
-    `  "Generated artifacts from ${escapeTomlString(target)} customization drafts are inactive until bmad-customize verifies the exposed surface."`,
+    ...facts.map((fact, index) => `  "${escapeTomlString(fact)}"${index === facts.length - 1 ? '' : ','}`),
     ']',
     '',
   ].join('\n');
@@ -430,11 +489,19 @@ function createReadinessChecklist(request, packMode) {
     packMode === 'verifier-ready'
       ? '- [ ] Capability request verifies offline with `bmad workspace verify-capability`.'
       : '- [ ] Draft-authoring pack is marked not verifier-declared until a contract/template/test path exists.';
+  const boundaryLines = [];
+  if (request.capabilityDomain === 'postgresql') {
+    boundaryLines.push('- [ ] PostgreSQL evidence records only `POSTGRES_URL=set|unset` and no query results/live schema/sample rows.');
+  }
+  if (request.draftAuthoring === 'toml') {
+    boundaryLines.push('- [ ] TOML authoring remains generated draft text; Forge does not parse TOML input in v1.');
+  }
   return [
     `# ${request.capability.displayName} Readiness Checklist`,
     '',
     verifierLine,
     '- [ ] Evidence refs are local files and advisory only.',
+    ...boundaryLines,
     '- [ ] No raw secrets, query results, or runtime credentials are stored.',
     '- [ ] Customization draft is routed through `bmad-customize` before use.',
     '- [ ] Codex task packet is reviewed as an instruction draft only.',
@@ -449,6 +516,19 @@ function createReadinessChecklist(request, packMode) {
 }
 
 function createCodexTaskPacket(request) {
+  const guardrails = [
+    '- Do not call live evidence providers, MCP, Docker, PostgreSQL, Git, Codex app-server, secret stores, keychain, or network.',
+    '- Do not change `bmad workspace` command registry.',
+    '- Do not change `verify-capability` behavior.',
+    '- Do not treat `_bmad/custom` as authority.',
+    '- Preserve dirty worktree changes not owned by this task.',
+  ];
+  if (request.capabilityDomain === 'postgresql') {
+    guardrails.push('- Treat PostgreSQL as a generated capability domain only; do not connect, query, inspect schemas, or store rows.');
+  }
+  if (request.draftAuthoring === 'toml') {
+    guardrails.push('- Treat TOML as generated authoring draft only; do not add TOML parser or TOML input mode in v1.');
+  }
   return [
     `# ${request.capability.displayName} Codex Task Packet`,
     '',
@@ -460,11 +540,7 @@ function createCodexTaskPacket(request) {
     '',
     '## Guardrails',
     '',
-    '- Do not call live evidence providers, MCP, Docker, PostgreSQL, Git, Codex app-server, secret stores, keychain, or network.',
-    '- Do not change `bmad workspace` command registry.',
-    '- Do not change `verify-capability` behavior.',
-    '- Do not treat `_bmad/custom` as authority.',
-    '- Preserve dirty worktree changes not owned by this task.',
+    ...guardrails,
     '',
     '## First Failing Behavior Test',
     '',
@@ -607,6 +683,12 @@ function assertNoSecrets(content, label) {
   }
   if (/PGPASSWORD\s*=/.test(content)) {
     throw forgeError('FORGE_SECRET_DETECTED', `${label} contains PGPASSWORD value`);
+  }
+  for (const field of FORBIDDEN_LIVE_EVIDENCE_FIELDS) {
+    const fieldPattern = new RegExp(String.raw`"${field}"\s*:`, 'i');
+    if (fieldPattern.test(content)) {
+      throw forgeError('FORGE_SECRET_DETECTED', `${label} contains forbidden live evidence field: ${field}`);
+    }
   }
 }
 

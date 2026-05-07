@@ -32,6 +32,12 @@
         },
         "generatorVersion": {
           "const": 1
+        },
+        "capabilityDomain": {
+          "enum": ["postgresql"]
+        },
+        "draftAuthoring": {
+          "enum": ["toml"]
         }
       }
     },

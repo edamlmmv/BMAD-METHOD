@@ -50,6 +50,14 @@ using these prompt skill names: `bmad-architecture-drift-review-prompt`,
 `bmad-capability-refactor-plan-prompt`, and
 `bmad-code-optimization-refactor-plan-prompt`.
 
+Use this when the user asks whether tool use is enough, whether tools are being
+underused, or whether a task needs tool enhancements, route first through
+`bmad-tool-leverage-review-prompt` and return its Tool-Leverage Decision Record
+(TLDR). If TLDR decision is `underused`, do not invoke or recommend
+`bmad-highest-leverage-official-mcp-addition-prompt`; report the underused
+existing tools, fallback, and next action instead. Escalation to an official
+MCP-addition planning prompt requires a separate explicit user goal.
+
 ## CSV Interpretation
 
 The catalog uses this format:

@@ -258,6 +258,27 @@
       "repairHint": "Refresh official Docker MCP and Context7 references before changing support claims; keep Docker MCP Toolkit version-dependent and secret placeholders limited to <CONTEXT7_API_KEY> or <redacted>."
     },
     {
+      "profileId": "desktop-commander.zsh-shell-mcp",
+      "capabilityId": "host.mcp.shell.zsh",
+      "toolName": "Desktop Commander MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Desktop Commander MCP can expose zsh-capable terminal evidence for an operator, but live MCP availability, GitHub star count drift, defaultShell state, allowedDirectories state, shell command output, host filesystem access, process control, Codex config, npm state, Docker state, and remote MCP state are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://github.com/wonderwhy-er/DesktopCommanderMCP",
+        "https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/README.md",
+        "https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/SECURITY.md",
+        "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "https://developers.openai.com/codex/cli/reference#codex-mcp",
+        "docs/workspace/zsh-shell-mcp-capability-planning.md",
+        "docs/workspace/templates/capability-request.zsh-shell-mcp.example.json",
+        "docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json",
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh Desktop Commander star threshold, README, SECURITY, and Codex MCP references before changing support claims; keep zsh shell evidence non-mutating, grant-gated, secret-free, and advisory only."
+    },
+    {
       "profileId": "postgresql.mcp.readonly-reference",
       "capabilityId": "host.mcp.postgresql.readonly",
       "toolName": "PostgreSQL MCP",

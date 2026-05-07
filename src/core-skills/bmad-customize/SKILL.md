@@ -141,6 +141,33 @@ For Docker MCP and Context7 examples, use only `<CONTEXT7_API_KEY>` or
 `<redacted>`. Do not create repo MCP config, env files, logs, fixtures,
 results, closeouts, docs examples, or tests containing key material.
 
+When the user says "use zsh MCP", "use shell MCP", "use local shell MCP",
+"use Desktop Commander MCP", or names `@wonderwhy-er/desktop-commander`,
+separate the surfaces before authoring:
+
+- **Zsh Shell MCP** — optional/operator-provided shell evidence only. Use
+  `host.mcp.shell.zsh`,
+  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
+  `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
+- **Candidate gate** — Desktop Commander MCP clears the explicit 1000+ GitHub
+  star threshold, but it is third-party and not an official MCP addition or
+  endorsement. Lower-star shell MCP candidates should be rejected unless a
+  future plan changes the gate.
+- **Host shell boundary** — Desktop Commander exposes broad host terminal,
+  filesystem, and process controls. Treat defaultShell state,
+  allowedDirectories state, command output, host file/process access, Codex
+  config, npm state, Docker state, and remote MCP state as operator context
+  only, never verifier input.
+- **Zsh quoting** — when documenting inline `node -e` commands for zsh,
+  single-quote the Node program so JavaScript template literals such as
+  `${p.profileId}` reach Node unchanged.
+- **Workspace verifier** — self-contained Capability Request JSON only. Do not
+  auto-install, auto-start, configure MCP, launch Docker, access secrets, read
+  shell history, store command transcripts with credentials, schedule work,
+  start daemons, activate live adapters, write `_bmad/custom`, or treat
+  Desktop Commander runtime state as declared capability compatibility.
+
 When the user says "use PostgreSQL MCP", "use Postgres MCP", "use Docker Hub
 PostgreSQL MCP", or names `modelcontextprotocol/server-postgres`, separate the
 surfaces before authoring:

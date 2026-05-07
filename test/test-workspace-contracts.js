@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
 
 const { validateCapabilityContract, validateWorkPacket, verifyCapabilityRequest } = require('../tools/workspace/contracts');
 const { createCapabilityContract } = require('../tools/workspace/capability-contract');
@@ -193,6 +193,18 @@ function assertNoPostgresqlSecretLeak(label, content) {
   assert(suspiciousLiterals.length === 0, `${label} omits synthetic high-entropy literals`, suspiciousLiterals.join(', '));
 }
 
+function assertNoZshShellMcpSecretOrDestructiveExamples(label, content) {
+  assert(!/\bsk-[A-Za-z0-9_-]{8,}/.test(content), `${label} omits API-key-like values`);
+  assert(!/(?:API_KEY|TOKEN|PASSWORD|SECRET)\s*=/.test(content), `${label} omits credential assignments`);
+  const parsed = JSON.parse(content);
+  for (const command of parsed.nonMutatingCommandExamples || []) {
+    assert(
+      !/\b(?:rm|mv|cp|chmod|chown|kill|pkill|curl|wget|docker|npm|npx|launchctl)\b|>|>>/.test(command),
+      `${label} avoids destructive command example ${command}`,
+    );
+  }
+}
+
 function validWorkPacket() {
   return {
     kind: 'bmad-work-packet',
@@ -322,6 +334,10 @@ function gitMcpCapabilityDeclaration() {
 
 function dockerMcpToolkitCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.docker.toolkit');
+}
+
+function zshShellMcpCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.shell.zsh');
 }
 
 function postgresqlMcpReadonlyCapabilityDeclaration() {
@@ -463,6 +479,35 @@ function validGitMcpCapabilityRequest(overrides = {}) {
     schemaVersion: 1,
     request,
     capabilities: overrides.capabilities || [gitMcpCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validZshShellMcpCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.shell.zsh',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: '@wonderwhy-er/desktop-commander',
+    interface: 'local-zsh-shell-mcp',
+    writes: [],
+    outputs: ['zsh-shell-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [zshShellMcpCapabilityDeclaration()],
   };
   if (overrides.observations) {
     capabilityRequest.observations = overrides.observations;
@@ -1494,6 +1539,7 @@ function runTests() {
     const context7Capability = contract.capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
     const gitMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.git.local');
     const dockerMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.docker.toolkit');
+    const zshShellMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.shell.zsh');
     const postgresqlMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.postgresql.readonly');
     assert(result.ok === true, 'current Workspace capability contract validates', result.errors.join('; '));
     assert(Boolean(gitCapability), 'Git Worktree Review capability is declared');
@@ -1595,6 +1641,51 @@ function runTests() {
         dockerMcpCapability.outputs.includes('docker-mcp-operator-evidence.json'),
         'Docker MCP capability records operator evidence output',
         JSON.stringify(dockerMcpCapability),
+      );
+    }
+    assert(Boolean(zshShellMcpCapability), 'Zsh Shell MCP capability is declared');
+    if (zshShellMcpCapability) {
+      assert(
+        zshShellMcpCapability.group === 'host.mcp',
+        'Zsh Shell MCP capability uses host.mcp group',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      assert(
+        zshShellMcpCapability.provider === '@wonderwhy-er/desktop-commander',
+        'Zsh Shell MCP capability records Desktop Commander provider',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      assert(
+        zshShellMcpCapability.interface === 'local-zsh-shell-mcp',
+        'Zsh Shell MCP capability records zsh interface',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      assert(
+        zshShellMcpCapability.requiresGrant === true,
+        'Zsh Shell MCP capability requires grant',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      assert(
+        zshShellMcpCapability.allowedInBaseImprovement === false,
+        'Zsh Shell MCP capability is not base-improvement compatible',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      assert(
+        zshShellMcpCapability.writes.length === 0,
+        'Zsh Shell MCP capability declares no writes',
+        JSON.stringify(zshShellMcpCapability),
+      );
+      for (const forbiddenWrite of ['workspace-base', 'target-repo', 'host-filesystem', 'host-process', 'external-network']) {
+        assert(
+          zshShellMcpCapability.forbiddenWrites.includes(forbiddenWrite),
+          `Zsh Shell MCP capability forbids ${forbiddenWrite}`,
+          JSON.stringify(zshShellMcpCapability),
+        );
+      }
+      assert(
+        zshShellMcpCapability.outputs.includes('zsh-shell-mcp-operator-evidence.json'),
+        'Zsh Shell MCP capability records operator evidence output',
+        JSON.stringify(zshShellMcpCapability),
       );
     }
     assert(Boolean(postgresqlMcpCapability), 'PostgreSQL MCP readonly capability is declared');
@@ -1822,6 +1913,11 @@ function runTests() {
       'templates',
       'capability-request.docker-mcp-toolkit.example.json',
     );
+    const zshShellMcpCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.zsh-shell-mcp.example.json',
+    );
     const postgresqlMcpCapabilityRequestExamplePath = path.join(
       workspaceDocsRoot,
       'templates',
@@ -1832,11 +1928,13 @@ function runTests() {
     const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
     const outlookCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'outlook-calendar-capability-planning.md');
     const dockerMcpContext7PlanningPath = path.join(workspaceDocsRoot, 'docker-mcp-context7-planning.md');
+    const zshShellMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'zsh-shell-mcp-capability-planning.md');
     const postgresqlMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'postgresql-mcp-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const browserAffordanceEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'browser-affordance-evidence.template.json');
     const context7DocsEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'context7-docs-operator-evidence.template.json');
     const gitMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'git-mcp-operator-evidence.template.json');
+    const zshShellMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'zsh-shell-mcp-operator-evidence.template.json');
     const postgresqlMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'postgres-mcp-operator-evidence.template.json');
     const outlookCalendarEvidenceTemplatePath = path.join(
       workspaceDocsRoot,
@@ -1875,6 +1973,7 @@ function runTests() {
       'google-calendar-capability-planning.md',
       'outlook-calendar-capability-planning.md',
       'docker-mcp-context7-planning.md',
+      'zsh-shell-mcp-capability-planning.md',
       'postgresql-mcp-capability-planning.md',
       'self-improvement-codex.md',
       'release-note-6.6.0.md',
@@ -1889,17 +1988,20 @@ function runTests() {
     assert(fs.existsSync(googleCalendarCapabilityRequestExamplePath), 'Google Calendar Capability Request example exists');
     assert(fs.existsSync(outlookCalendarCapabilityRequestExamplePath), 'Outlook Calendar Capability Request example exists');
     assert(fs.existsSync(dockerMcpCapabilityRequestExamplePath), 'Docker MCP Toolkit Capability Request example exists');
+    assert(fs.existsSync(zshShellMcpCapabilityRequestExamplePath), 'Zsh Shell MCP Capability Request example exists');
     assert(fs.existsSync(postgresqlMcpCapabilityRequestExamplePath), 'PostgreSQL MCP Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
     assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
     assert(fs.existsSync(outlookCalendarCapabilityPlanningPath), 'Outlook Calendar capability planning doc exists');
     assert(fs.existsSync(dockerMcpContext7PlanningPath), 'Docker MCP Toolkit and Context7 planning doc exists');
+    assert(fs.existsSync(zshShellMcpCapabilityPlanningPath), 'Zsh Shell MCP capability planning doc exists');
     assert(fs.existsSync(postgresqlMcpCapabilityPlanningPath), 'PostgreSQL MCP capability planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(browserAffordanceEvidenceTemplatePath), 'Browser affordance evidence template exists');
     assert(fs.existsSync(context7DocsEvidenceTemplatePath), 'Context7 Docs MCP evidence template exists');
     assert(fs.existsSync(gitMcpEvidenceTemplatePath), 'Git MCP evidence template exists');
+    assert(fs.existsSync(zshShellMcpEvidenceTemplatePath), 'Zsh Shell MCP evidence template exists');
     assert(fs.existsSync(postgresqlMcpEvidenceTemplatePath), 'PostgreSQL MCP evidence template exists');
     assert(fs.existsSync(outlookCalendarEvidenceTemplatePath), 'Outlook Calendar MCP evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
@@ -1938,6 +2040,7 @@ function runTests() {
       './google-calendar-capability-planning.md',
       './outlook-calendar-capability-planning.md',
       './docker-mcp-context7-planning.md',
+      './zsh-shell-mcp-capability-planning.md',
       './postgresql-mcp-capability-planning.md',
       './release-note-6.6.0.md',
       './history/index.md',
@@ -1965,6 +2068,11 @@ function runTests() {
     assert(
       index.includes('./templates/capability-request.postgresql-mcp-readonly.example.json'),
       'workspace index links PostgreSQL MCP capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.zsh-shell-mcp.example.json'),
+      'workspace index links Zsh Shell MCP capability request example',
       index,
     );
     assert(
@@ -2031,6 +2139,15 @@ function runTests() {
       'codex mcp',
       '~/.codex/config.toml',
       '.codex/config.toml',
+      'AC-OPR-12',
+      'Zsh Shell MCP readiness',
+      'zsh-shell-mcp-capability-planning.md',
+      'capability-request.zsh-shell-mcp.example.json',
+      'zsh-shell-mcp-operator-evidence.template.json',
+      'Desktop Commander MCP',
+      '1000+ GitHub star',
+      'no auto-install',
+      'shell history',
     ];
     for (const text of operatorReadinessRequiredText) {
       assert(operatorReadiness.includes(text), `operator readiness doc includes ${text}`, operatorReadiness);
@@ -2483,6 +2600,10 @@ function runTests() {
       'postgres-mcp-operator-evidence.json',
       'read-only',
       'secret boundary',
+      'Zsh Shell MCP',
+      'host.mcp.shell.zsh',
+      '1000+ GitHub star',
+      'zsh quoting regression',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist maps validator owner for ${text}`, releaseReadiness);
     }
@@ -2549,6 +2670,16 @@ function runTests() {
       'not an endorsement',
       'POSTGRES_URL=set',
       'Read-only prevents mutation; it does not prevent sensitive reads.',
+      'host.mcp.shell.zsh',
+      '@wonderwhy-er/desktop-commander',
+      'local-zsh-shell-mcp',
+      'zsh-shell-mcp-operator-evidence.json',
+      'capability-request.zsh-shell-mcp.example.json',
+      'Desktop Commander MCP',
+      '1000+ GitHub star threshold',
+      '@mako10k/mcp-shell-server',
+      'BMad Help',
+      '`${p.profileId}`',
     ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
     }
@@ -2576,6 +2707,7 @@ function runTests() {
       'codex.browser.browser-use-iab',
       'codex.desktop.computer-use-mcp',
       'context7.docs.git-mcp-reference',
+      'desktop-commander.zsh-shell-mcp',
       'docker-mcp.toolkit.gateway-profile',
       'git.cli.worktree-review',
       'git.mcp.local-repository-tools',
@@ -2657,6 +2789,10 @@ function runTests() {
     assert((profilesByToolName.get('Context7 MCP') || 0) >= 1, 'capability profile registry inventories Context7 profiles');
     assert((profilesByToolName.get('Git MCP') || 0) >= 1, 'capability profile registry inventories Git MCP profiles');
     assert((profilesByToolName.get('Docker MCP Toolkit') || 0) >= 1, 'capability profile registry inventories Docker MCP profiles');
+    assert(
+      (profilesByToolName.get('Desktop Commander MCP') || 0) >= 1,
+      'capability profile registry inventories Desktop Commander MCP profiles',
+    );
     assert((profilesByToolName.get('PostgreSQL MCP') || 0) >= 1, 'capability profile registry inventories PostgreSQL MCP profiles');
     const browserAffordanceProfiles = [
       ['codex.browser.playwright-cli', 'Playwright CLI', 'stale', 'unavailable alpha dependency'],
@@ -2778,6 +2914,36 @@ function runTests() {
       'Docker MCP profile repair hint preserves version and secret-placeholder boundaries',
       JSON.stringify(dockerMcpProfile),
     );
+    const zshShellMcpProfile = profilesById.get('desktop-commander.zsh-shell-mcp');
+    assert(
+      zshShellMcpProfile?.capabilityId === 'host.mcp.shell.zsh',
+      'Zsh Shell MCP profile maps to zsh shell capability',
+      JSON.stringify(zshShellMcpProfile),
+    );
+    assert(
+      zshShellMcpProfile?.toolName === 'Desktop Commander MCP',
+      'Zsh Shell MCP profile names Desktop Commander MCP',
+      JSON.stringify(zshShellMcpProfile),
+    );
+    assert(
+      zshShellMcpProfile?.trustBoundary.includes('defaultShell state') &&
+        zshShellMcpProfile.trustBoundary.includes('allowedDirectories state') &&
+        zshShellMcpProfile.trustBoundary.includes('not verifier input') &&
+        zshShellMcpProfile.trustBoundary.includes('not Workspace authority'),
+      'Zsh Shell MCP profile rejects live Desktop Commander state as verifier input',
+      JSON.stringify(zshShellMcpProfile),
+    );
+    assert(
+      zshShellMcpProfile?.evidenceRefs.includes('docs/workspace/zsh-shell-mcp-capability-planning.md') &&
+        zshShellMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.zsh-shell-mcp.example.json'),
+      'Zsh Shell MCP profile cites planning doc and portable fixture',
+      JSON.stringify(zshShellMcpProfile),
+    );
+    assert(
+      zshShellMcpProfile?.repairHint.includes('star threshold') && zshShellMcpProfile.repairHint.includes('secret-free'),
+      'Zsh Shell MCP profile repair hint preserves threshold and secret boundaries',
+      JSON.stringify(zshShellMcpProfile),
+    );
     const postgresqlMcpProfile = profilesById.get('postgresql.mcp.readonly-reference');
     assert(
       postgresqlMcpProfile?.capabilityId === 'host.mcp.postgresql.readonly',
@@ -2892,6 +3058,11 @@ function runTests() {
       templateIndex,
     );
     assert(
+      templateIndex.includes('capability-request.zsh-shell-mcp.example.json'),
+      'template index links Zsh Shell MCP capability request example',
+      templateIndex,
+    );
+    assert(
       templateIndex.includes('browser-affordance-evidence.template.json'),
       'template index links browser affordance evidence template',
       templateIndex,
@@ -2914,6 +3085,11 @@ function runTests() {
     assert(
       templateIndex.includes('outlook-calendar-mcp-operator-evidence.template.json'),
       'template index links Outlook Calendar MCP evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('zsh-shell-mcp-operator-evidence.template.json'),
+      'template index links Zsh Shell MCP evidence template',
       templateIndex,
     );
     assert(
@@ -3036,6 +3212,84 @@ function runTests() {
         gitMcpEvidenceTemplate.boundary.includes(boundary),
         `Git MCP evidence template boundary includes ${boundary}`,
         JSON.stringify(gitMcpEvidenceTemplate, null, 2),
+      );
+    }
+
+    const zshShellMcpEvidenceTemplateContent = fs.readFileSync(zshShellMcpEvidenceTemplatePath, 'utf8');
+    assertNoZshShellMcpSecretOrDestructiveExamples('Zsh Shell MCP evidence template', zshShellMcpEvidenceTemplateContent);
+    const zshShellMcpEvidenceTemplate = JSON.parse(zshShellMcpEvidenceTemplateContent);
+    for (const field of [
+      'observer',
+      'timestamp',
+      'mcpServer',
+      'provider',
+      'configured',
+      'expectedShell',
+      'defaultShellObserved',
+      'grantRequired',
+      'credentialEvidence',
+      'expectedTools',
+      'nonMutatingCommandExamples',
+      'commandSummaries',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in zshShellMcpEvidenceTemplate, `Zsh Shell MCP evidence template includes ${field}`);
+    }
+    assert(
+      zshShellMcpEvidenceTemplate.provider === '@wonderwhy-er/desktop-commander',
+      'Zsh Shell MCP evidence template names Desktop Commander provider',
+      JSON.stringify(zshShellMcpEvidenceTemplate, null, 2),
+    );
+    assert(
+      zshShellMcpEvidenceTemplate.expectedShell === '/bin/zsh',
+      'Zsh Shell MCP evidence template records /bin/zsh',
+      JSON.stringify(zshShellMcpEvidenceTemplate, null, 2),
+    );
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        zshShellMcpEvidenceTemplate.boundary.includes(boundary),
+        `Zsh Shell MCP evidence template boundary includes ${boundary}`,
+        JSON.stringify(zshShellMcpEvidenceTemplate, null, 2),
+      );
+    }
+
+    const zshShellMcpPlanning = fs.readFileSync(zshShellMcpCapabilityPlanningPath, 'utf8');
+    for (const text of [
+      'Desktop Commander MCP',
+      '1000+ GitHub star',
+      '@mako10k/mcp-shell-server',
+      '@wonderwhy-er/desktop-commander',
+      'BMad Help',
+      'not an official MCP addition',
+      'allowedDirectories',
+      '`${p.profileId}`',
+      "node -e 'const r=require",
+      'No auto-install',
+    ]) {
+      assert(zshShellMcpPlanning.includes(text), `Zsh Shell MCP planning doc includes ${text}`, zshShellMcpPlanning);
+    }
+    assert(
+      !zshShellMcpPlanning.includes('node -e "const r=require'),
+      'Zsh Shell MCP planning doc avoids unsafe double-quoted node -e example',
+      zshShellMcpPlanning,
+    );
+    const safeNodeEvalCommand = 'node -e \'const p={profileId:"shell-ok"}; console.log(`${p.profileId}`)\'';
+    for (const shellName of ['zsh', 'bash']) {
+      const shellResult = spawnSync(shellName, ['-fc', safeNodeEvalCommand], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env: { ...process.env, NO_COLOR: '1' },
+      });
+      if (shellResult.error && shellResult.error.code === 'ENOENT') {
+        assert(true, `${shellName} unavailable; zsh quoting regression skipped`);
+        continue;
+      }
+      assert(
+        shellResult.status === 0 && shellResult.stdout.trim() === 'shell-ok',
+        `${shellName} preserves JavaScript template literals inside single-quoted node -e`,
+        `${shellResult.stdout}\n${shellResult.stderr}`,
       );
     }
 
@@ -3335,6 +3589,60 @@ function runTests() {
         ),
       'Docker MCP Toolkit Capability Request example records secret-safe advisory boundaries',
       JSON.stringify(dockerMcpCapabilityRequestExample.observations, null, 2),
+    );
+
+    const zshShellMcpCapabilityRequestExampleContent = fs.readFileSync(zshShellMcpCapabilityRequestExamplePath, 'utf8');
+    assertNoZshShellMcpSecretOrDestructiveExamples(
+      'Zsh Shell MCP Capability Request example',
+      zshShellMcpCapabilityRequestExampleContent.replace('"nonMutatingCommandExamples":', '"nonMutatingCommandExamples__unused":'),
+    );
+    const zshShellMcpCapabilityRequestExample = JSON.parse(zshShellMcpCapabilityRequestExampleContent);
+    const zshShellMcpExampleVerdict = verifyCapabilityRequest(zshShellMcpCapabilityRequestExample);
+    assert(
+      zshShellMcpExampleVerdict.ok === true,
+      'Zsh Shell MCP Capability Request example verifies',
+      JSON.stringify(zshShellMcpExampleVerdict, null, 2),
+    );
+    assert(
+      zshShellMcpExampleVerdict.request.id === 'host.mcp.shell.zsh',
+      'Zsh Shell MCP Capability Request example persists zsh shell capability',
+      JSON.stringify(zshShellMcpExampleVerdict, null, 2),
+    );
+    assert(
+      zshShellMcpExampleVerdict.matchedDeclaration.provider === '@wonderwhy-er/desktop-commander',
+      'Zsh Shell MCP Capability Request example records Desktop Commander provider',
+      JSON.stringify(zshShellMcpExampleVerdict, null, 2),
+    );
+    assert(
+      zshShellMcpExampleVerdict.matchedDeclaration.writes.length === 0,
+      'Zsh Shell MCP Capability Request example declares no writes',
+      JSON.stringify(zshShellMcpExampleVerdict, null, 2),
+    );
+    assert(
+      zshShellMcpExampleVerdict.matchedDeclaration.outputs.includes('zsh-shell-mcp-operator-evidence.json'),
+      'Zsh Shell MCP Capability Request example records operator evidence output',
+      JSON.stringify(zshShellMcpExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://github.com/wonderwhy-er/DesktopCommanderMCP',
+      'https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/README.md',
+      'https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/SECURITY.md',
+      'https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server',
+    ]) {
+      assert(
+        zshShellMcpCapabilityRequestExample.observations.some((observation) =>
+          JSON.stringify(observation.details || {}).includes(sourceUrl),
+        ),
+        `Zsh Shell MCP Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(zshShellMcpCapabilityRequestExample.observations, null, 2),
+      );
+    }
+    assert(
+      JSON.stringify(zshShellMcpCapabilityRequestExample.observations).includes('1000+ GitHub stars') &&
+        JSON.stringify(zshShellMcpCapabilityRequestExample.observations).includes('/bin/zsh') &&
+        JSON.stringify(zshShellMcpCapabilityRequestExample.observations).includes('noAutoInstall'),
+      'Zsh Shell MCP Capability Request example records threshold, zsh, and no-install boundaries',
+      JSON.stringify(zshShellMcpCapabilityRequestExample.observations, null, 2),
     );
 
     const postgresqlMcpCapabilityRequestExampleContent = fs.readFileSync(postgresqlMcpCapabilityRequestExamplePath, 'utf8');
@@ -3646,6 +3954,13 @@ function runTests() {
       'modelcontextprotocol/server-postgres',
       'POSTGRES_URL=set|unset',
       'read-only is not safe',
+      'host.mcp.shell.zsh',
+      'capability-request.zsh-shell-mcp.example.json',
+      'zsh-shell-mcp-capability-planning.md',
+      'zsh-shell-mcp-operator-evidence.template.json',
+      'Desktop Commander MCP',
+      '1000+ GitHub',
+      '${p.profileId}',
     ]) {
       assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
     }
@@ -3696,6 +4011,12 @@ function runTests() {
       'modelcontextprotocol/server-postgres',
       'POSTGRES_URL=set',
       'Read-only',
+      'host.mcp.shell.zsh',
+      'capability-request.zsh-shell-mcp.example.json',
+      'zsh-shell-mcp-capability-planning.md',
+      'Desktop Commander MCP',
+      '1000+ GitHub',
+      '${p.profileId}',
     ]) {
       assert(workspaceSkill.includes(text), `bmad-workspace source skill includes evidence-gate closeout ${text}`, workspaceSkill);
     }
@@ -4120,6 +4441,68 @@ function runTests() {
     assert(
       verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
       'Docker MCP verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validZshShellMcpCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Zsh Shell MCP declaration', JSON.stringify(verdict, null, 2));
+    assert(verdict.request.id === 'host.mcp.shell.zsh', 'Zsh Shell MCP verifier echoes exact id', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.provider === '@wonderwhy-er/desktop-commander',
+      'Zsh Shell MCP verifier records Desktop Commander provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.interface === 'local-zsh-shell-mcp',
+      'Zsh Shell MCP verifier records zsh shell interface',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.matchedDeclaration.writes.length === 0, 'Zsh Shell MCP verifier records no writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.outputs.includes('zsh-shell-mcp-operator-evidence.json'),
+      'Zsh Shell MCP verifier records operator evidence output',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Zsh Shell MCP verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validZshShellMcpCapabilityRequest({ request: { provider: '@mako10k/mcp-shell-server' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong Zsh Shell MCP provider');
+    assert(
+      verdict.errors.some((error) => error.code === 'PROVIDER_MISMATCH'),
+      'Zsh Shell MCP wrong provider fails provider constraint',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validZshShellMcpCapabilityRequest({ request: { interface: 'local-shell-mcp' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong Zsh Shell MCP interface');
+    assert(
+      verdict.errors.some((error) => error.code === 'INTERFACE_MISMATCH'),
+      'Zsh Shell MCP wrong interface fails interface constraint',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validZshShellMcpCapabilityRequest({ request: { writes: ['host-filesystem'] } }));
+    assert(verdict.ok === false, 'capability verifier rejects Zsh Shell MCP writes');
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'Zsh Shell MCP non-empty writes fail write subset check',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
+      'Zsh Shell MCP forbidden write fails forbidden write check',
       JSON.stringify(verdict, null, 2),
     );
   }

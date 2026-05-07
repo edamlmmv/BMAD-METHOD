@@ -39,7 +39,10 @@ const LLM_EXCLUDE_PATTERNS = [
   'reference/glossary/',
   'explanation/game-dev/',
   'bmgd/',
+  'reviews/',
+  'superpowers/plans/',
   'workspace/history/',
+  'workspace/reviews/',
   // Note: Files/dirs starting with _ (like _STYLE_GUIDE.md, _archive/) are excluded in shouldExcludeFromLlm()
 ];
 

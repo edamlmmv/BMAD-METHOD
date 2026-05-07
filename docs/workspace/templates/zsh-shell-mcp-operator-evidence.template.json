@@ -1,0 +1,20 @@
+{
+  "kind": "zsh-shell-mcp-operator-evidence",
+  "schemaVersion": 1,
+  "observer": "Codex operator",
+  "timestamp": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "mcpServer": "desktop-commander",
+  "provider": "@wonderwhy-er/desktop-commander",
+  "configured": false,
+  "expectedShell": "/bin/zsh",
+  "defaultShellObserved": "set|unset|unknown",
+  "grantRequired": true,
+  "credentialEvidence": "not-applicable",
+  "credentialValue": "[REDACTED]",
+  "expectedTools": ["get_config", "start_process", "read_process_output", "list_sessions"],
+  "nonMutatingCommandExamples": ["printf '%s\\n' \"$ZSH_VERSION\"", "pwd", "git status --short --branch"],
+  "commandSummaries": [],
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Zsh shell MCP observations are manual operator evidence only; not verifier input, not grant authority, not runtime authority, not Workspace authority, not install permission, and not proof that shell commands cannot mutate the host."
+}

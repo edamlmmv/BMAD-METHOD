@@ -1,0 +1,85 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.shell.zsh",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "@wonderwhy-er/desktop-commander",
+    "interface": "local-zsh-shell-mcp",
+    "writes": [],
+    "outputs": ["zsh-shell-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.shell.zsh",
+      "group": "host.mcp",
+      "provider": "@wonderwhy-er/desktop-commander",
+      "interface": "local-zsh-shell-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": false,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "host-filesystem",
+        "host-process",
+        "external-network",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store"
+      ],
+      "outputs": ["zsh-shell-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "DESKTOP_COMMANDER_THRESHOLD_MET",
+      "message": "Desktop Commander MCP cleared the explicit 1000+ GitHub star candidate gate during operator review.",
+      "details": {
+        "sourceId": "desktop_commander_github",
+        "sourceUrl": "https://github.com/wonderwhy-er/DesktopCommanderMCP",
+        "reviewedAt": "2026-05-07",
+        "threshold": "1000+ GitHub stars",
+        "supportState": "experimental"
+      }
+    },
+    {
+      "code": "DESKTOP_COMMANDER_ZSH_CAPABLE",
+      "message": "Desktop Commander documents shell selection with /bin/zsh, but live shell state is not verifier input.",
+      "details": {
+        "sourceId": "desktop_commander_readme",
+        "sourceUrl": "https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/README.md",
+        "reviewedAt": "2026-05-07",
+        "expectedShell": "/bin/zsh",
+        "liveRuntimeState": "not verifier input"
+      }
+    },
+    {
+      "code": "DESKTOP_COMMANDER_SECURITY_BOUNDARY",
+      "message": "Desktop Commander is broad host terminal/filesystem/process control and is advisory only for non-mutating operator evidence.",
+      "details": {
+        "sourceId": "desktop_commander_security",
+        "sourceUrl": "https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/SECURITY.md",
+        "reviewedAt": "2026-05-07",
+        "noAutoInstall": true,
+        "noAutoStart": true,
+        "noWorkspaceWritesDeclared": true,
+        "notOfficialMcpAddition": true
+      }
+    },
+    {
+      "code": "CODEX_MCP_CONFIG_BOUNDARY",
+      "message": "Codex MCP docs describe configuration only; Workspace does not configure or inspect live MCP servers.",
+      "details": {
+        "sourceId": "openai_codex_mcp_docs",
+        "sourceUrl": "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "reviewedAt": "2026-05-07",
+        "codexConfig": "operator context only"
+      }
+    }
+  ]
+}

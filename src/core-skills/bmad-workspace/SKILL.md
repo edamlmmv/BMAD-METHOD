@@ -143,15 +143,17 @@ for a Git Worktree Review fixture. Use
 Context7 Docs MCP fixture and
 `docs/workspace/templates/capability-request.git-mcp-local.example.json` for a
 Git local MCP fixture. Use
+`docs/workspace/templates/capability-request.zsh-shell-mcp.example.json` for a
+Zsh Shell MCP fixture. Use
 `docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`
 for an Outlook Calendar remote MCP fixture.
 
 `docs/workspace/capability-profile-registry.json` is advisory authoring context
 for named tools such as Codex, Graphify, Git, Context7 MCP, Git MCP, Docker MCP
-Toolkit, PostgreSQL MCP, Google Calendar MCP, and Outlook Calendar MCP. It
-maps profiles to exact capability ids, support states, trust boundaries,
-evidence refs, and repair hints. It is not verifier input, grant authority,
-runtime availability proof, or support-promotion authority.
+Toolkit, Desktop Commander MCP, PostgreSQL MCP, Google Calendar MCP, and
+Outlook Calendar MCP. It maps profiles to exact capability ids, support states,
+trust boundaries, evidence refs, and repair hints. It is not verifier input,
+grant authority, runtime availability proof, or support-promotion authority.
 
 Use the profile registry to explain known Codex and Graphify affordances before
 authoring a Capability Request: Codex config and app-server context remain
@@ -188,6 +190,22 @@ and never replace Grant Guard. GitHub connector or GitHub MCP state is separate
 from local Git MCP. Local `git` CLI remains fallback and exact pre-push
 authority, including `npm ci && npm run quality` on the exact checkout and
 `HEAD` being pushed.
+
+Zsh Shell MCP uses declared id `host.mcp.shell.zsh`. Treat Desktop Commander
+MCP as optional, third-party, zsh-capable operator evidence only. Use
+`docs/workspace/zsh-shell-mcp-capability-planning.md`,
+`docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
+`docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
+Desktop Commander clears the explicit 1000+ GitHub star candidate gate but is
+not an official MCP addition or endorsement. It exposes broad host terminal,
+filesystem, and process controls; live MCP availability, defaultShell state,
+allowedDirectories state, command output, host file/process access, Codex
+config, npm state, Docker state, and remote MCP state are not verifier input.
+Do not auto-install, auto-start, configure MCP, access secrets, read shell
+history, run destructive commands, schedule work, launch daemons, activate live
+adapters, or write `_bmad/custom`. In zsh docs, single-quote inline `node -e`
+programs so JavaScript template literals such as `${p.profileId}` reach Node
+unchanged.
 
 PostgreSQL MCP uses declared id `host.mcp.postgresql.readonly`. Treat
 `modelcontextprotocol/server-postgres` as archived/deprecated reference

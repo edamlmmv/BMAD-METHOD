@@ -22,6 +22,10 @@ or Computer Use. Browser-derived observations may become manual evidence, but
 they are not verifier input, capability grants, runtime authority, or
 environment truth.
 
+The same boundary applies when users ask Customize to leverage Zsh Shell MCP or
+Desktop Commander MCP. Desktop Commander may guide an experimental
+`host.mcp.shell.zsh` request only as third-party advisory operator evidence.
+
 ## Source Of Truth
 
 Source authority: `src/core-skills/bmad-customize/SKILL.md`.
@@ -53,6 +57,8 @@ docs, and tests are updated.
 | Browser Use | Browser automation provider or plugin context; never Workspace verifier authority. |
 | Computer Use | Desktop/UI automation MCP context; never Workspace verifier authority. |
 | `_bmad/custom` | Customization output/config area; never verifier input. |
+| Zsh Shell MCP | Experimental `host.mcp.shell.zsh` capability for Desktop Commander MCP zsh shell evidence. |
+| Desktop Commander MCP | Third-party zsh-capable terminal/filesystem/process MCP surface; never Workspace verifier authority. |
 
 ## Boundary Model
 
@@ -132,6 +138,27 @@ context, summary, and an explicit "not verifier input" boundary.
 | Agent Browser | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain CLI refs, snapshots, screenshots, and interaction loops. | Missing CLI on `PATH` is local observation only. |
 | Browser Use | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain provider/plugin context for browser automation. | Provider/session availability is not Workspace authority. |
 | Computer Use | `advisory`, `manual-evidence`, `non-authoritative`, `non-deterministic` | Explain desktop accessibility inspection or UI action context. | Live app state is not verifier input. |
+
+## Zsh Shell MCP Boundary
+
+When a customization discussion mentions zsh shell MCP, shell MCP, local shell
+MCP, or Desktop Commander MCP, use
+`docs/workspace/zsh-shell-mcp-capability-planning.md`,
+`docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
+`docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
+
+Desktop Commander MCP clears the explicit 1000+ GitHub star candidate gate, but
+it is third-party and broad. BMad Help's official-MCP prompt would reject it as
+unofficial, so Customize must frame it as experimental advisory evidence only.
+Do not install, configure, start, or trust live Desktop Commander state. Do not
+read shell history, store secrets, store credential-bearing command transcripts,
+start daemons, schedule work, mutate `_bmad/custom`, or treat defaultShell,
+allowedDirectories, command output, host filesystem access, process control,
+npm state, Docker state, Codex config, or remote MCP state as verifier input.
+
+When documenting inline `node -e` commands for zsh, single-quote the Node
+program so JavaScript template literals such as `${p.profileId}` reach Node
+unchanged.
 
 ## Workspace Evidence Path
 

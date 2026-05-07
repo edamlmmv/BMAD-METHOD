@@ -56,6 +56,12 @@ Workspace release:
   `mcp-server-git` add, commit, and branch tools stay manual/grant-gated,
   GitHub connector state stays separate, and local `git` CLI plus
   `npm ci && npm run quality` remains exact pre-push authority.
+- Zsh Shell MCP: owner is `npm run test:workspace`; manual-review note checks
+  `host.mcp.shell.zsh` stays experimental Desktop Commander MCP operator
+  evidence only, keeps the 1000+ GitHub star candidate gate, declares no
+  BMAD-managed writes, rejects host write/process/network requests, preserves
+  the zsh quoting regression, and never installs, starts, configures, or trusts
+  live Desktop Commander state as verifier input.
 - PostgreSQL MCP: owner is `npm run test:workspace`; manual-review note checks
   `host.mcp.postgresql.readonly` stays optional/operator-provided, read-only
   database evidence stays out of verifier pass/fail, the secret boundary records

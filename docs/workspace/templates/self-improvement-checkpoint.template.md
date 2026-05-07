@@ -120,6 +120,15 @@ Shared BMAD planning capabilities are operator-invoked planning/setup aids disco
 - `capability:grill-me` challenge findings:
 - Capability decisions changed or deferred:
 
+## Tool-Leverage Decision Record
+
+For tool-relevant goals only. Omit for non-tool-relevant goals.
+
+Fields/order: `task`, `available_capabilities`, `candidate_tools`,
+`selected_capability`, `chosen_tools`, `decision`, `rationale`, `why_enough`,
+`underused_risk`, `overused_risk`, `blocked_tools`, `fallback`, `next_action`,
+`evidence`. Decision: `enough | underused | overused | blocked`.
+
 ## Policy Consensus Evidence
 
 - Policy changed:

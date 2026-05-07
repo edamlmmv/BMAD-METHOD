@@ -156,6 +156,18 @@ needs focused planning evidence before the final plan or implementation.
 - `skill:bmad-code-optimization-refactor-plan-prompt` with
   `docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md`
 
+### Tool-Leverage Decision Record
+
+For tool-relevant goals only, include a Tool-Leverage Decision Record in the
+final plan or checkpoint. Tool-relevant means the Self-Improve goal asks whether
+tools are being used enough, requires choosing among skills/scripts/MCPs/browser
+affordances/automation, or proposes tool/capability enhancements.
+
+Use the canonical TLDR fields and order from
+`skill:bmad-tool-leverage-review-prompt`. A TLDR decision of `underused`
+records existing tools to use, fallback, and next action; it must not become an
+automatic official MCP invocation or recommendation.
+
 ## Readiness And Customize Routing
 
 Self-Improve uses the generic `bmad-loop` routing matrix. `bmad-customize` may

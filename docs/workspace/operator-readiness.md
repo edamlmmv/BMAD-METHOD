@@ -65,6 +65,15 @@ verifier behavior, or Graphify behavior.
   `mcp_servers.*`, `codex mcp`, `~/.codex/config.toml`, and
   `.codex/config.toml` as operator context only, and confirms no verifier, CLI,
   schema, or capability registry drift before implementation.
+- `AC-OPR-12`: PASS when Zsh Shell MCP readiness uses
+  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`,
+  and
+  `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`;
+  records Desktop Commander MCP as third-party experimental operator evidence;
+  preserves the 1000+ GitHub star candidate gate; and confirms no auto-install,
+  auto-start, host write, secret access, shell history capture, scheduler,
+  daemon, live adapter, or `_bmad/custom` authority.
 
 If any checklist item fails, the operator can decide readiness is blocked
 without asking a maintainer.
@@ -103,6 +112,15 @@ without asking a maintainer.
   `.codex/config.toml`, `bmad-check-implementation-readiness` resolver output,
   and recorded validation commands. These inputs guide operators only; they are
   not Workspace verifier authority.
+- Zsh Shell MCP readiness inputs:
+  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`,
+  `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`,
+  `https://github.com/wonderwhy-er/DesktopCommanderMCP`,
+  `https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/README.md`,
+  `https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/SECURITY.md`,
+  and Codex MCP docs. These inputs prove only advisory authoring context and
+  candidate selection, not runtime availability or safety.
 - Skill validation evidence: `tools/skill-validator.md` plus
   `npm run validate:skills`.
 
@@ -122,6 +140,10 @@ without asking a maintainer.
 - Codex MCP/TOML docs readiness facts, including `mcp_servers.*`, `codex mcp`,
   `~/.codex/config.toml`, `.codex/config.toml`, OpenAI Docs MCP observations,
   and local Codex config state.
+- Zsh Shell MCP readiness facts, including Desktop Commander MCP runtime state,
+  GitHub star count drift, defaultShell state, allowedDirectories state, shell
+  output, host filesystem access, process control, npm state, Docker state,
+  remote MCP state, and non-mutating command observations.
 - Workspace Session artifacts.
 
 ## Boundaries
@@ -138,6 +160,9 @@ without asking a maintainer.
 - No Codex MCP/TOML docs readiness claim may change Workspace verifier, CLI,
   schema, capability registry, grants, runtime authority, or self-contained
   Capability Request JSON behavior.
+- No Zsh Shell MCP readiness claim may install, configure, start, or trust
+  Desktop Commander MCP; record only non-mutating, secret-free operator
+  summaries after explicit grant.
 
 ## Push Gate
 

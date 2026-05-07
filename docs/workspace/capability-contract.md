@@ -31,7 +31,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI              |
 | `runtime.session`           | Provide sessions, tasks, goals, Cron, or Heartbeat.                                                     | OpenClaw, Hermes                 |
 | `repo.git`                  | Create worktrees, diff, status, commit, rollback.                                                       | Git                              |
-| `host.mcp`                  | Expose bounded tool and context surfaces.                                                               | MCP servers, Context7, Git MCP, Docker MCP Toolkit, PostgreSQL MCP, Google Calendar MCP, Outlook Calendar MCP |
+| `host.mcp`                  | Expose bounded tool and context surfaces.                                                               | MCP servers, Context7, Git MCP, Docker MCP Toolkit, Desktop Commander MCP, PostgreSQL MCP, Google Calendar MCP, Outlook Calendar MCP |
 | `collab.github`             | Inspect issues, PRs, CI, and reviews.                                                                   | GitHub                           |
 
 ## Contract Sketch
@@ -126,6 +126,8 @@ Git local MCP lives at
 `docs/workspace/templates/capability-request.git-mcp-local.example.json`.
 Docker MCP Toolkit lives at
 `docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
+Zsh Shell MCP lives at
+`docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`.
 PostgreSQL MCP lives at
 `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
 Outlook Calendar MCP lives at
@@ -189,6 +191,47 @@ The secret-safe planning boundary and portable verifier example live at
 only as a last-resort manual path because process args can leak. Placeholders
 must be only `<CONTEXT7_API_KEY>` or `<redacted>`. This capability does not
 change verifier behavior.
+
+### Zsh Shell MCP Candidate
+
+`host.mcp.shell.zsh` declares an experimental, declaration-only `host.mcp`
+capability for zsh-capable shell evidence through Desktop Commander MCP. It
+uses `provider: @wonderwhy-er/desktop-commander`,
+`interface: local-zsh-shell-mcp`, `requiresGrant: true`, `writes: []`, and
+outputs `zsh-shell-mcp-operator-evidence.json`.
+
+Desktop Commander MCP is a third-party, broad host terminal/filesystem/process
+surface. The declaration is not a statement that Desktop Commander is
+installed, configured, running, using `/bin/zsh`, isolated, or safe for host
+mutation. The upstream README documents configurable shell selection including
+`/bin/zsh`; the upstream SECURITY notes make clear that restrictions are
+guardrails rather than hardened security boundaries. Live Desktop Commander
+state, GitHub star count drift, defaultShell state, allowedDirectories state,
+shell command output, Codex config, npm state, Docker state, and remote MCP
+state are not verifier input and not Workspace authority.
+
+The 1000+ GitHub star threshold is a candidate gate, not endorsement. The
+previous `@mako10k/mcp-shell-server` candidate is rejected by that gate. BMad Help's
+official-MCP prompt would still reject Desktop Commander as unofficial;
+Workspace records it only as experimental advisory operator evidence. The
+planning boundary and portable verifier example live at
+`docs/workspace/zsh-shell-mcp-capability-planning.md` and
+`docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`.
+Manual evidence should use
+`docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
+
+Use single quotes around inline Node programs in zsh, for example:
+
+```bash
+node -e 'const r=require("./docs/workspace/capability-profile-registry.json"); for (const p of r.profiles) console.log(`${p.profileId}|${p.capabilityId}|${p.toolName}|${p.supportState}|${p.trustBoundary}`)'
+```
+
+The zsh quoting regression specifically preserves JavaScript template literal
+segments such as `${p.profileId}` for Node instead of letting zsh expand them.
+
+This capability must not auto-install, auto-start, configure MCP, launch
+Docker, access secrets, read shell history, schedule work, run a daemon,
+activate a live adapter, or write `_bmad/custom`.
 
 ### PostgreSQL Readonly MCP Candidate
 

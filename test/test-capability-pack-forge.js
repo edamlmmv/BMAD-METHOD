@@ -47,6 +47,13 @@ const declaredPackTemplates = [
     template: 'capability-request.docker-mcp-toolkit.example.json',
   },
   {
+    slug: 'zsh-shell-mcp',
+    id: 'host.mcp.shell.zsh',
+    displayName: 'Zsh Shell MCP',
+    summary: 'Draft a BMAD capability pack for zsh shell MCP operator evidence.',
+    template: 'capability-request.zsh-shell-mcp.example.json',
+  },
+  {
     slug: 'postgresql-readonly-mcp',
     id: 'host.mcp.postgresql.readonly',
     displayName: 'PostgreSQL Readonly MCP',
@@ -91,7 +98,14 @@ function listRelativeFiles(root) {
     .sort();
 }
 
-function writeForgeFixture({ capability, capabilityRequestTemplate, packMode = 'verifier-ready', evidenceSourceType = 'repo_template' }) {
+function writeForgeFixture({
+  capability,
+  capabilityRequestTemplate,
+  packMode = 'verifier-ready',
+  evidenceSourceType = 'repo_template',
+  requestPatch = {},
+  evidencePatch = {},
+}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `cpf-${capability.slug || 'fixture'}-`));
   const evidence = {
     kind: 'capability-pack-local-evidence',
@@ -100,6 +114,7 @@ function writeForgeFixture({ capability, capabilityRequestTemplate, packMode = '
     evidenceSource: 'repo-local fixture',
     reviewedAt: '2026-05-07',
     notes: ['Local deterministic evidence only.', 'No live tools, network, credentials, or runtime state.'],
+    ...evidencePatch,
   };
   fs.writeFileSync(path.join(tempDir, 'operator-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
 
@@ -129,6 +144,7 @@ function writeForgeFixture({ capability, capabilityRequestTemplate, packMode = '
         statement: 'Forge emits deterministic draft artifacts from local evidence files.',
       },
     ],
+    ...requestPatch,
   };
 
   if (capabilityRequestTemplate) {
@@ -230,6 +246,19 @@ function testContext7MinimalPack() {
   }
 }
 
+function testV1JsonAuthorityDoesNotRequireV2CompilerState() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-v1-authority-'));
+  assert(!fs.existsSync(path.join(tempDir, '.capability-forge')), 'fixture starts without v2 compiler config');
+  const requestPath = path.join(fixtureRoot, 'forge-request.json');
+  const outputDir = path.join(tempDir, 'out');
+  const result = runForge(['--input', requestPath, '--output', outputDir], { cwd: tempDir });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.metadata.source, 'capability-pack-forge');
+  assert(!fs.existsSync(path.join(tempDir, '.capability-forge')), 'v1 JSON path does not create v2 compiler state');
+}
+
 function testGenericEvidenceRefsWithoutContext7() {
   const { inputPath, outputDir } = writeForgeFixture({
     capability: declaredPackTemplates[0],
@@ -282,6 +311,92 @@ function testDeclaredCapabilityPacksGenerate() {
       expectedFiles.filter((file) => file !== 'manifest.json').sort(),
       `${capability.slug} manifest lists non-manifest artifacts`,
     );
+  }
+}
+
+function testPostgresqlTomlForgeBoundary() {
+  const capability = declaredPackTemplates.find((entry) => entry.slug === 'postgresql-readonly-mcp');
+  const { inputPath, outputDir } = writeForgeFixture({
+    capability,
+    capabilityRequestTemplate: capability.template,
+    evidenceSourceType: 'manual_contract',
+    requestPatch: {
+      capabilityDomain: 'postgresql',
+      draftAuthoring: 'toml',
+    },
+    evidencePatch: {
+      credentialEvidence: 'POSTGRES_URL=set',
+      localEvidenceOnly: true,
+    },
+  });
+
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.metadata.capabilityDomain, 'postgresql');
+  assert.equal(pack.metadata.draftAuthoring, 'toml');
+  assert(
+    pack.inputs.every((entry) => entry.sourceType === 'manual_contract'),
+    'PostgreSQL pack uses local evidence refs',
+  );
+
+  const operatorEvidence = readJson(path.join(outputDir, 'operator-evidence-template.json'));
+  assert.equal(operatorEvidence.capabilityDomain, 'postgresql');
+  assert.equal(operatorEvidence.draftAuthoring, 'toml');
+  assert.equal(operatorEvidence.credentialEvidence, 'POSTGRES_URL=set|unset');
+
+  const customizationDraft = fs.readFileSync(path.join(outputDir, 'customization-draft.toml'), 'utf8');
+  assert(customizationDraft.includes('TOML authoring is draft-only'));
+  assert(customizationDraft.includes('PostgreSQL capability packs use local evidence refs only'));
+
+  const checklist = fs.readFileSync(path.join(outputDir, 'readiness-checklist.md'), 'utf8');
+  assert(checklist.includes('POSTGRES_URL=set|unset'));
+  assert(checklist.includes('Forge does not parse TOML input in v1'));
+
+  const taskPacket = fs.readFileSync(path.join(outputDir, 'codex-task-packet.md'), 'utf8');
+  assert(taskPacket.includes('Treat PostgreSQL as a generated capability domain only'));
+  assert(taskPacket.includes('Treat TOML as generated authoring draft only'));
+
+  const manifest = readJson(path.join(outputDir, 'manifest.json'));
+  assert.equal(manifest.kind, 'bmad-capability-pack-manifest');
+  const capabilityRequest = readJson(path.join(outputDir, 'capability-request.json'));
+  assert.equal(verifyCapabilityRequest(capabilityRequest).ok, true, 'PostgreSQL generated request remains JSON verifier input');
+
+  for (const file of expectedFiles) {
+    assertNoSecretLookingValues(file, fs.readFileSync(path.join(outputDir, file), 'utf8'));
+  }
+}
+
+function testForbiddenLivePostgresEvidenceFails() {
+  const capability = declaredPackTemplates.find((entry) => entry.slug === 'postgresql-readonly-mcp');
+  const cases = [
+    { name: 'raw postgres url', evidencePatch: { connectionString: 'postgres://user:pass@example.test/db' } },
+    { name: 'raw POSTGRES_URL', evidencePatch: { env: 'POSTGRES_URL=postgres://user:pass@example.test/db' } },
+    { name: 'raw DATABASE_URL', evidencePatch: { env: 'DATABASE_URL=postgres://user:pass@example.test/db' } },
+    { name: 'raw PGPASSWORD', evidencePatch: { env: 'PGPASSWORD=swordfish' } },
+    { name: 'queryResults', evidencePatch: { queryResults: [{ id: 1 }] } },
+    { name: 'liveMcp', evidencePatch: { liveMcp: true } },
+    { name: 'postgres_live', evidencePatch: { postgres_live: true } },
+    { name: 'dockerRuntime', evidencePatch: { dockerRuntime: { state: 'running' } } },
+    { name: 'network', evidencePatch: { network: { reachable: true } } },
+    { name: 'liveSchema', evidencePatch: { liveSchema: { tables: ['users'] } } },
+    { name: 'sampleRows', evidencePatch: { sampleRows: [{ id: 1 }] } },
+  ];
+
+  for (const testCase of cases) {
+    const { inputPath, outputDir } = writeForgeFixture({
+      capability,
+      capabilityRequestTemplate: capability.template,
+      evidenceSourceType: 'manual_contract',
+      requestPatch: { capabilityDomain: 'postgresql', draftAuthoring: 'toml' },
+      evidencePatch: testCase.evidencePatch,
+    });
+
+    const result = runForge(['--input', inputPath, '--output', outputDir]);
+    assert.notEqual(result.status, 0, `${testCase.name} should fail`);
+    assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_SECRET_DETECTED'), `${testCase.name} reports a boundary violation`);
   }
 }
 
@@ -398,8 +513,11 @@ function testExistingOutputDirWithFilesFails() {
 }
 
 testContext7MinimalPack();
+testV1JsonAuthorityDoesNotRequireV2CompilerState();
 testGenericEvidenceRefsWithoutContext7();
 testDeclaredCapabilityPacksGenerate();
+testPostgresqlTomlForgeBoundary();
+testForbiddenLivePostgresEvidenceFails();
 testDraftAuthoringTomlPack();
 testVerifierReadyRequiresCapabilityRequest();
 testMissingInputFails();

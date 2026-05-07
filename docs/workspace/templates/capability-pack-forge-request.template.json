@@ -2,21 +2,23 @@
   "kind": "bmad-capability-pack-forge-request",
   "schemaVersion": 1,
   "packMode": "verifier-ready",
+  "capabilityDomain": "postgresql",
+  "draftAuthoring": "toml",
   "capability": {
-    "id": "host.mcp.context7.docs",
-    "displayName": "Context7 Docs MCP",
-    "summary": "Draft a BMAD capability pack from local evidence refs."
+    "id": "host.mcp.postgresql.readonly",
+    "displayName": "PostgreSQL Readonly MCP",
+    "summary": "Draft a BMAD capability pack from local PostgreSQL evidence refs without live database access."
   },
-  "capabilityRequestRef": "capability-request.context7-docs.example.json",
+  "capabilityRequestRef": "capability-request.postgresql-mcp-readonly.example.json",
   "targetCustomizationSurface": "bmad-agent-dev",
-  "primaryEvidenceRef": "context7-docs",
+  "primaryEvidenceRef": "postgres-mcp",
   "evidenceRefs": [
     {
-      "id": "context7-docs",
-      "kind": "context7-docs-operator-evidence",
-      "path": "context7-docs-operator-evidence.json",
-      "role": "advisory-docs",
-      "sourceType": "context7"
+      "id": "postgres-mcp",
+      "kind": "postgres-mcp-operator-evidence",
+      "path": "postgres-mcp-operator-evidence.template.json",
+      "role": "advisory-local-evidence",
+      "sourceType": "repo_template"
     }
   ],
   "acceptanceCriteria": [
@@ -27,6 +29,14 @@
     {
       "id": "AC-CPF-002",
       "statement": "Generated capability-request.json can be verified offline when its declarations are valid."
+    },
+    {
+      "id": "AC-CPF-003",
+      "statement": "PostgreSQL evidence records only POSTGRES_URL=set|unset and never stores live schema, sample rows, query results, or connection strings."
+    },
+    {
+      "id": "AC-CPF-004",
+      "statement": "Generated customization-draft.toml is draft authoring only and is routed through bmad-customize before use."
     }
   ]
 }
