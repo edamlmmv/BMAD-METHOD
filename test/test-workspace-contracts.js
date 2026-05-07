@@ -1412,6 +1412,7 @@ function runTests() {
     const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
     const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
+    const browserAffordanceEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'browser-affordance-evidence.template.json');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
@@ -1452,6 +1453,7 @@ function runTests() {
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
     assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
+    assert(fs.existsSync(browserAffordanceEvidenceTemplatePath), 'Browser affordance evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
@@ -1796,6 +1798,10 @@ function runTests() {
       'codex.manual-executor-contract',
       'codex.config.operator-affordances',
       'codex.app-server.thread-and-tool-context',
+      'codex.browser.playwright-cli',
+      'codex.browser.agent-browser-cli',
+      'codex.browser.browser-use-iab',
+      'codex.desktop.computer-use-mcp',
       'google-calendar.remote-mcp.operator-affordance',
       'graphify.repo-intake.static-graph-evidence',
       'graphify.query.static-graph-navigation',
@@ -1867,6 +1873,24 @@ function runTests() {
     assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
     assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
     assert((profilesByToolName.get('Google Calendar MCP') || 0) >= 1, 'capability profile registry inventories Google Calendar profiles');
+    const browserAffordanceProfiles = [
+      ['codex.browser.playwright-cli', 'Playwright CLI', 'stale', 'unavailable alpha dependency'],
+      ['codex.browser.agent-browser-cli', 'Agent Browser CLI', 'proposed', 'not detected on PATH'],
+      ['codex.browser.browser-use-iab', 'Browser Use IAB', 'experimental', 'plugin context'],
+      ['codex.desktop.computer-use-mcp', 'Computer Use MCP', 'experimental', 'list_apps'],
+    ];
+    for (const [profileId, toolName, supportState, evidenceText] of browserAffordanceProfiles) {
+      const profile = profilesById.get(profileId);
+      assert(profile?.capabilityId === 'executor.codex.manual', `${profileId} maps to manual Codex executor`, JSON.stringify(profile));
+      assert(profile?.toolName === toolName, `${profileId} names ${toolName}`, JSON.stringify(profile));
+      assert(profile?.supportState === supportState, `${profileId} records observed support state`, JSON.stringify(profile));
+      assert(
+        profile?.trustBoundary.includes('not verifier input') && profile.trustBoundary.includes('not Workspace authority'),
+        `${profileId} states manual evidence boundary`,
+        JSON.stringify(profile),
+      );
+      assert(profile?.repairHint.includes(evidenceText), `${profileId} repair hint records observed evidence`, JSON.stringify(profile));
+    }
     assert(
       profilesById.get('codex.manual-executor-contract')?.trustBoundary.includes('not a guarantee that a runnable local Codex CLI exists'),
       'Codex manual executor profile avoids runnable CLI guarantee',
@@ -1923,6 +1947,35 @@ function runTests() {
       'template index links Google Calendar capability request example',
       templateIndex,
     );
+    assert(
+      templateIndex.includes('browser-affordance-evidence.template.json'),
+      'template index links browser affordance evidence template',
+      templateIndex,
+    );
+
+    const browserAffordanceEvidenceTemplate = JSON.parse(fs.readFileSync(browserAffordanceEvidenceTemplatePath, 'utf8'));
+    for (const field of [
+      'observer',
+      'environment',
+      'tool',
+      'surface',
+      'timestamp',
+      'cwd',
+      'version',
+      'actionSummary',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in browserAffordanceEvidenceTemplate, `browser affordance evidence template includes ${field}`);
+    }
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority']) {
+      assert(
+        browserAffordanceEvidenceTemplate.boundary.includes(boundary),
+        `browser affordance evidence template boundary includes ${boundary}`,
+        JSON.stringify(browserAffordanceEvidenceTemplate, null, 2),
+      );
+    }
 
     const capabilityRequestTemplate = JSON.parse(fs.readFileSync(capabilityRequestTemplatePath, 'utf8'));
     assert(

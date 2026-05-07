@@ -1,0 +1,26 @@
+{
+  "kind": "browser-affordance-evidence",
+  "schemaVersion": 1,
+  "observer": "Codex operator",
+  "environment": {
+    "app": "Codex Desktop",
+    "shell": "zsh",
+    "os": "macOS",
+    "workspace": "/Users/edam/Documents/TODA/BMAD-METHOD"
+  },
+  "tool": "Playwright CLI",
+  "surface": "browser-automation",
+  "timestamp": "2026-05-06T00:00:00.000Z",
+  "cwd": "/Users/edam/Documents/TODA/BMAD-METHOD",
+  "version": "unknown",
+  "command": "command or tool call used for the manual observation",
+  "actionSummary": "Summarize the browser or desktop action, including what was checked and what was observed.",
+  "exitCode": 0,
+  "artifactRefs": ["relative/path/to/screenshot-or-transcript"],
+  "pass": true,
+  "boundary": "Browser affordance evidence is manual operator evidence only: not verifier input, not grant authority, not runtime authority, not Workspace authority, and not proof of future availability.",
+  "review": {
+    "verdict": "pass",
+    "notes": "Use Workspace result, review, closeout, or archive artifacts to store reviewed evidence. Do not place this object inside Capability Request declarations."
+  }
+}

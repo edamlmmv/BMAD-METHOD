@@ -19,6 +19,7 @@ description: Index of BMAD Workspace templates
 - **[capability-request.graphify-repo-intake.example.json](./capability-request.graphify-repo-intake.example.json)** - Graphify repo-intake capability request example
 - **[capability-request.google-calendar-mcp.example.json](./capability-request.google-calendar-mcp.example.json)** - Google Calendar remote MCP capability request example
 - **[capability-request.template.json](./capability-request.template.json)** - Declared capability verification request example
+- **[browser-affordance-evidence.template.json](./browser-affordance-evidence.template.json)** - Manual browser and desktop affordance evidence template
 - **[codex-executable-evidence.template.json](./codex-executable-evidence.template.json)** - Codex command-backed executable evidence template
 - **[fresh-chat-prompt.md](./fresh-chat-prompt.md)** - Workspace-aware Codex starter prompt
 - **[loop-party-mode-gate.template.md](./loop-party-mode-gate.template.md)** - Generic Party Mode gate output for loop-specific planning

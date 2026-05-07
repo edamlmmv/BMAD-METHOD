@@ -66,6 +66,110 @@
       "repairHint": "Refresh official Codex app-server references and keep any Workspace use framed as manual evidence recording only."
     },
     {
+      "profileId": "codex.browser.playwright-cli",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Playwright CLI",
+      "supportState": "stale",
+      "trustBoundary": "Playwright CLI can provide browser automation evidence for a manual Codex operator, but wrapper output, screenshots, traces, dependency resolution, and live browser state are not verifier input and not Workspace authority.",
+      "observedEvidence": [
+        {
+          "code": "PLAYWRIGHT_WRAPPER_PRESENT",
+          "message": "Playwright wrapper and npx were present during planning.",
+          "details": {
+            "wrapper": "/Users/edam/.codex/skills/playwright/scripts/playwright_cli.sh",
+            "npx": "/opt/homebrew/bin/npx"
+          }
+        },
+        {
+          "code": "PLAYWRIGHT_HELP_BLOCKED",
+          "message": "Wrapper help failed because @playwright/cli resolved an unavailable alpha dependency.",
+          "details": {
+            "package": "@playwright/cli@0.1.12",
+            "missingDependency": "playwright@1.60.0-alpha-1778101408000"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "/Users/edam/.codex/skills/playwright/SKILL.md",
+        "/Users/edam/.codex/skills/playwright/scripts/playwright_cli.sh",
+        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/templates/browser-affordance-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh the Playwright CLI wrapper dependency or pin a resolvable package before changing the unavailable alpha dependency observation."
+    },
+    {
+      "profileId": "codex.browser.agent-browser-cli",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Agent Browser CLI",
+      "supportState": "proposed",
+      "trustBoundary": "Agent Browser CLI can provide browser snapshots, screenshots, and interaction transcripts for a manual Codex operator, but command presence, daemon state, browser output, and local PATH checks are not verifier input and not Workspace authority.",
+      "observedEvidence": [
+        {
+          "code": "AGENT_BROWSER_NOT_DETECTED",
+          "message": "agent-browser command was not detected on PATH during planning.",
+          "details": {
+            "command": "agent-browser --help"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "/Users/edam/.codex/plugins/cache/openai-curated/vercel/c5debd62/skills/agent-browser/SKILL.md",
+        "/Users/edam/.codex/plugins/cache/openai-curated/vercel/c5debd62/skills/agent-browser-verify/SKILL.md",
+        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/templates/browser-affordance-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Install or expose the Agent Browser CLI, rerun PATH help evidence, and keep not detected on PATH recorded until command evidence exists."
+    },
+    {
+      "profileId": "codex.browser.browser-use-iab",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Browser Use IAB",
+      "supportState": "experimental",
+      "trustBoundary": "Browser Use IAB can expose in-app browser navigation, snapshots, screenshots, and interaction context for a manual Codex operator, but plugin availability, node_repl state, page state, and browser-client output are not verifier input and not Workspace authority.",
+      "observedEvidence": [
+        {
+          "code": "BROWSER_USE_PLUGIN_CONTEXT",
+          "message": "Browser Use plugin context and skill instructions were available during planning.",
+          "details": {
+            "skill": "/Users/edam/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md",
+            "backend": "iab"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "/Users/edam/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md",
+        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/templates/browser-affordance-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Record explicit Browser Use IAB manual evidence before citing browser output; plugin context alone is advisory only."
+    },
+    {
+      "profileId": "codex.desktop.computer-use-mcp",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Computer Use MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Computer Use MCP can expose desktop app inventory and UI automation context for a manual Codex operator, but app state, accessibility output, user interface actions, and MCP availability are not verifier input and not Workspace authority.",
+      "observedEvidence": [
+        {
+          "code": "COMPUTER_USE_LIST_APPS_RESPONDED",
+          "message": "Computer Use MCP list_apps responded during planning.",
+          "details": {
+            "tool": "mcp__computer_use__list_apps"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "/Users/edam/.codex/plugins/cache/openai-bundled/computer-use",
+        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/templates/browser-affordance-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Treat list_apps as app-inventory evidence only; record separate manual evidence before claiming broader desktop action support."
+    },
+    {
       "profileId": "google-calendar.remote-mcp.operator-affordance",
       "capabilityId": "host.mcp.google-calendar.remote",
       "toolName": "Google Calendar MCP",

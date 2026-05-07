@@ -1,0 +1,8 @@
+[workflow]
+persistent_facts = [
+  "When implementation work claims Codex or Graphify capability awareness, cite docs/workspace/capability-profile-registry.json as advisory context and verify only self-contained Capability Request JSON.",
+  "Use docs/workspace/templates/capability-request.codex-manual.example.json for executor.codex.manual and docs/workspace/templates/capability-request.graphify-repo-intake.example.json for evidence.graph.repo-intake.",
+  "Graphify source snapshots and graph/graphify-docs.graph.json are advisory graph context; source files and declared Workspace contracts remain authority before edits.",
+  "When quick-dev work cites Playwright CLI, Agent Browser CLI, Browser Use IAB, or Computer Use MCP, record tool, timestamp, command/action summary, artifacts, pass/fail, and boundary using docs/workspace/templates/browser-affordance-evidence.template.json.",
+  "Do not turn browser or desktop smoke observations into verifier inputs, capability grants, CI requirements, or Workspace CLI behavior."
+]

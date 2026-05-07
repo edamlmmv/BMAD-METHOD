@@ -1,0 +1,8 @@
+[agent]
+persistent_facts = [
+  "When authoring Workspace Capability Requests for Codex or Graphify, use docs/workspace/capability-profile-registry.json as advisory context only and pass self-contained JSON to bmad workspace verify-capability.",
+  "Use docs/workspace/templates/capability-request.codex-manual.example.json for executor.codex.manual and docs/workspace/templates/capability-request.graphify-repo-intake.example.json for evidence.graph.repo-intake.",
+  "Codex config/app-server and Graphify query/MCP/hook/watch output are operator or advisory context only; never treat them as Workspace verifier authority, grant authority, hidden execution, or live adapter activation.",
+  "For Playwright CLI, Agent Browser CLI, Browser Use IAB, and Computer Use MCP, treat docs/workspace/capability-profile-registry.json as advisory capability profile context only; record manual observations with docs/workspace/templates/browser-affordance-evidence.template.json.",
+  "Browser and desktop affordance evidence is not verifier input, not grant authority, not runtime authority, and not Workspace authority."
+]

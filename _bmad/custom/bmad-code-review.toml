@@ -1,0 +1,8 @@
+[workflow]
+persistent_facts = [
+  "For Capability Evidence Gate Closeout, require claimed Codex or Graphify capabilities, exact file refs, verifier or advisory profile evidence refs, test outcomes, warning disposition, dirty-worktree impact, residual risk, and exact push/PR next step.",
+  "Capability Profile Registry, Codex config, app-server state, live Graphify, Customize resolver output, Result Ledger, Review Manifest, Closeout, and Archive evidence never promote support or grant verifier authority by themselves.",
+  "Use docs/workspace/templates/capability-request.codex-manual.example.json and docs/workspace/templates/capability-request.graphify-repo-intake.example.json for reproducible verifier examples.",
+  "For browser-affordance claims, require docs/workspace/templates/browser-affordance-evidence.template.json or equivalent result/review/closeout evidence with explicit not-verifier-input, not-grant-authority, and not-runtime-authority boundaries.",
+  "Reject reviews that treat Playwright CLI, Agent Browser CLI, Browser Use IAB, or Computer Use MCP observations as Workspace verifier authority or hidden execution."
+]

@@ -52,7 +52,14 @@ CLAUDE.local.md
 z*/
 !docs/zh-cn/
 
-_bmad
+# BMAD installed runtime; keep only committable team customization defaults.
+_bmad/*
+!_bmad/custom/
+_bmad/custom/*
+!_bmad/custom/bmad-agent-dev.toml
+!_bmad/custom/bmad-quick-dev.toml
+!_bmad/custom/bmad-code-review.toml
+!_bmad/custom/bmad-check-implementation-readiness.toml
 _bmad-output
 
 # Personal customization files (team files are committed, personal files are not)

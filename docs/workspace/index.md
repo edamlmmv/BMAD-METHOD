@@ -72,6 +72,12 @@ declared capabilities and advisory observations from the request fixture only;
 it does not inspect `_bmad/custom`, local Codex config, app-server APIs, or live
 Graphify state.
 
+Use [Browser Affordance Evidence Template](./templates/browser-affordance-evidence.template.json)
+to record manual Playwright CLI, Agent Browser CLI, Browser Use IAB, or Computer
+Use MCP observations. Browser and desktop observations are manual evidence only;
+they are not verifier input, grant authority, runtime authority, or Workspace
+authority.
+
 Use [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md)
 when a customization discussion mentions Codex MCP. Customize may use Codex MCP
 as advisory authoring context, but Workspace accepts only self-contained

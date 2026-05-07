@@ -1,0 +1,9 @@
+[workflow]
+persistent_facts = [
+  "For Office.js leverage planning, readiness must evaluate product brief, source register, graph preflight, glossary, capability matrix, ADRs, backlog, TDD plan, and traceability matrix together.",
+  "Implementation readiness is blocked if graph evidence is missing/invalid, source refs are uncited, ADRs lack rollback/platform notes, or stories lack first failing public behavior tests.",
+  "Known unrelated source dirt: /Users/edam/Documents/TODA/MissionCTL/office-js/.DS_Store. Never stage it.",
+  "Before any future push from BMAD-METHOD, run npm ci && npm run quality on the exact HEAD being pushed.",
+  "When readiness depends on Playwright CLI, Agent Browser CLI, Browser Use IAB, or Computer Use MCP, require manual evidence with tool, timestamp, environment, action summary, artifact refs, pass/fail, and explicit verifier/grant/runtime boundary.",
+  "Browser and desktop affordance readiness never changes Workspace Capability Request schema, Workspace CLI behavior, or verifier authority."
+]
