@@ -1,14 +1,14 @@
 ---
-name: bmad-highest-leverage-official-mcp-addition
-description: 'Runs the highest-leverage-official-mcp-addition review prompt. Use when deciding whether an official MCP is worth adding instead of using existing scripts, docs, skills, or manual evidence.'
+title: "Highest-Leverage Official MCP Addition Prompt"
+description: Planning prompt template for evaluating high-leverage official MCP additions
 ---
 
-# Highest-Leverage Official MCP Addition
+# Highest-Leverage Official MCP Addition Prompt
 
-Template id: `highest-leverage-official-mcp-addition`
+Template id: `highest-leverage-official-mcp-addition-prompt`
 
-Capability Improvement Toolkit skill for deciding whether an official MCP is
-worth adding. This skill is planning guidance only; it does not install MCPs,
+Capability Improvement Toolkit prompt for deciding whether an official MCP is
+worth adding. This prompt is planning guidance only; it does not install MCPs,
 mutate Codex config, grant Workspace authority, or prove runtime availability.
 
 ## Inputs
@@ -22,7 +22,7 @@ mutate Codex config, grant Workspace authority, or prove runtime availability.
 - Fallback:
 - Existing scripts/docs/skills comparison:
 
-## Execution
+## Review Steps
 
 1. Confirm the MCP source is official. Reject unofficial sources.
 2. Confirm the use case is recurring. Reject one-off lookups.
@@ -41,4 +41,3 @@ mutate Codex config, grant Workspace authority, or prove runtime availability.
 - Approve only when the MCP is official, recurring, higher leverage than existing scripts/docs/skills, and has clear ownership.
 - Reject for one-off lookups, unofficial sources, unclear permissions, no owner, or lower-leverage alternatives.
 - Deferred follow-up:
-

@@ -41,6 +41,15 @@ When a user asks which capability fits their current planning problem, recommend
 | `capability:ubiquitous-language` `ubiquitous-language` | Terms drift across docs, prompts, module help, agents, or code-facing names. |
 | `capability:grill-me` `grill-me` | They want a challenge round or checkpoint objections with changed/deferred decisions. |
 
+## Capability Improvement Toolkit Prompts
+
+When the user asks for a planning prompt, route through the installed catalog
+using these prompt skill names: `bmad-architecture-drift-review-prompt`,
+`bmad-tool-leverage-review-prompt`,
+`bmad-highest-leverage-official-mcp-addition-prompt`,
+`bmad-capability-refactor-plan-prompt`, and
+`bmad-code-optimization-refactor-plan-prompt`.
+
 ## CSV Interpretation
 
 The catalog uses this format:

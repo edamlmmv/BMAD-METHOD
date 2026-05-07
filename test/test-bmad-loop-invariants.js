@@ -48,14 +48,14 @@ function makeFixture() {
     'docs/workspace/templates/bmad-loop-checkpoint.example.md',
     'docs/workspace/templates/workflow-bundle.template.md',
     'docs/workspace/templates/loop-party-mode-gate.template.md',
-    'docs/workspace/templates/architecture-drift-review.template.md',
-    'docs/workspace/templates/tool-leverage-review.template.md',
-    'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'docs/workspace/templates/architecture-drift-review-prompt.template.md',
+    'docs/workspace/templates/tool-leverage-review-prompt.template.md',
+    'docs/workspace/templates/highest-leverage-official-mcp-addition-prompt.template.md',
     'docs/workspace/templates/capability-refactor-plan-prompt.template.md',
     'docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md',
-    'src/core-skills/bmad-architecture-drift-review/SKILL.md',
-    'src/core-skills/bmad-tool-leverage-review/SKILL.md',
-    'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
+    'src/core-skills/bmad-architecture-drift-review-prompt/SKILL.md',
+    'src/core-skills/bmad-tool-leverage-review-prompt/SKILL.md',
+    'src/core-skills/bmad-highest-leverage-official-mcp-addition-prompt/SKILL.md',
     'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md',
     'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md',
     'src/core-skills/module-help.csv',
@@ -263,6 +263,30 @@ function testCapabilityRefactorPlanDiscoveryAndBoundary() {
   }
 }
 
+function testCapabilityImprovementToolkitPromptNamesAreExplicit() {
+  const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
+  for (const required of [
+    'Core,bmad-architecture-drift-review-prompt,Architecture Drift Review Prompt,ADR,',
+    'Core,bmad-tool-leverage-review-prompt,Tool Leverage Review Prompt,TLR,',
+    'Core,bmad-highest-leverage-official-mcp-addition-prompt,Highest-Leverage Official MCP Addition Prompt,HMCP,',
+    'Core,bmad-capability-refactor-plan-prompt,Capability Refactor Plan Prompt,CBR,',
+    'Core,bmad-code-optimization-refactor-plan-prompt,Code Optimization Refactor Plan Prompt,OPT,',
+  ]) {
+    assert(moduleHelp.includes(required), `module-help registers explicit prompt name ${required}`);
+  }
+
+  for (const relativePath of [
+    'src/core-skills/bmad-architecture-drift-review-prompt/SKILL.md',
+    'src/core-skills/bmad-tool-leverage-review-prompt/SKILL.md',
+    'src/core-skills/bmad-highest-leverage-official-mcp-addition-prompt/SKILL.md',
+    'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md',
+    'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md',
+  ]) {
+    const skill = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+    assert(skill.includes('prompt'), `${relativePath} declares prompt`);
+  }
+}
+
 function testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary() {
   const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
   assert(
@@ -301,8 +325,8 @@ function testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary() {
 
 function testLoopRequiresCapabilityImprovementToolkitSkills() {
   const root = makeFixture();
-  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'));
-  assertInvalid(root, 'bmad-architecture-drift-review');
+  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-architecture-drift-review-prompt', 'SKILL.md'));
+  assertInvalid(root, 'bmad-architecture-drift-review-prompt');
 }
 
 function testLoopRequiresCapabilityRefactorPlanToolkit() {
@@ -313,8 +337,13 @@ function testLoopRequiresCapabilityRefactorPlanToolkit() {
 
 function testLoopRequiresCapabilityImprovementToolkitPromptRouting() {
   const root = makeFixture();
-  replaceInFile(root, 'docs/workspace/templates/bmad-loop-codex-prompt.md', 'skill:bmad-tool-leverage-review', 'skill:bmad-tool-review');
-  assertInvalid(root, 'skill:bmad-tool-leverage-review');
+  replaceInFile(
+    root,
+    'docs/workspace/templates/bmad-loop-codex-prompt.md',
+    'skill:bmad-tool-leverage-review-prompt',
+    'skill:bmad-tool-review',
+  );
+  assertInvalid(root, 'skill:bmad-tool-leverage-review-prompt');
 }
 
 function testPartyModeConsensusGateFieldsRequired() {
@@ -372,6 +401,7 @@ function run() {
     testLoopDocsRejectAutomaticReadiness,
     testWorkspaceCannotOwnReadinessAuthority,
     testCapabilityRefactorPlanDiscoveryAndBoundary,
+    testCapabilityImprovementToolkitPromptNamesAreExplicit,
     testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary,
     testLoopRequiresCapabilityImprovementToolkitSkills,
     testLoopRequiresCapabilityRefactorPlanToolkit,

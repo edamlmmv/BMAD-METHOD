@@ -56,14 +56,14 @@ function makeFixture() {
     'docs/workspace/templates/workflow-bundle.template.md',
     'docs/workspace/templates/loop-party-mode-gate.template.md',
     'docs/workspace/templates/index.md',
-    'docs/workspace/templates/architecture-drift-review.template.md',
-    'docs/workspace/templates/tool-leverage-review.template.md',
-    'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'docs/workspace/templates/architecture-drift-review-prompt.template.md',
+    'docs/workspace/templates/tool-leverage-review-prompt.template.md',
+    'docs/workspace/templates/highest-leverage-official-mcp-addition-prompt.template.md',
     'docs/workspace/templates/capability-refactor-plan-prompt.template.md',
     'docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md',
-    'src/core-skills/bmad-architecture-drift-review/SKILL.md',
-    'src/core-skills/bmad-tool-leverage-review/SKILL.md',
-    'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
+    'src/core-skills/bmad-architecture-drift-review-prompt/SKILL.md',
+    'src/core-skills/bmad-tool-leverage-review-prompt/SKILL.md',
+    'src/core-skills/bmad-highest-leverage-official-mcp-addition-prompt/SKILL.md',
     'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md',
     'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
@@ -260,8 +260,8 @@ function testCapabilityImprovementToolkitPromptRequired() {
 
 function testHighestLeverageOfficialMcpTemplateRequired() {
   const root = makeFixture();
-  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'));
-  assertInvalid(root, 'highest-leverage-official-mcp-addition.template.md');
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition-prompt.template.md'));
+  assertInvalid(root, 'highest-leverage-official-mcp-addition-prompt.template.md');
 }
 
 function testCapabilityRefactorPlanTemplateRequired() {
@@ -278,8 +278,8 @@ function testCodeOptimizationRefactorPlanPromptTemplateRequired() {
 
 function testCapabilityImprovementToolkitSkillsRequired() {
   const root = makeFixture();
-  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-tool-leverage-review', 'SKILL.md'));
-  assertInvalid(root, 'bmad-tool-leverage-review');
+  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-tool-leverage-review-prompt', 'SKILL.md'));
+  assertInvalid(root, 'bmad-tool-leverage-review-prompt');
 }
 
 function testCliUsesInvariantPrefix() {

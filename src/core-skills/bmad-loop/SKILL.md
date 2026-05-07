@@ -167,6 +167,23 @@ needs them:
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge
   round; record objections plus decisions changed or deferred.
 
+## Capability Improvement Toolkit Prompts
+
+Capability Improvement Toolkit prompts are operator-invoked planning prompts.
+They do not create loop goals, implementation authority, runtime authority,
+Workspace authority, or verifier authority.
+
+- `skill:bmad-architecture-drift-review-prompt` /
+  `architecture-drift-review-prompt.template.md`
+- `skill:bmad-tool-leverage-review-prompt` /
+  `tool-leverage-review-prompt.template.md`
+- `skill:bmad-highest-leverage-official-mcp-addition-prompt` /
+  `highest-leverage-official-mcp-addition-prompt.template.md`
+- `skill:bmad-capability-refactor-plan-prompt` /
+  `capability-refactor-plan-prompt.template.md`
+- `skill:bmad-code-optimization-refactor-plan-prompt` /
+  `code-optimization-refactor-plan-prompt.template.md`
+
 ## One-Shot And Recurring
 
 - One-shot workflow = `WorkflowBundle` + `LoopRunConfig` with `max_iterations=1`.

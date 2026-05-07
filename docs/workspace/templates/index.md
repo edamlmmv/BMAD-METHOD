@@ -13,7 +13,7 @@ description: Index of BMAD Workspace templates
 - [bmad-loop-codex-prompt.md](./bmad-loop-codex-prompt.md)
 - [bmad-loop-codex-resume-prompt.md](./bmad-loop-codex-resume-prompt.md)
 - [bmad-work-packet.template.json](./bmad-work-packet.template.json)
-- [architecture-drift-review.template.md](./architecture-drift-review.template.md)
+- [architecture-drift-review-prompt.template.md](./architecture-drift-review-prompt.template.md)
 - [capability-refactor-plan-prompt.template.md](./capability-refactor-plan-prompt.template.md) - capability/refactor-plan/prompt/best-practice/tdd/forge
 - [code-optimization-refactor-plan-prompt.template.md](./code-optimization-refactor-plan-prompt.template.md) - optimization/refactor-plan/prompt/performance/measurement/tdd
 - [capability-pack-forge-request.template.json](./capability-pack-forge-request.template.json)
@@ -32,7 +32,7 @@ description: Index of BMAD Workspace templates
 - [context7-docs-operator-evidence.template.json](./context7-docs-operator-evidence.template.json)
 - [fresh-chat-prompt.md](./fresh-chat-prompt.md)
 - [git-mcp-operator-evidence.template.json](./git-mcp-operator-evidence.template.json)
-- [highest-leverage-official-mcp-addition.template.md](./highest-leverage-official-mcp-addition.template.md)
+- [highest-leverage-official-mcp-addition-prompt.template.md](./highest-leverage-official-mcp-addition-prompt.template.md)
 - [loop-party-mode-gate.template.md](./loop-party-mode-gate.template.md)
 - [outlook-calendar-mcp-operator-evidence.template.json](./outlook-calendar-mcp-operator-evidence.template.json)
 - [postgres-mcp-operator-evidence.template.json](./postgres-mcp-operator-evidence.template.json)
@@ -40,7 +40,7 @@ description: Index of BMAD Workspace templates
 - [self-improvement-codex-prompt.md](./self-improvement-codex-prompt.md)
 - [self-improvement-codex-resume-prompt.md](./self-improvement-codex-resume-prompt.md)
 - [tool-documentation-command.template.md](./tool-documentation-command.template.md)
-- [tool-leverage-review.template.md](./tool-leverage-review.template.md)
+- [tool-leverage-review-prompt.template.md](./tool-leverage-review-prompt.template.md)
 - [workflow-bundle.template.md](./workflow-bundle.template.md)
 - [workspace-runbook.md](./workspace-runbook.md)
 - [worktree-review-checklist.md](./worktree-review-checklist.md)

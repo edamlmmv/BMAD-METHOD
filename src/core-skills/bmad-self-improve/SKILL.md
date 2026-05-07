@@ -138,6 +138,24 @@ the instantiated goal needs them:
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge
   round; record objections plus decisions changed or deferred.
 
+## Capability Improvement Toolkit Prompts
+
+Capability Improvement Toolkit prompts are operator-invoked planning prompts.
+They are not loop goals, runtime authority, implementation approval, or
+Workspace/verifier grants. Use them when the instantiated Self-Improve goal
+needs focused planning evidence before the final plan or implementation.
+
+- `skill:bmad-architecture-drift-review-prompt` with
+  `docs/workspace/templates/architecture-drift-review-prompt.template.md`
+- `skill:bmad-tool-leverage-review-prompt` with
+  `docs/workspace/templates/tool-leverage-review-prompt.template.md`
+- `skill:bmad-highest-leverage-official-mcp-addition-prompt` with
+  `docs/workspace/templates/highest-leverage-official-mcp-addition-prompt.template.md`
+- `skill:bmad-capability-refactor-plan-prompt` with
+  `docs/workspace/templates/capability-refactor-plan-prompt.template.md`
+- `skill:bmad-code-optimization-refactor-plan-prompt` with
+  `docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md`
+
 ## Readiness And Customize Routing
 
 Self-Improve uses the generic `bmad-loop` routing matrix. `bmad-customize` may

@@ -1,14 +1,19 @@
 ---
-title: "Architecture Drift Review"
-description: Planning template for evidence-backed architecture drift review
+name: bmad-architecture-drift-review-prompt
+description: 'Runs an evidence-backed architecture drift review prompt. Use when code or plans may violate intended architecture boundaries and you need drift findings, impact, and fix path before implementation.'
 ---
 
-# Architecture Drift Review
+# Architecture Drift Review Prompt
 
-Capability Improvement Toolkit template for planning-time architecture boundary
-review. This template helps identify likely architecture drift from evidence and
-review questions. It does not perform static analysis, does not enforce policy,
-and does not create implementation scope without an explicit user goal.
+Template id: `architecture-drift-review-prompt`
+
+Capability Improvement Toolkit prompt for planning-time architecture boundary
+review. Use this skill to identify likely architecture drift from evidence and
+review questions.
+
+This skill is planning-only. It does not perform static analysis, does not
+enforce policy, and does not create implementation scope without an explicit
+user goal.
 
 ## Inputs
 
@@ -20,7 +25,7 @@ and does not create implementation scope without an explicit user goal.
 - Changed files:
 - Relevant Workspace evidence:
 
-## Review Steps
+## Execution
 
 1. Confirm declared architecture exists. Stop if no declared architecture or no
    citeable evidence exists.
@@ -42,4 +47,3 @@ and does not create implementation scope without an explicit user goal.
 - Existing tools to use:
 - Manual review needed:
 - Deferred deterministic checks:
-

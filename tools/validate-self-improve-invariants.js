@@ -57,15 +57,15 @@ const SELF_FILES = {
   },
   architectureDriftReview: {
     label: 'architecture drift review template',
-    relativePath: path.join('docs', 'workspace', 'templates', 'architecture-drift-review.template.md'),
+    relativePath: path.join('docs', 'workspace', 'templates', 'architecture-drift-review-prompt.template.md'),
   },
   toolLeverageReview: {
     label: 'tool leverage review template',
-    relativePath: path.join('docs', 'workspace', 'templates', 'tool-leverage-review.template.md'),
+    relativePath: path.join('docs', 'workspace', 'templates', 'tool-leverage-review-prompt.template.md'),
   },
   highestLeverageOfficialMcpAddition: {
     label: 'highest-leverage official MCP addition template',
-    relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
+    relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition-prompt.template.md'),
   },
   capabilityRefactorPlan: {
     label: 'capability refactor plan prompt template',
@@ -77,15 +77,15 @@ const SELF_FILES = {
   },
   architectureDriftReviewSkill: {
     label: 'architecture drift review skill',
-    relativePath: path.join('src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'),
+    relativePath: path.join('src', 'core-skills', 'bmad-architecture-drift-review-prompt', 'SKILL.md'),
   },
   toolLeverageReviewSkill: {
     label: 'tool leverage review skill',
-    relativePath: path.join('src', 'core-skills', 'bmad-tool-leverage-review', 'SKILL.md'),
+    relativePath: path.join('src', 'core-skills', 'bmad-tool-leverage-review-prompt', 'SKILL.md'),
   },
   highestLeverageOfficialMcpAdditionSkill: {
     label: 'highest-leverage official MCP addition skill',
-    relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
+    relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition-prompt', 'SKILL.md'),
   },
   capabilityRefactorPlanSkill: {
     label: 'capability refactor plan prompt skill',
@@ -275,6 +275,12 @@ function validateSelfImproveInvariants(options = {}) {
       'Do not run Implementation Readiness for every Self-Improve loop',
       'skills/list',
       'forceReload: true',
+      'Capability Improvement Toolkit Prompts',
+      'skill:bmad-architecture-drift-review-prompt',
+      'skill:bmad-tool-leverage-review-prompt',
+      'skill:bmad-highest-leverage-official-mcp-addition-prompt',
+      'skill:bmad-capability-refactor-plan-prompt',
+      'skill:bmad-code-optimization-refactor-plan-prompt',
     ],
     'bmad-self-improve skill',
     errors,
@@ -345,14 +351,14 @@ function validateSelfImproveInvariants(options = {}) {
       'Do not let Party Mode silently create a goal',
       'after input is resolved and repo facts have been gathered',
       'If no valid direct operator goal, readable workflow.goal_ref, or non-empty workflow.scope exists, stop with the refusal message before Party Mode.',
-      'architecture-drift-review.template.md',
-      'tool-leverage-review.template.md',
-      'highest-leverage-official-mcp-addition.template.md',
+      'architecture-drift-review-prompt.template.md',
+      'tool-leverage-review-prompt.template.md',
+      'highest-leverage-official-mcp-addition-prompt.template.md',
       'capability-refactor-plan-prompt.template.md',
       'code-optimization-refactor-plan-prompt.template.md',
-      'skill:bmad-architecture-drift-review',
-      'skill:bmad-tool-leverage-review',
-      'skill:bmad-highest-leverage-official-mcp-addition',
+      'skill:bmad-architecture-drift-review-prompt',
+      'skill:bmad-tool-leverage-review-prompt',
+      'skill:bmad-highest-leverage-official-mcp-addition-prompt',
       'skill:bmad-capability-refactor-plan-prompt',
       'skill:bmad-code-optimization-refactor-plan-prompt',
       'npm run validate:bmad-loop-invariants',
@@ -365,9 +371,9 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(
     contents.templateIndex,
     [
-      'architecture-drift-review.template.md',
-      'tool-leverage-review.template.md',
-      'highest-leverage-official-mcp-addition.template.md',
+      'architecture-drift-review-prompt.template.md',
+      'tool-leverage-review-prompt.template.md',
+      'highest-leverage-official-mcp-addition-prompt.template.md',
       'capability-refactor-plan-prompt.template.md',
       'code-optimization-refactor-plan-prompt.template.md',
       'capability/refactor-plan/prompt/best-practice/tdd/forge',
@@ -492,8 +498,8 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(
     contents.architectureDriftReviewSkill,
     [
-      'name: bmad-architecture-drift-review',
-      'Architecture Drift Review',
+      'name: bmad-architecture-drift-review-prompt',
+      'Architecture Drift Review Prompt',
       'Capability Improvement Toolkit',
       'intended architecture docs',
       'drift finding',
@@ -506,8 +512,8 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(
     contents.toolLeverageReviewSkill,
     [
-      'name: bmad-tool-leverage-review',
-      'Tool Leverage Review',
+      'name: bmad-tool-leverage-review-prompt',
+      'Tool Leverage Review Prompt',
       'Capability Improvement Toolkit',
       'use / skip / enhance',
       'OpenAI developer docs MCP',
@@ -519,8 +525,8 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(
     contents.highestLeverageOfficialMcpAdditionSkill,
     [
-      'name: bmad-highest-leverage-official-mcp-addition',
-      'highest-leverage-official-mcp-addition',
+      'name: bmad-highest-leverage-official-mcp-addition-prompt',
+      'highest-leverage-official-mcp-addition-prompt',
       'Capability Improvement Toolkit',
       'official MCP',
       'approve / reject / defer',
