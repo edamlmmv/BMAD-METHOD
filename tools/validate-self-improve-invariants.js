@@ -65,6 +65,10 @@ const SELF_FILES = {
     label: 'highest-leverage official MCP addition template',
     relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
   },
+  capabilityRefactorPlan: {
+    label: 'capability refactor plan template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'),
+  },
   architectureDriftReviewSkill: {
     label: 'architecture drift review skill',
     relativePath: path.join('src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'),
@@ -76,6 +80,10 @@ const SELF_FILES = {
   highestLeverageOfficialMcpAdditionSkill: {
     label: 'highest-leverage official MCP addition skill',
     relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
+  },
+  capabilityRefactorPlanSkill: {
+    label: 'capability refactor plan skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan', 'SKILL.md'),
   },
   resume: {
     label: 'self-improve resume prompt',
@@ -325,9 +333,11 @@ function validateSelfImproveInvariants(options = {}) {
       'architecture-drift-review.template.md',
       'tool-leverage-review.template.md',
       'highest-leverage-official-mcp-addition.template.md',
+      'capability-refactor-plan.template.md',
       'skill:bmad-architecture-drift-review',
       'skill:bmad-tool-leverage-review',
       'skill:bmad-highest-leverage-official-mcp-addition',
+      'skill:bmad-capability-refactor-plan',
       'npm run validate:bmad-loop-invariants',
     ],
     'self-improve prompt',
@@ -336,7 +346,13 @@ function validateSelfImproveInvariants(options = {}) {
   );
   requireTerms(
     contents.templateIndex,
-    ['architecture-drift-review.template.md', 'tool-leverage-review.template.md', 'highest-leverage-official-mcp-addition.template.md'],
+    [
+      'architecture-drift-review.template.md',
+      'tool-leverage-review.template.md',
+      'highest-leverage-official-mcp-addition.template.md',
+      'capability-refactor-plan.template.md',
+      'capability/refactor-plan/best-practice/tdd/forge',
+    ],
     'workspace template index',
     errors,
     files.templateIndex.relativePath,
@@ -405,6 +421,25 @@ function validateSelfImproveInvariants(options = {}) {
     files.highestLeverageOfficialMcpAddition.relativePath,
   );
   requireTerms(
+    contents.capabilityRefactorPlan,
+    [
+      'Capability Improvement Toolkit',
+      'Capability Best-Practice Refactor Plan',
+      'Capability Pack Forge',
+      'local evidence refs',
+      'planning-only',
+      'no live tool calls',
+      'does not edit files',
+      'public behavior test first',
+      'smallest green change',
+      'refactor after green',
+      'approve / revise / block',
+    ],
+    'capability refactor plan template',
+    errors,
+    files.capabilityRefactorPlan.relativePath,
+  );
+  requireTerms(
     contents.architectureDriftReviewSkill,
     [
       'name: bmad-architecture-drift-review',
@@ -445,6 +480,26 @@ function validateSelfImproveInvariants(options = {}) {
     files.highestLeverageOfficialMcpAdditionSkill.relativePath,
   );
   requireTerms(
+    contents.capabilityRefactorPlanSkill,
+    [
+      'name: bmad-capability-refactor-plan',
+      'Capability Best-Practice Refactor Plan',
+      'Capability Improvement Toolkit',
+      'Capability Pack Forge',
+      'local evidence refs',
+      'planning-only',
+      'no live tool calls',
+      'does not edit files',
+      'public behavior test first',
+      'smallest green change',
+      'refactor after green',
+      'approve / revise / block',
+    ],
+    'capability refactor plan skill',
+    errors,
+    files.capabilityRefactorPlanSkill.relativePath,
+  );
+  requireTerms(
     contents.resume,
     [
       'Resume `bmad-self-improve`',
@@ -475,7 +530,14 @@ function validateSelfImproveInvariants(options = {}) {
   );
   requireTerms(
     contents.moduleHelp,
-    ['Core,bmad-self-improve,', 'predefined bmad-loop instance', 'goal_ref', 'scope'],
+    [
+      'Core,bmad-self-improve,',
+      'predefined bmad-loop instance',
+      'goal_ref',
+      'scope',
+      'Core,bmad-capability-refactor-plan,',
+      'Capability Best-Practice Refactor Plan,CBR',
+    ],
     'module-help.csv',
     errors,
     files.moduleHelp.relativePath,

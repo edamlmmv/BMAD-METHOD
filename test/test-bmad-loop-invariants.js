@@ -51,9 +51,11 @@ function makeFixture() {
     'docs/workspace/templates/architecture-drift-review.template.md',
     'docs/workspace/templates/tool-leverage-review.template.md',
     'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'docs/workspace/templates/capability-refactor-plan.template.md',
     'src/core-skills/bmad-architecture-drift-review/SKILL.md',
     'src/core-skills/bmad-tool-leverage-review/SKILL.md',
     'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
+    'src/core-skills/bmad-capability-refactor-plan/SKILL.md',
     'src/core-skills/module-help.csv',
     'src/core-skills/bmad-workspace/SKILL.md',
     'package.json',
@@ -214,10 +216,35 @@ function testWorkspaceCannotOwnReadinessAuthority() {
   assertInvalid(root, 'LOOP_WORKSPACE_AUTHORITY');
 }
 
+function testCapabilityRefactorPlanDiscoveryAndBoundary() {
+  const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
+  assert(
+    moduleHelp.includes('Core,bmad-capability-refactor-plan,Capability Best-Practice Refactor Plan,CBR,'),
+    'module-help registers CBR capability refactor plan skill',
+  );
+  assert.equal(moduleHelp.match(/,CBR,/g)?.length, 1, 'CBR menu code is unique');
+
+  const templateIndex = fs.readFileSync(path.join(repoRoot, 'docs/workspace/templates/index.md'), 'utf8');
+  assert(templateIndex.includes('capability-refactor-plan.template.md'), 'template index exposes capability refactor plan template');
+
+  const skillPath = path.join(repoRoot, 'src/core-skills/bmad-capability-refactor-plan/SKILL.md');
+  assert(fs.existsSync(skillPath), 'capability refactor plan source skill exists');
+  const skill = fs.readFileSync(skillPath, 'utf8');
+  for (const required of ['planning-only', 'local evidence refs', 'no live tool calls', 'does not edit files']) {
+    assert(skill.includes(required), `capability refactor plan skill declares ${required}`);
+  }
+}
+
 function testLoopRequiresCapabilityImprovementToolkitSkills() {
   const root = makeFixture();
   fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'));
   assertInvalid(root, 'bmad-architecture-drift-review');
+}
+
+function testLoopRequiresCapabilityRefactorPlanToolkit() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'));
+  assertInvalid(root, 'capability-refactor-plan.template.md');
 }
 
 function testLoopRequiresCapabilityImprovementToolkitPromptRouting() {
@@ -240,7 +267,9 @@ function run() {
     testOverrideCannotInventUnsupportedWorkflowField,
     testLoopDocsRejectAutomaticReadiness,
     testWorkspaceCannotOwnReadinessAuthority,
+    testCapabilityRefactorPlanDiscoveryAndBoundary,
     testLoopRequiresCapabilityImprovementToolkitSkills,
+    testLoopRequiresCapabilityRefactorPlanToolkit,
     testLoopRequiresCapabilityImprovementToolkitPromptRouting,
   ];
   for (const test of tests) {

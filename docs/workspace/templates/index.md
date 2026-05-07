@@ -16,6 +16,7 @@ description: Index of BMAD Workspace templates
 - **[bmad-loop-codex-resume-prompt.md](./bmad-loop-codex-resume-prompt.md)** - Generic BMAD loop resume prompt
 - **[bmad-work-packet.template.json](./bmad-work-packet.template.json)** - Base improvement packet example
 - **[architecture-drift-review.template.md](./architecture-drift-review.template.md)** - Capability Improvement Toolkit architecture drift review template
+- **[capability-refactor-plan.template.md](./capability-refactor-plan.template.md)** - capability/refactor-plan/best-practice/tdd/forge template
 - **[capability-pack-forge-request.template.json](./capability-pack-forge-request.template.json)** - Capability Pack Forge local request template
 - **[capability-request.codex-manual.example.json](./capability-request.codex-manual.example.json)** - Codex manual executor capability request example
 - **[capability-request.context7-docs.example.json](./capability-request.context7-docs.example.json)** - Context7 Docs MCP capability request example

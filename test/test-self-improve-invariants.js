@@ -59,9 +59,11 @@ function makeFixture() {
     'docs/workspace/templates/architecture-drift-review.template.md',
     'docs/workspace/templates/tool-leverage-review.template.md',
     'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'docs/workspace/templates/capability-refactor-plan.template.md',
     'src/core-skills/bmad-architecture-drift-review/SKILL.md',
     'src/core-skills/bmad-tool-leverage-review/SKILL.md',
     'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
+    'src/core-skills/bmad-capability-refactor-plan/SKILL.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
@@ -223,6 +225,12 @@ function testHighestLeverageOfficialMcpTemplateRequired() {
   assertInvalid(root, 'highest-leverage-official-mcp-addition.template.md');
 }
 
+function testCapabilityRefactorPlanTemplateRequired() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'));
+  assertInvalid(root, 'capability-refactor-plan.template.md');
+}
+
 function testCapabilityImprovementToolkitSkillsRequired() {
   const root = makeFixture();
   fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-tool-leverage-review', 'SKILL.md'));
@@ -282,6 +290,7 @@ function run() {
     testPromptRequiresGoalSource,
     testCapabilityImprovementToolkitPromptRequired,
     testHighestLeverageOfficialMcpTemplateRequired,
+    testCapabilityRefactorPlanTemplateRequired,
     testCapabilityImprovementToolkitSkillsRequired,
     testCliUsesInvariantPrefix,
     testSelfImproveInheritsFutureLoopField,

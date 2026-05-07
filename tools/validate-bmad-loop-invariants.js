@@ -72,6 +72,10 @@ const LOOP_FILES = {
     label: 'highest-leverage official MCP addition template',
     relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
   },
+  capabilityRefactorPlanTemplate: {
+    label: 'capability refactor plan template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'),
+  },
   architectureDriftReviewSkill: {
     label: 'architecture drift review skill',
     relativePath: path.join('src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'),
@@ -83,6 +87,10 @@ const LOOP_FILES = {
   highestLeverageOfficialMcpAdditionSkill: {
     label: 'highest-leverage official MCP addition skill',
     relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
+  },
+  capabilityRefactorPlanSkill: {
+    label: 'capability refactor plan skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan', 'SKILL.md'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -535,9 +543,11 @@ function validateBmadLoopInvariants(options = {}) {
       'skill:bmad-architecture-drift-review',
       'skill:bmad-tool-leverage-review',
       'skill:bmad-highest-leverage-official-mcp-addition',
+      'skill:bmad-capability-refactor-plan',
       'architecture-drift-review.template.md',
       'tool-leverage-review.template.md',
       'highest-leverage-official-mcp-addition.template.md',
+      'capability-refactor-plan.template.md',
     ],
     'BMAD loop prompt',
     errors,
@@ -621,6 +631,25 @@ function validateBmadLoopInvariants(options = {}) {
     files.highestLeverageOfficialMcpAdditionTemplate.relativePath,
   );
   requireTerms(
+    contents.capabilityRefactorPlanTemplate,
+    [
+      'Capability Improvement Toolkit',
+      'Capability Best-Practice Refactor Plan',
+      'Capability Pack Forge',
+      'local evidence refs',
+      'planning-only',
+      'no live tool calls',
+      'does not edit files',
+      'public behavior test first',
+      'smallest green change',
+      'refactor after green',
+      'approve / revise / block',
+    ],
+    'capability refactor plan template',
+    errors,
+    files.capabilityRefactorPlanTemplate.relativePath,
+  );
+  requireTerms(
     contents.architectureDriftReviewSkill,
     [
       'name: bmad-architecture-drift-review',
@@ -661,6 +690,26 @@ function validateBmadLoopInvariants(options = {}) {
     files.highestLeverageOfficialMcpAdditionSkill.relativePath,
   );
   requireTerms(
+    contents.capabilityRefactorPlanSkill,
+    [
+      'name: bmad-capability-refactor-plan',
+      'Capability Best-Practice Refactor Plan',
+      'Capability Improvement Toolkit',
+      'Capability Pack Forge',
+      'local evidence refs',
+      'planning-only',
+      'no live tool calls',
+      'does not edit files',
+      'public behavior test first',
+      'smallest green change',
+      'refactor after green',
+      'approve / revise / block',
+    ],
+    'capability refactor plan skill',
+    errors,
+    files.capabilityRefactorPlanSkill.relativePath,
+  );
+  requireTerms(
     contents.moduleHelp,
     [
       'Core,bmad-loop,',
@@ -670,6 +719,8 @@ function validateBmadLoopInvariants(options = {}) {
       'Core,bmad-architecture-drift-review,',
       'Core,bmad-tool-leverage-review,',
       'Core,bmad-highest-leverage-official-mcp-addition,',
+      'Core,bmad-capability-refactor-plan,',
+      'Capability Best-Practice Refactor Plan,CBR',
     ],
     'module-help.csv',
     errors,

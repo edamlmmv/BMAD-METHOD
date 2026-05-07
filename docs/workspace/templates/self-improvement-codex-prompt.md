@@ -53,11 +53,13 @@ Available Capability Improvement Toolkit templates:
 - `docs/workspace/templates/architecture-drift-review.template.md`
 - `docs/workspace/templates/tool-leverage-review.template.md`
 - `docs/workspace/templates/highest-leverage-official-mcp-addition.template.md`
+- `capability-refactor-plan.template.md`
 
 Available Capability Improvement Toolkit skills:
 - `skill:bmad-architecture-drift-review`
 - `skill:bmad-tool-leverage-review`
 - `skill:bmad-highest-leverage-official-mcp-addition`
+- `skill:bmad-capability-refactor-plan`
 
 Required policy:
 - Read `docs/workspace/bmad-loop-automation-policy.md`.
