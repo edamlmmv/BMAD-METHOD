@@ -34,6 +34,12 @@ Party Mode may refine an instantiated goal, choose targets inside that goal, and
 critique a plan. Party Mode must not silently create a goal when direct operator
 goal, `workflow.goal_ref`, and `workflow.scope` are all absent.
 
+Self-Improve consensus-gate v1 runs only after resolving a valid goal source
+and gathering repo facts, before final plan output. No valid direct goal, no
+readable `workflow.goal_ref`, and empty `workflow.scope` means block with the
+canonical loop refusal message: no Party Mode gate and no replacement plan.
+Party Mode never instantiates, mutates, or persists the Self-Improve goal.
+
 ## Instance Resolution
 
 Resolve the self-improve workflow surface before planning or implementation:
@@ -194,8 +200,17 @@ self-improve instance constraints:
    edits.
 3. Use branch prefix `codex/self-improve-`.
 4. Use checkpoint subdir `{output_folder}/self-improvement`.
-5. Run `skill:bmad-party-mode` before writing any plan. Party Mode may refine
-   the instantiated goal and choose BMAD repo targets inside it.
+5. Run `skill:bmad-party-mode` before writing any plan, after resolving a
+   valid goal source and gathering repo facts. Party Mode may refine
+   the instantiated goal and choose BMAD repo targets inside it, but it never
+   instantiates, mutates, or persists the goal. Record `participants`,
+   `round_count`, `votes`, `decision`, `required_changes`,
+   `deferred_decisions`, `blockers`, `operator_stop_go`, `next_action`,
+   `evidence_refs`, and `final_replacement_plan_ref`. `decision` must be
+   `accept | change | block`; `change` requires a revised full replacement
+   `<proposed_plan>` plus one verification round, not patch notes.
+   Do not include raw agent transcripts unless the user explicitly asks.
+   A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.
 6. Run `skill:bmad-party-mode` again before implementation to critique the plan.
 7. Implement with TDD, one vertical slice at a time.
 8. Run targeted validation after each slice.

@@ -62,6 +62,45 @@ Party Mode may use these as named rounds when discussion needs the capability:
 - `capability:ubiquitous-language` `ubiquitous-language`: align terms across docs, prompts, module help, agents, and code-facing names.
 - `capability:grill-me` `grill-me`: run an opt-in or checkpoint-only challenge round; record objections plus decisions changed or deferred.
 
+### BMAD consensus gate
+
+For `bmad-loop` and `bmad-self-improve`, Party Mode can run as a standard
+pre-plan consensus gate only after a valid direct operator goal, readable
+`workflow.goal_ref`, or non-empty `workflow.scope` exists and repo facts have
+been gathered. Party Mode gates plan quality. It does not create goals, mutate goals,
+persist goals, execute tools, mutate files, override workflow authority,
+grant Workspace authority, grant verifier authority, grant `_bmad/custom` authority,
+or create persisted recursive agents.
+
+Default v1 Self-Improve consensus voices are John, Winston, Amelia, and Paige.
+Add Mary only when the user asks for Mary or the request is evidence-heavy. Gate depth is `standard` in v1.
+
+Boundary phrases: mutate goals; grant `_bmad/custom` authority; Gate depth is `standard` in v1.
+
+Record consensus with these canonical fields:
+
+- `participants`
+- `round_count`
+- `votes`
+- `decision`
+- `required_changes`
+- `deferred_decisions`
+- `blockers`
+- `operator_stop_go`
+- `next_action`
+- `evidence_refs`
+- `final_replacement_plan_ref`
+
+`decision` must be `accept | change | block`. `required_changes` are revisions
+that must land before proceeding. `deferred_decisions` are accepted
+postponements with an owner or trigger. `operator_stop_go` is advisory only and
+is not authority. `final_replacement_plan_ref` points to the final full
+`<proposed_plan>` or a checkpoint/local ref to it.
+
+Consensus output summarizes decisions only. Do not include raw agent transcripts unless the user explicitly asks.
+A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.
+A `block` decision stops the workflow until blocker evidence is resolved.
+
 ## On Activation
 
 1. **Parse arguments** — check for `--model` and `--solo` flags from the user's invocation.

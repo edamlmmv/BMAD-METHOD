@@ -51,12 +51,15 @@ function makeFixture() {
     'docs/workspace/templates/architecture-drift-review.template.md',
     'docs/workspace/templates/tool-leverage-review.template.md',
     'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
-    'docs/workspace/templates/capability-refactor-plan.template.md',
+    'docs/workspace/templates/capability-refactor-plan-prompt.template.md',
+    'docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md',
     'src/core-skills/bmad-architecture-drift-review/SKILL.md',
     'src/core-skills/bmad-tool-leverage-review/SKILL.md',
     'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
-    'src/core-skills/bmad-capability-refactor-plan/SKILL.md',
+    'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md',
+    'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md',
     'src/core-skills/module-help.csv',
+    'src/core-skills/bmad-party-mode/SKILL.md',
     'src/core-skills/bmad-workspace/SKILL.md',
     'package.json',
   ]) {
@@ -219,19 +222,28 @@ function testWorkspaceCannotOwnReadinessAuthority() {
 function testCapabilityRefactorPlanDiscoveryAndBoundary() {
   const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
   assert(
-    moduleHelp.includes('Core,bmad-capability-refactor-plan,Capability Best-Practice Refactor Plan,CBR,'),
-    'module-help registers CBR capability refactor plan skill',
+    moduleHelp.includes('Core,bmad-capability-refactor-plan-prompt,Capability Refactor Plan Prompt,CBR,'),
+    'module-help registers CBR capability refactor plan prompt skill',
   );
   assert.equal(moduleHelp.match(/,CBR,/g)?.length, 1, 'CBR menu code is unique');
 
   const templateIndex = fs.readFileSync(path.join(repoRoot, 'docs/workspace/templates/index.md'), 'utf8');
-  assert(templateIndex.includes('capability-refactor-plan.template.md'), 'template index exposes capability refactor plan template');
+  assert(
+    templateIndex.includes('capability-refactor-plan-prompt.template.md'),
+    'template index exposes capability refactor plan prompt template',
+  );
 
-  const skillPath = path.join(repoRoot, 'src/core-skills/bmad-capability-refactor-plan/SKILL.md');
-  assert(fs.existsSync(skillPath), 'capability refactor plan source skill exists');
+  const skillPath = path.join(repoRoot, 'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md');
+  assert(fs.existsSync(skillPath), 'capability refactor plan prompt source skill exists');
   const skill = fs.readFileSync(skillPath, 'utf8');
-  for (const required of ['planning-only', 'local evidence refs', 'no live tool calls', 'does not edit files']) {
-    assert(skill.includes(required), `capability refactor plan skill declares ${required}`);
+  for (const required of [
+    'name: bmad-capability-refactor-plan-prompt',
+    'planning-only',
+    'local evidence refs',
+    'no live tool calls',
+    'does not edit files',
+  ]) {
+    assert(skill.includes(required), `capability refactor plan prompt skill declares ${required}`);
   }
   for (const required of [
     'Recommended Follow-Up',
@@ -247,7 +259,43 @@ function testCapabilityRefactorPlanDiscoveryAndBoundary() {
     'bmad-customize',
     'none',
   ]) {
-    assert(skill.includes(required), `capability refactor plan skill declares ${required}`);
+    assert(skill.includes(required), `capability refactor plan prompt skill declares ${required}`);
+  }
+}
+
+function testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary() {
+  const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
+  assert(
+    moduleHelp.includes('Core,bmad-code-optimization-refactor-plan-prompt,Code Optimization Refactor Plan Prompt,OPT,'),
+    'module-help registers OPT code optimization refactor plan prompt skill',
+  );
+  assert.equal(moduleHelp.match(/,OPT,/g)?.length, 1, 'OPT menu code is unique');
+
+  const templateIndex = fs.readFileSync(path.join(repoRoot, 'docs/workspace/templates/index.md'), 'utf8');
+  assert(
+    templateIndex.includes('code-optimization-refactor-plan-prompt.template.md'),
+    'template index exposes code optimization refactor plan prompt template',
+  );
+
+  const skillPath = path.join(repoRoot, 'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md');
+  assert(fs.existsSync(skillPath), 'code optimization refactor plan prompt source skill exists');
+  const skill = fs.readFileSync(skillPath, 'utf8');
+  for (const required of [
+    'name: bmad-code-optimization-refactor-plan-prompt',
+    'Code Optimization Refactor Plan Prompt',
+    'planning-only',
+    'language-agnostic',
+    'local evidence refs',
+    'no live tool calls',
+    'no live profiling',
+    'does not edit files',
+    'measurement before change',
+    'public behavior preservation check',
+    'smallest safe optimization',
+    'readability, security, and operability',
+    'approve / revise / block',
+  ]) {
+    assert(skill.includes(required), `code optimization refactor plan prompt skill declares ${required}`);
   }
 }
 
@@ -259,14 +307,54 @@ function testLoopRequiresCapabilityImprovementToolkitSkills() {
 
 function testLoopRequiresCapabilityRefactorPlanToolkit() {
   const root = makeFixture();
-  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'));
-  assertInvalid(root, 'capability-refactor-plan.template.md');
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan-prompt.template.md'));
+  assertInvalid(root, 'capability-refactor-plan-prompt.template.md');
 }
 
 function testLoopRequiresCapabilityImprovementToolkitPromptRouting() {
   const root = makeFixture();
   replaceInFile(root, 'docs/workspace/templates/bmad-loop-codex-prompt.md', 'skill:bmad-tool-leverage-review', 'skill:bmad-tool-review');
   assertInvalid(root, 'skill:bmad-tool-leverage-review');
+}
+
+function testPartyModeConsensusGateFieldsRequired() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/loop-party-mode-gate.template.md', 'round_count', 'rounds');
+  assertInvalid(root, 'round_count');
+}
+
+function testPartyModeDecisionEnumRequired() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/loop-party-mode-gate.template.md', 'accept | change | block', 'accept | approve | block');
+  assertInvalid(root, 'accept | change | block');
+}
+
+function testPartyModeCannotRunBeforeGoalResolution() {
+  const root = makeFixture();
+  replaceInFile(root, 'src/core-skills/bmad-loop/SKILL.md', 'after input is resolved', 'before input is resolved');
+  assertInvalid(root, 'after input is resolved');
+}
+
+function testPartyModeTranscriptBoundaryRequired() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-party-mode/SKILL.md',
+    'Do not include raw agent transcripts unless the user explicitly asks.',
+    'Include raw agent transcripts by default.',
+  );
+  assertInvalid(root, 'Do not include raw agent transcripts unless the user explicitly asks.');
+}
+
+function testPartyModeForbiddenAuthorityExpansionFails() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-party-mode/SKILL.md',
+    'Party Mode gates plan quality.',
+    'Party Mode grants Workspace authority.',
+  );
+  assertInvalid(root, 'PARTY_MODE_FORBIDDEN');
 }
 
 function run() {
@@ -284,9 +372,15 @@ function run() {
     testLoopDocsRejectAutomaticReadiness,
     testWorkspaceCannotOwnReadinessAuthority,
     testCapabilityRefactorPlanDiscoveryAndBoundary,
+    testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary,
     testLoopRequiresCapabilityImprovementToolkitSkills,
     testLoopRequiresCapabilityRefactorPlanToolkit,
     testLoopRequiresCapabilityImprovementToolkitPromptRouting,
+    testPartyModeConsensusGateFieldsRequired,
+    testPartyModeDecisionEnumRequired,
+    testPartyModeCannotRunBeforeGoalResolution,
+    testPartyModeTranscriptBoundaryRequired,
+    testPartyModeForbiddenAuthorityExpansionFails,
   ];
   for (const test of tests) {
     test();

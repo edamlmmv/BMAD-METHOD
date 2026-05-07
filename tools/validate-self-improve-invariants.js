@@ -8,6 +8,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+  CONSENSUS_GATE_FIELDS,
+  CONSENSUS_GATE_TERMS,
   LOOP_REFUSAL_MESSAGE,
   LOOP_RUN_CONFIG_FIELDS,
   validateBmadLoopInvariants,
@@ -66,8 +68,12 @@ const SELF_FILES = {
     relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
   },
   capabilityRefactorPlan: {
-    label: 'capability refactor plan template',
-    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'),
+    label: 'capability refactor plan prompt template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan-prompt.template.md'),
+  },
+  codeOptimizationRefactorPlan: {
+    label: 'code optimization refactor plan prompt template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'code-optimization-refactor-plan-prompt.template.md'),
   },
   architectureDriftReviewSkill: {
     label: 'architecture drift review skill',
@@ -82,8 +88,12 @@ const SELF_FILES = {
     relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
   },
   capabilityRefactorPlanSkill: {
-    label: 'capability refactor plan skill',
-    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan', 'SKILL.md'),
+    label: 'capability refactor plan prompt skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan-prompt', 'SKILL.md'),
+  },
+  codeOptimizationRefactorPlanSkill: {
+    label: 'code optimization refactor plan prompt skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-code-optimization-refactor-plan-prompt', 'SKILL.md'),
   },
   resume: {
     label: 'self-improve resume prompt',
@@ -258,6 +268,8 @@ function validateSelfImproveInvariants(options = {}) {
       'LoopRunConfig',
       'Direct operator goal wins',
       'Party Mode must not silently create a goal',
+      'after resolving a valid goal source',
+      'Party Mode never instantiates, mutates, or persists the Self-Improve goal',
       'does not define a separate engine or new authority layer',
       'BMM Phase 3 to Phase 4 planning gate',
       'Do not run Implementation Readiness for every Self-Improve loop',
@@ -268,6 +280,7 @@ function validateSelfImproveInvariants(options = {}) {
     errors,
     files.skill.relativePath,
   );
+  requireTerms(contents.skill, CONSENSUS_GATE_TERMS, 'bmad-self-improve skill consensus gate', errors, files.skill.relativePath);
   requireTerms(
     contents.customize,
     [
@@ -330,28 +343,35 @@ function validateSelfImproveInvariants(options = {}) {
       'Party Mode consensus before plan finalization',
       'explicit direct goal, readable workflow.goal_ref, or non-empty workflow.scope',
       'Do not let Party Mode silently create a goal',
+      'after input is resolved and repo facts have been gathered',
+      'If no valid direct operator goal, readable workflow.goal_ref, or non-empty workflow.scope exists, stop with the refusal message before Party Mode.',
       'architecture-drift-review.template.md',
       'tool-leverage-review.template.md',
       'highest-leverage-official-mcp-addition.template.md',
-      'capability-refactor-plan.template.md',
+      'capability-refactor-plan-prompt.template.md',
+      'code-optimization-refactor-plan-prompt.template.md',
       'skill:bmad-architecture-drift-review',
       'skill:bmad-tool-leverage-review',
       'skill:bmad-highest-leverage-official-mcp-addition',
-      'skill:bmad-capability-refactor-plan',
+      'skill:bmad-capability-refactor-plan-prompt',
+      'skill:bmad-code-optimization-refactor-plan-prompt',
       'npm run validate:bmad-loop-invariants',
     ],
     'self-improve prompt',
     errors,
     files.prompt.relativePath,
   );
+  requireTerms(contents.prompt, CONSENSUS_GATE_TERMS, 'self-improve prompt consensus gate', errors, files.prompt.relativePath);
   requireTerms(
     contents.templateIndex,
     [
       'architecture-drift-review.template.md',
       'tool-leverage-review.template.md',
       'highest-leverage-official-mcp-addition.template.md',
-      'capability-refactor-plan.template.md',
-      'capability/refactor-plan/best-practice/tdd/forge',
+      'capability-refactor-plan-prompt.template.md',
+      'code-optimization-refactor-plan-prompt.template.md',
+      'capability/refactor-plan/prompt/best-practice/tdd/forge',
+      'optimization/refactor-plan/prompt/performance/measurement/tdd',
     ],
     'workspace template index',
     errors,
@@ -424,10 +444,11 @@ function validateSelfImproveInvariants(options = {}) {
     contents.capabilityRefactorPlan,
     [
       'Capability Improvement Toolkit',
-      'Capability Best-Practice Refactor Plan',
+      'Capability Refactor Plan Prompt',
       'Capability Pack Forge',
       'local evidence refs',
       'planning-only',
+      'prompt',
       'no live tool calls',
       'does not edit files',
       'public behavior test first',
@@ -445,6 +466,28 @@ function validateSelfImproveInvariants(options = {}) {
     'capability refactor plan template',
     errors,
     files.capabilityRefactorPlan.relativePath,
+  );
+  requireTerms(
+    contents.codeOptimizationRefactorPlan,
+    [
+      'Capability Improvement Toolkit',
+      'Code Optimization Refactor Plan Prompt',
+      'planning-only',
+      'prompt',
+      'language-agnostic',
+      'local evidence refs',
+      'no live tool calls',
+      'no live profiling',
+      'does not edit files',
+      'measurement before change',
+      'public behavior preservation check',
+      'smallest safe optimization',
+      'readability, security, and operability',
+      'approve / revise / block',
+    ],
+    'code optimization refactor plan prompt template',
+    errors,
+    files.codeOptimizationRefactorPlan.relativePath,
   );
   requireTerms(
     contents.architectureDriftReviewSkill,
@@ -489,12 +532,13 @@ function validateSelfImproveInvariants(options = {}) {
   requireTerms(
     contents.capabilityRefactorPlanSkill,
     [
-      'name: bmad-capability-refactor-plan',
-      'Capability Best-Practice Refactor Plan',
+      'name: bmad-capability-refactor-plan-prompt',
+      'Capability Refactor Plan Prompt',
       'Capability Improvement Toolkit',
       'Capability Pack Forge',
       'local evidence refs',
       'planning-only',
+      'prompt',
       'no live tool calls',
       'does not edit files',
       'public behavior test first',
@@ -516,6 +560,29 @@ function validateSelfImproveInvariants(options = {}) {
     files.capabilityRefactorPlanSkill.relativePath,
   );
   requireTerms(
+    contents.codeOptimizationRefactorPlanSkill,
+    [
+      'name: bmad-code-optimization-refactor-plan-prompt',
+      'Code Optimization Refactor Plan Prompt',
+      'Capability Improvement Toolkit',
+      'planning-only',
+      'prompt',
+      'language-agnostic',
+      'local evidence refs',
+      'no live tool calls',
+      'no live profiling',
+      'does not edit files',
+      'measurement before change',
+      'public behavior preservation check',
+      'smallest safe optimization',
+      'readability, security, and operability',
+      'approve / revise / block',
+    ],
+    'code optimization refactor plan prompt skill',
+    errors,
+    files.codeOptimizationRefactorPlanSkill.relativePath,
+  );
+  requireTerms(
     contents.resume,
     [
       'Resume `bmad-self-improve`',
@@ -532,7 +599,13 @@ function validateSelfImproveInvariants(options = {}) {
   );
   requireTerms(
     contents.checkpoint,
-    ['Resolved Input', 'Goal created by Party Mode: false', 'State Machine', 'npm run validate:bmad-loop-invariants'],
+    [
+      'Resolved Input',
+      'Goal created by Party Mode: false',
+      'State Machine',
+      'npm run validate:bmad-loop-invariants',
+      ...CONSENSUS_GATE_FIELDS,
+    ],
     'self-improve checkpoint template',
     errors,
     files.checkpoint.relativePath,
@@ -551,8 +624,10 @@ function validateSelfImproveInvariants(options = {}) {
       'predefined bmad-loop instance',
       'goal_ref',
       'scope',
-      'Core,bmad-capability-refactor-plan,',
-      'Capability Best-Practice Refactor Plan,CBR',
+      'Core,bmad-capability-refactor-plan-prompt,',
+      'Capability Refactor Plan Prompt,CBR',
+      'Core,bmad-code-optimization-refactor-plan-prompt,',
+      'Code Optimization Refactor Plan Prompt,OPT',
     ],
     'module-help.csv',
     errors,

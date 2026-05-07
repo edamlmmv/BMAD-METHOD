@@ -5,14 +5,20 @@ description: Generic Party Mode planning gate output for future loop-specific pl
 
 # Loop Party Mode Gate
 
-## Gate Setup
-
-- Candidate or bundle:
-- Gate depth: `light|standard|deep`
-- Participants:
-
 ## Required Output
 
+- Gate depth: `light|standard|deep`
+- participants:
+- round_count:
+- votes:
+- decision: `accept | change | block`
+- required_changes:
+- deferred_decisions:
+- blockers:
+- operator_stop_go:
+- next_action:
+- evidence_refs:
+- final_replacement_plan_ref:
 - Goal:
 - Success metric:
 - Chosen run mode: `one-shot|recurring`
@@ -25,9 +31,10 @@ description: Generic Party Mode planning gate output for future loop-specific pl
 - Deferred questions:
 - Consensus: `accept|change|block`
 
+## Consensus Semantics
+
+`required_changes` revise before proceed; `deferred_decisions` need owner/trigger; `operator_stop_go` is advisory only; `final_replacement_plan_ref` points to the final full `<proposed_plan>` or checkpoint/local ref. Consensus output summarizes decisions only. Do not include raw agent transcripts unless the user explicitly asks. A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.
+
 ## Decision Boundary
 
-- Advisory consensus:
-- Operator stop/go decision:
-- Next planning action:
-- Boundary reminder: templates are planning aids only; they do not grant runtime authority, install tools, mutate MCP config, perform static analysis, or create implementation scope without an explicit user goal.
+Advisory only: no runtime authority, tool install, MCP config mutation, static analysis, or implementation scope without an explicit user goal.

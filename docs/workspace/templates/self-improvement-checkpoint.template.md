@@ -90,6 +90,17 @@ Store completed run checkpoints under `{output_folder}/self-improvement/`. Do no
 - Instantiated goal:
 - Refined target:
 - Goal creation attempted:
+- participants:
+- round_count:
+- votes:
+- decision: `accept | change | block`
+- required_changes:
+- deferred_decisions:
+- blockers:
+- operator_stop_go:
+- next_action:
+- evidence_refs:
+- final_replacement_plan_ref:
 
 ## Plan Status
 

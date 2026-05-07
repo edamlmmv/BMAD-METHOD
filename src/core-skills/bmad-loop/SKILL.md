@@ -200,6 +200,22 @@ Before any dedicated loop-specific planning pass, Party Mode output records:
 Gate depth is dynamic: `light`, `standard`, or `deep`. Party Mode is advisory
 only. Operator owns stop/go.
 
+For BMAD loop consensus-gate v1, run a standard Party Mode gate after input is
+resolved and repo facts have been gathered, before final plan output. No direct
+operator goal, no readable `workflow.goal_ref`, and empty `workflow.scope` means
+block with the canonical loop refusal message: no Party Mode gate and no
+replacement plan. Party Mode may refine an instantiated goal but never
+instantiates, mutates, or persists the goal.
+
+Record the canonical consensus fields: `participants`, `round_count`, `votes`,
+`decision`, `required_changes`, `deferred_decisions`, `blockers`,
+`operator_stop_go`, `next_action`, `evidence_refs`, and
+`final_replacement_plan_ref`. `decision` must be `accept | change | block`.
+Consensus output summarizes decisions only and does not include raw agent
+transcripts unless the user explicitly asks.
+Do not include raw agent transcripts unless the user explicitly asks.
+A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.
+
 ## Required Sequence
 
 1. Verify repo instructions, current git state, `bmad --version`, and
@@ -215,10 +231,12 @@ only. Operator owns stop/go.
 7. If the scan passes and preservation is required, commit the current checkout
    with `chore: preserve pre-automation worktree state`.
 8. Create or switch to a fresh non-main branch matching `workflow.branch_prefix`.
-9. Run `skill:bmad-party-mode` before writing any plan.
+9. Run `skill:bmad-party-mode` after input is resolved and repo facts have been
+   gathered, before writing any final plan.
 10. Write a decision-complete plan with acceptance criteria, TDD slices,
     compile/install steps, refresh probe, checkpoint path, continuation
-    preconditions, `WorkflowBundle` refs, and `LoopRunConfig` summary.
+    preconditions, `WorkflowBundle` refs, `LoopRunConfig` summary, and the
+    consensus gate result.
 11. Run `skill:bmad-party-mode` again before implementation to critique the
     plan.
 12. Implement with TDD, one vertical slice at a time.

@@ -59,11 +59,13 @@ function makeFixture() {
     'docs/workspace/templates/architecture-drift-review.template.md',
     'docs/workspace/templates/tool-leverage-review.template.md',
     'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
-    'docs/workspace/templates/capability-refactor-plan.template.md',
+    'docs/workspace/templates/capability-refactor-plan-prompt.template.md',
+    'docs/workspace/templates/code-optimization-refactor-plan-prompt.template.md',
     'src/core-skills/bmad-architecture-drift-review/SKILL.md',
     'src/core-skills/bmad-tool-leverage-review/SKILL.md',
     'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
-    'src/core-skills/bmad-capability-refactor-plan/SKILL.md',
+    'src/core-skills/bmad-capability-refactor-plan-prompt/SKILL.md',
+    'src/core-skills/bmad-code-optimization-refactor-plan-prompt/SKILL.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
@@ -202,6 +204,43 @@ function testPartyModeCannotCreateGoalTextDisappear() {
   assertInvalid(root, 'Party Mode must not silently create a goal');
 }
 
+function testSelfImproveConsensusGateRequiresValidGoalFirst() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-self-improve/SKILL.md',
+    'after resolving a valid goal source',
+    'before resolving a valid goal source',
+  );
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-self-improve/SKILL.md',
+    'After resolving a valid goal source',
+    'Before resolving a valid goal source',
+  );
+  assertInvalid(root, 'after resolving a valid goal source');
+}
+
+function testSelfImproveConsensusGateFieldsRequired() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/self-improvement-checkpoint.template.md', 'final_replacement_plan_ref', 'final_plan');
+  assertInvalid(root, 'final_replacement_plan_ref');
+}
+
+function testSelfImproveConsensusChangeRequiresReplacementPlan() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-prompt.md',
+    'A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.',
+    'A `change` decision can be handled with patch notes.',
+  );
+  assertInvalid(
+    root,
+    'A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.',
+  );
+}
+
 function testPromptRequiresGoalSource() {
   const root = makeFixture();
   replaceInFile(root, 'docs/workspace/templates/self-improvement-codex-prompt.md', 'Goal source:', 'Goal:');
@@ -227,8 +266,14 @@ function testHighestLeverageOfficialMcpTemplateRequired() {
 
 function testCapabilityRefactorPlanTemplateRequired() {
   const root = makeFixture();
-  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'));
-  assertInvalid(root, 'capability-refactor-plan.template.md');
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'capability-refactor-plan-prompt.template.md'));
+  assertInvalid(root, 'capability-refactor-plan-prompt.template.md');
+}
+
+function testCodeOptimizationRefactorPlanPromptTemplateRequired() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'code-optimization-refactor-plan-prompt.template.md'));
+  assertInvalid(root, 'code-optimization-refactor-plan-prompt.template.md');
 }
 
 function testCapabilityImprovementToolkitSkillsRequired() {
@@ -287,10 +332,14 @@ function run() {
     testAliasRemovalFails,
     testLoopCoreWeakeningFailsSelfImprove,
     testPartyModeCannotCreateGoalTextDisappear,
+    testSelfImproveConsensusGateRequiresValidGoalFirst,
+    testSelfImproveConsensusGateFieldsRequired,
+    testSelfImproveConsensusChangeRequiresReplacementPlan,
     testPromptRequiresGoalSource,
     testCapabilityImprovementToolkitPromptRequired,
     testHighestLeverageOfficialMcpTemplateRequired,
     testCapabilityRefactorPlanTemplateRequired,
+    testCodeOptimizationRefactorPlanPromptTemplateRequired,
     testCapabilityImprovementToolkitSkillsRequired,
     testCliUsesInvariantPrefix,
     testSelfImproveInheritsFutureLoopField,

@@ -1,13 +1,13 @@
 ---
-name: bmad-capability-refactor-plan
-description: 'Plans safe best-practice refactors for plugin/capability implementation patterns using Forge artifacts and local evidence refs. Use when a capability needs an evidence-backed refactor plan before implementation.'
+name: bmad-capability-refactor-plan-prompt
+description: 'Prompt-only planning skill for safe best-practice refactors around plugin/capability implementation patterns using Forge artifacts and local evidence refs. Use when a capability needs an evidence-backed refactor plan before implementation.'
 ---
 
-# Capability Best-Practice Refactor Plan
+# Capability Refactor Plan Prompt
 
-Template id: `capability-refactor-plan`
+Template id: `capability-refactor-plan-prompt`
 
-Capability Improvement Toolkit skill for planning safe best-practice refactors
+Capability Improvement Toolkit prompt for planning safe best-practice refactors
 around plugin or capability implementation patterns. This skill is
 planning-only; it produces a refactor plan, evidence map, risk register, test
 strategy, recommended follow-up route, rollback notes, and non-goals.

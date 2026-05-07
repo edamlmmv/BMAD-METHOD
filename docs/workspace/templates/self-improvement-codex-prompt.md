@@ -36,61 +36,16 @@ daily_cap: 3
 max_fix_attempts: 5
 quality_command: npm ci && npm run quality
 
-Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema.
+Shared BMAD planning capabilities are operator-invoked planning/setup aids discoverable from Help, Workspace, Self-Improve, and Party Mode; they do not run automatically or change Workspace schema. Use only as needed: `capability:zoom-out`, `capability:tdd`, `capability:ubiquitous-language`, `capability:grill-me`.
+Capability Improvement Toolkit templates are planning aids only: no runtime authority or implementation scope without an explicit direct goal, readable workflow.goal_ref, or non-empty workflow.scope.
+Templates: `docs/workspace/templates/architecture-drift-review.template.md`, `docs/workspace/templates/tool-leverage-review.template.md`, `docs/workspace/templates/highest-leverage-official-mcp-addition.template.md`, `capability-refactor-plan-prompt.template.md`, `code-optimization-refactor-plan-prompt.template.md`.
+Skills: `skill:bmad-architecture-drift-review`, `skill:bmad-tool-leverage-review`, `skill:bmad-highest-leverage-official-mcp-addition`, `skill:bmad-capability-refactor-plan-prompt`, `skill:bmad-code-optimization-refactor-plan-prompt`.
 
-Use these capabilities only when the instantiated goal needs them:
-- `capability:zoom-out` `zoom-out`
-- `capability:tdd` `tdd`
-- `capability:ubiquitous-language` `ubiquitous-language`
-- `capability:grill-me` `grill-me`
-
-Capability Improvement Toolkit templates are planning aids only. They do not
-grant runtime authority, install tools, mutate MCP config, perform static
-analysis, or create implementation scope without an explicit user goal. Use
-them only after resolving an explicit direct goal, readable workflow.goal_ref, or non-empty workflow.scope.
-
-Available Capability Improvement Toolkit templates:
-- `docs/workspace/templates/architecture-drift-review.template.md`
-- `docs/workspace/templates/tool-leverage-review.template.md`
-- `docs/workspace/templates/highest-leverage-official-mcp-addition.template.md`
-- `capability-refactor-plan.template.md`
-
-Available Capability Improvement Toolkit skills:
-- `skill:bmad-architecture-drift-review`
-- `skill:bmad-tool-leverage-review`
-- `skill:bmad-highest-leverage-official-mcp-addition`
-- `skill:bmad-capability-refactor-plan`
-
-Required policy:
-- Read `docs/workspace/bmad-loop-automation-policy.md`.
-- Resolve direct operator goal first; else readable workflow.goal_ref; else workflow.scope; else stop with the BMAD loop refusal message.
-- Do not let Party Mode silently create a goal.
-- Run `skill:bmad-party-mode` to reach Party Mode consensus before plan finalization. Record accept/change/block consensus in the plan evidence.
-- Capture base SHA, resolved self-improve instance fields, and baseline policy hash before edits.
-- Read effective automation schedule/config, explicit operator parameters, and latest checkpoint.
-- Acquire `{output_folder}/self-improvement/automation.lock`; stale lock needs checkpointed failure evidence before continuation.
-- Never run implementation work on main. Never push.
-- Before branch creation, run `git status --porcelain --untracked-files=all`.
-- If the worktree is dirty, scan pending files for high-confidence secrets and huge generated artifacts before preservation.
-- If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
-- If the scan passes, preserve non-ignored dirty state with local commit `chore: preserve pre-automation worktree state`.
-- Create or switch to the fresh branch matching `codex/self-improve-*`.
-- Run `skill:bmad-party-mode` before writing any plan, using Capability Improvement Toolkit templates when relevant.
-- Write a decision-complete plan with acceptance criteria and TDD slices.
-- Run `skill:bmad-party-mode` again before implementation.
-- Implement with TDD, one vertical slice at a time.
-- Run `npm ci && npm run quality` on HEAD of the exact checkout before commit, install, refresh, or continuation.
-- Run `npm run validate:bmad-loop-invariants` when generic loop surfaces change.
-- Run `npm run validate:self-improve-invariants` when self-improve instance surfaces or SI aliases change.
-- Install repo-local/test target first, then user target when policy allows.
-- Actively request Codex skill reload when active skills change. `skills/list` with `forceReload: true`, `skills/changed`, and thread start/resume are launcher evidence only, never BMAD authority.
-- Record Activation State, Resume Contract, and Session Identity.
-- Commit passing work locally with Conventional Commits. Never push.
-- Write checkpoint evidence under `{output_folder}/self-improvement/`.
-- Allow continuation only after all Activation State gates pass and caps allow it.
-- `refresh_state: unknown never allows continuation`.
-- Vercel Workflow WDK is not part of this run.
-- Evidence Gate v1 language is future-compatible with Workspace packet v5. Self-Improve does not actively enforce Evidence Gate v1 in v1 and does not mark gates pass/fail.
+Required policy: read `docs/workspace/bmad-loop-automation-policy.md`; resolve direct operator goal first, else readable workflow.goal_ref, else workflow.scope; Do not let Party Mode silently create a goal; capture base SHA/policy hash; lock `{output_folder}/self-improvement/automation.lock`; never main/push; run `git status --porcelain --untracked-files=all`; scan dirty files; abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits if scan fails; preserve passing dirty state; use branch `codex/self-improve-*`.
+Run `skill:bmad-party-mode` after input is resolved and repo facts have been gathered to reach Party Mode consensus before plan finalization. Record accept/change/block consensus in the plan evidence. If no valid direct operator goal, readable workflow.goal_ref, or non-empty workflow.scope exists, stop with the refusal message before Party Mode.
+Record consensus fields: `participants`, `round_count`, `votes`, `decision`, `required_changes`, `deferred_decisions`, `blockers`, `operator_stop_go`, `next_action`, `evidence_refs`, and `final_replacement_plan_ref`.
+`decision` must be `accept | change | block`. Do not include raw agent transcripts unless the user explicitly asks. A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.
+Run `skill:bmad-party-mode` before any final plan, using Capability Improvement Toolkit templates when relevant; critique again before implementation; use TDD. Run `npm ci && npm run quality` on HEAD before commit/install/refresh/continuation. Run `npm run validate:bmad-loop-invariants` and `npm run validate:self-improve-invariants` for matching changes. Record Activation State, Resume Contract, Session Identity, checkpoint, and refresh state. `refresh_state: unknown never allows continuation`. Vercel Workflow WDK is not part of this run. Evidence Gate v1 language is future-compatible with Workspace packet v5.
 
 Task:
 

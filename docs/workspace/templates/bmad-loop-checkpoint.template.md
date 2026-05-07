@@ -98,6 +98,17 @@ Do not commit generated run checkpoints by default.
 
 ## Party Mode Gate Output
 
+- participants:
+- round_count:
+- votes:
+- decision: `accept | change | block`
+- required_changes:
+- deferred_decisions:
+- blockers:
+- operator_stop_go:
+- next_action:
+- evidence_refs:
+- final_replacement_plan_ref:
 - Goal:
 - Success metric:
 - Chosen run mode:

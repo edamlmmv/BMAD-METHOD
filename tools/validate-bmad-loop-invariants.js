@@ -28,6 +28,10 @@ const LOOP_FILES = {
     label: 'bmad-loop skill',
     relativePath: path.join('src', 'core-skills', 'bmad-loop', 'SKILL.md'),
   },
+  partyModeSkill: {
+    label: 'bmad-party-mode skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-party-mode', 'SKILL.md'),
+  },
   customize: {
     label: 'bmad-loop customize surface',
     relativePath: path.join('src', 'core-skills', 'bmad-loop', 'customize.toml'),
@@ -73,8 +77,12 @@ const LOOP_FILES = {
     relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
   },
   capabilityRefactorPlanTemplate: {
-    label: 'capability refactor plan template',
-    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan.template.md'),
+    label: 'capability refactor plan prompt template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'capability-refactor-plan-prompt.template.md'),
+  },
+  codeOptimizationRefactorPlanTemplate: {
+    label: 'code optimization refactor plan prompt template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'code-optimization-refactor-plan-prompt.template.md'),
   },
   architectureDriftReviewSkill: {
     label: 'architecture drift review skill',
@@ -89,8 +97,12 @@ const LOOP_FILES = {
     relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
   },
   capabilityRefactorPlanSkill: {
-    label: 'capability refactor plan skill',
-    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan', 'SKILL.md'),
+    label: 'capability refactor plan prompt skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-capability-refactor-plan-prompt', 'SKILL.md'),
+  },
+  codeOptimizationRefactorPlanSkill: {
+    label: 'code optimization refactor plan prompt skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-code-optimization-refactor-plan-prompt', 'SKILL.md'),
   },
   moduleHelp: {
     label: 'module-help.csv',
@@ -259,6 +271,42 @@ const WORKSPACE_AUTHORITY_FORBIDDEN_TERMS = [
   'Workspace covers bmad-check-implementation-readiness',
   'Workspace covers `bmad-customize`',
   'Workspace covers bmad-customize',
+];
+
+const CONSENSUS_GATE_FIELDS = [
+  'participants',
+  'round_count',
+  'votes',
+  'decision',
+  'required_changes',
+  'deferred_decisions',
+  'blockers',
+  'operator_stop_go',
+  'next_action',
+  'evidence_refs',
+  'final_replacement_plan_ref',
+];
+
+const CONSENSUS_GATE_TERMS = [
+  ...CONSENSUS_GATE_FIELDS,
+  'accept | change | block',
+  'A `change` decision requires a revised full replacement `<proposed_plan>` plus one verification round, not patch notes.',
+  'Do not include raw agent transcripts unless the user explicitly asks.',
+];
+
+const PARTY_MODE_FORBIDDEN_TERMS = [
+  'Party Mode creates goals',
+  'Party Mode mutates goals',
+  'Party Mode persists goals',
+  'Party Mode executes tools',
+  'Party Mode mutates files',
+  'Party Mode grants Workspace authority',
+  'Party Mode grants verifier authority',
+  'Party Mode grants `_bmad/custom` authority',
+  'Party Mode changes verify-capability',
+  'Party Mode enables hidden execution',
+  'Party Mode creates persisted recursive agents',
+  'Include raw agent transcripts by default',
 ];
 
 function parseArgs(argv) {
@@ -511,10 +559,43 @@ function validateBmadLoopInvariants(options = {}) {
       '/workflow-start',
       'no first-class queue or scheduler model',
       'State Machine',
+      'after input is resolved',
+      'Party Mode may refine an instantiated goal',
+      'instantiates, mutates, or persists the goal',
     ],
     'bmad-loop skill',
     errors,
     files.skill.relativePath,
+  );
+  requireTerms(contents.skill, CONSENSUS_GATE_TERMS, 'bmad-loop skill consensus gate', errors, files.skill.relativePath);
+  requireTerms(
+    contents.partyModeSkill,
+    [
+      'BMAD consensus gate',
+      'Party Mode gates plan quality.',
+      'It does not create goals',
+      'mutate goals',
+      'persist goals',
+      'execute tools',
+      'mutate files',
+      'override workflow authority',
+      'grant Workspace authority',
+      'grant verifier authority',
+      'grant `_bmad/custom` authority',
+      'create persisted recursive agents',
+      'Default v1 Self-Improve consensus voices are John, Winston, Amelia, and Paige',
+      'Gate depth is `standard` in v1',
+    ],
+    'bmad-party-mode consensus gate',
+    errors,
+    files.partyModeSkill.relativePath,
+  );
+  requireTerms(
+    contents.partyModeSkill,
+    CONSENSUS_GATE_TERMS,
+    'bmad-party-mode consensus fields',
+    errors,
+    files.partyModeSkill.relativePath,
   );
   requireTerms(contents.skill, AUTHORITY_MATRIX_TERMS, 'bmad-loop skill authority matrix', errors, files.skill.relativePath);
   requireTerms(contents.skill, TRIGGER_MATRIX_TERMS, 'bmad-loop skill trigger matrix', errors, files.skill.relativePath);
@@ -543,16 +624,21 @@ function validateBmadLoopInvariants(options = {}) {
       'skill:bmad-architecture-drift-review',
       'skill:bmad-tool-leverage-review',
       'skill:bmad-highest-leverage-official-mcp-addition',
-      'skill:bmad-capability-refactor-plan',
+      'skill:bmad-capability-refactor-plan-prompt',
+      'skill:bmad-code-optimization-refactor-plan-prompt',
       'architecture-drift-review.template.md',
       'tool-leverage-review.template.md',
       'highest-leverage-official-mcp-addition.template.md',
-      'capability-refactor-plan.template.md',
+      'capability-refactor-plan-prompt.template.md',
+      'code-optimization-refactor-plan-prompt.template.md',
+      'after input is resolved and repo facts have been gathered',
+      'If no valid direct operator goal, readable workflow.goal_ref, or non-empty workflow.scope exists, stop with the refusal message before Party Mode.',
     ],
     'BMAD loop prompt',
     errors,
     files.prompt.relativePath,
   );
+  requireTerms(contents.prompt, CONSENSUS_GATE_TERMS, 'BMAD loop prompt consensus gate', errors, files.prompt.relativePath);
   requireTerms(
     contents.resume,
     [
@@ -569,7 +655,7 @@ function validateBmadLoopInvariants(options = {}) {
   );
   requireTerms(
     contents.checkpoint,
-    [...REQUIRED_STATE_TERMS, 'Workflow Bundle', 'Run mode:', 'Party Mode Gate Output', 'Template contract'],
+    [...REQUIRED_STATE_TERMS, 'Workflow Bundle', 'Run mode:', 'Party Mode Gate Output', 'Template contract', ...CONSENSUS_GATE_FIELDS],
     'BMAD loop checkpoint template',
     errors,
     files.checkpoint.relativePath,
@@ -591,6 +677,8 @@ function validateBmadLoopInvariants(options = {}) {
   requireTerms(
     contents.partyGateTemplate,
     [
+      ...CONSENSUS_GATE_FIELDS,
+      'accept | change | block',
       'Goal:',
       'Success metric:',
       'Chosen run mode:',
@@ -598,8 +686,16 @@ function validateBmadLoopInvariants(options = {}) {
       'Capability Improvement Toolkit skills/templates considered:',
       'Skill/template decisions:',
       'Deferred questions:',
+      'Consensus output summarizes decisions only',
     ],
     'loop party mode gate template',
+    errors,
+    files.partyGateTemplate.relativePath,
+  );
+  requireTerms(
+    contents.partyGateTemplate,
+    CONSENSUS_GATE_TERMS,
+    'loop party mode gate consensus terms',
     errors,
     files.partyGateTemplate.relativePath,
   );
@@ -634,10 +730,11 @@ function validateBmadLoopInvariants(options = {}) {
     contents.capabilityRefactorPlanTemplate,
     [
       'Capability Improvement Toolkit',
-      'Capability Best-Practice Refactor Plan',
+      'Capability Refactor Plan Prompt',
       'Capability Pack Forge',
       'local evidence refs',
       'planning-only',
+      'prompt',
       'no live tool calls',
       'does not edit files',
       'public behavior test first',
@@ -655,6 +752,28 @@ function validateBmadLoopInvariants(options = {}) {
     'capability refactor plan template',
     errors,
     files.capabilityRefactorPlanTemplate.relativePath,
+  );
+  requireTerms(
+    contents.codeOptimizationRefactorPlanTemplate,
+    [
+      'Capability Improvement Toolkit',
+      'Code Optimization Refactor Plan Prompt',
+      'planning-only',
+      'prompt',
+      'language-agnostic',
+      'local evidence refs',
+      'no live tool calls',
+      'no live profiling',
+      'does not edit files',
+      'measurement before change',
+      'public behavior preservation check',
+      'smallest safe optimization',
+      'readability, security, and operability',
+      'approve / revise / block',
+    ],
+    'code optimization refactor plan prompt template',
+    errors,
+    files.codeOptimizationRefactorPlanTemplate.relativePath,
   );
   requireTerms(
     contents.architectureDriftReviewSkill,
@@ -699,12 +818,13 @@ function validateBmadLoopInvariants(options = {}) {
   requireTerms(
     contents.capabilityRefactorPlanSkill,
     [
-      'name: bmad-capability-refactor-plan',
-      'Capability Best-Practice Refactor Plan',
+      'name: bmad-capability-refactor-plan-prompt',
+      'Capability Refactor Plan Prompt',
       'Capability Improvement Toolkit',
       'Capability Pack Forge',
       'local evidence refs',
       'planning-only',
+      'prompt',
       'no live tool calls',
       'does not edit files',
       'public behavior test first',
@@ -726,6 +846,29 @@ function validateBmadLoopInvariants(options = {}) {
     files.capabilityRefactorPlanSkill.relativePath,
   );
   requireTerms(
+    contents.codeOptimizationRefactorPlanSkill,
+    [
+      'name: bmad-code-optimization-refactor-plan-prompt',
+      'Code Optimization Refactor Plan Prompt',
+      'Capability Improvement Toolkit',
+      'planning-only',
+      'prompt',
+      'language-agnostic',
+      'local evidence refs',
+      'no live tool calls',
+      'no live profiling',
+      'does not edit files',
+      'measurement before change',
+      'public behavior preservation check',
+      'smallest safe optimization',
+      'readability, security, and operability',
+      'approve / revise / block',
+    ],
+    'code optimization refactor plan prompt skill',
+    errors,
+    files.codeOptimizationRefactorPlanSkill.relativePath,
+  );
+  requireTerms(
     contents.moduleHelp,
     [
       'Core,bmad-loop,',
@@ -735,8 +878,10 @@ function validateBmadLoopInvariants(options = {}) {
       'Core,bmad-architecture-drift-review,',
       'Core,bmad-tool-leverage-review,',
       'Core,bmad-highest-leverage-official-mcp-addition,',
-      'Core,bmad-capability-refactor-plan,',
-      'Capability Best-Practice Refactor Plan,CBR',
+      'Core,bmad-capability-refactor-plan-prompt,',
+      'Capability Refactor Plan Prompt,CBR',
+      'Core,bmad-code-optimization-refactor-plan-prompt,',
+      'Code Optimization Refactor Plan Prompt,OPT',
     ],
     'module-help.csv',
     errors,
@@ -757,6 +902,14 @@ function validateBmadLoopInvariants(options = {}) {
     errors,
     files.workspaceSkill.relativePath,
     'LOOP_WORKSPACE_AUTHORITY',
+  );
+  requireNoTerms(
+    `${contents.partyModeSkill}\n${contents.skill}\n${contents.guide}\n${contents.prompt}\n${contents.checkpoint}\n${contents.partyGateTemplate}`,
+    PARTY_MODE_FORBIDDEN_TERMS,
+    'Party Mode consensus surfaces',
+    errors,
+    files.partyModeSkill.relativePath,
+    'PARTY_MODE_FORBIDDEN',
   );
   validateCheckpointExample(contents.checkpointExample, 'BMAD loop checkpoint example', files.checkpointExample.relativePath, errors);
   validatePackageScripts(contents.packageJson, files.packageJson.relativePath, errors);
@@ -817,6 +970,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  CONSENSUS_GATE_FIELDS,
+  CONSENSUS_GATE_TERMS,
   LOOP_FILES,
   LOOP_INVARIANTS,
   LOOP_RUN_CONFIG_FIELDS,
