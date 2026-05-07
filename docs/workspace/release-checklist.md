@@ -19,6 +19,8 @@ Use this checklist before pushing Workspace changes.
   manager policy explicitly allows both lockfiles.
 - Confirm Workspace docs, source skill, CLI help, and tests list the same
   command set, options, and command classes.
+- Review [Operator Readiness](./operator-readiness.md) as the readiness-gap closure path
+  for Workspace/TOML/Graphify operator checks.
 - Confirm `tools/workspace/command-registry.js` remains the source of truth for
   Workspace command metadata.
 - Confirm docs navigation separates current guidance from historical delivery

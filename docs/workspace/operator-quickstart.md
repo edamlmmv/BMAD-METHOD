@@ -13,6 +13,9 @@ Workspace is manual evidence only. It does not execute stored commands, schedule
 work, restore archives, replay results, merge branches, promote changes, or call
 live adapters.
 
+Use [Operator Readiness](./operator-readiness.md) for the readiness-gap closure
+checklist before claiming Workspace/TOML/Graphify readiness.
+
 ## First-Hour Flow
 
 | I need to | Command | Artifact to inspect next |

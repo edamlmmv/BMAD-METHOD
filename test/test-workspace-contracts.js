@@ -1394,6 +1394,7 @@ function runTests() {
     const sessionLifecyclePath = path.join(workspaceDocsRoot, 'session-lifecycle.md');
     const guardrailsPath = path.join(workspaceDocsRoot, 'guardrails.md');
     const releaseChecklistPath = path.join(workspaceDocsRoot, 'release-checklist.md');
+    const operatorReadinessPath = path.join(workspaceDocsRoot, 'operator-readiness.md');
     const selfImprovementCodexPath = path.join(workspaceDocsRoot, 'self-improvement-codex.md');
     const templateIndexPath = path.join(workspaceDocsRoot, 'templates', 'index.md');
     const capabilityRequestTemplatePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.template.json');
@@ -1435,6 +1436,7 @@ function runTests() {
       'command-contract.md',
       'operator-quickstart.md',
       'operator-guide.md',
+      'operator-readiness.md',
       'architecture.md',
       'prd.md',
       'capability-contract.md',
@@ -1482,6 +1484,7 @@ function runTests() {
       './command-contract.md',
       './operator-quickstart.md',
       './operator-guide.md',
+      './operator-readiness.md',
       './architecture.md',
       './capability-contract.md',
       './capability-profile-registry.json',
@@ -1499,6 +1502,48 @@ function runTests() {
       index.includes('Capability Verification is declared-contract compatibility'),
       'workspace index defines verifier boundary',
       index,
+    );
+
+    const operatorReadiness = fs.existsSync(operatorReadinessPath) ? fs.readFileSync(operatorReadinessPath, 'utf8') : '';
+    const operatorReadinessRequiredText = [
+      'AC-OPR-01',
+      'AC-OPR-02',
+      'AC-OPR-03',
+      'AC-OPR-04',
+      'AC-OPR-05',
+      'AC-OPR-06',
+      'AC-OPR-07',
+      'Operator Goal',
+      'First 10 Minutes',
+      'Readiness Checklist',
+      'Evidence Sources',
+      'Not Authority',
+      'Boundaries',
+      'Push Gate',
+      'non-authoritative',
+      'BMAD Operator',
+      'self-contained Capability Request JSON only',
+      'graph/*.graph.json',
+      'npm run validate:graphify-manifests',
+      'advisory evidence only',
+      'Graphify may inform readiness',
+      'never gates readiness',
+      'no TOML mutation by default',
+      '_bmad/custom is not verifier input',
+      'npm ci && npm run quality',
+    ];
+    for (const text of operatorReadinessRequiredText) {
+      assert(operatorReadiness.includes(text), `operator readiness doc includes ${text}`, operatorReadiness);
+    }
+    assert(
+      /fixtures\/manifests are evidence inputs, not authority/i.test(operatorReadiness),
+      'operator readiness doc keeps fixtures and manifests as evidence, not authority',
+      operatorReadiness,
+    );
+    assert(
+      /public CLI\/API\/schema|public CLI, API, or schema/i.test(operatorReadiness),
+      'operator readiness doc rejects public CLI/API/schema changes',
+      operatorReadiness,
     );
     const codexEvidencePlan = fs.existsSync(codexEvidencePlanPath) ? fs.readFileSync(codexEvidencePlanPath, 'utf8') : '';
     const customizeCodexMcpPlanning = fs.existsSync(customizeCodexMcpPlanningPath)
@@ -1693,9 +1738,9 @@ function runTests() {
       assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
     }
 
-    assert(historyArchive.includes('Source artifacts compiled: 68'), 'history archive records source artifact count');
-    assert(historyArchive.includes('Release groups compiled: 22'), 'history archive records release group count');
-    assert(historyArchive.includes('Compact entries compiled: 5'), 'history archive records compact entry count');
+    assert(historyArchive.includes('Source artifacts compiled: 69'), 'history archive records source artifact count');
+    assert(historyArchive.includes('Release groups compiled: 23'), 'history archive records release group count');
+    assert(historyArchive.includes('Compact entries compiled: 6'), 'history archive records compact entry count');
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
@@ -1708,6 +1753,8 @@ function runTests() {
     assert(historyArchive.includes(`${'V'}23 hardens Workspace for review and merge`), 'history records release hardening plan');
     assert(historyArchive.includes(`${'V'}24 records a readiness assessment`), 'history records readiness assessment plan');
     assert(historyArchive.includes('readiness-verdict-ready-with-gaps'), 'history records readiness assessment anchors');
+    assert(historyArchive.includes(`${'V'}25 turns the ${'V'}24`), 'history records operator readiness closure plan');
+    assert(historyArchive.includes('v25-readiness-closure-candidate'), 'history records readiness closure candidate anchor');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
@@ -1749,6 +1796,8 @@ function runTests() {
       'Historical delivery notes are compiled under',
       'stable contract names',
       'Capability Verifier',
+      './operator-readiness.md',
+      'readiness-gap closure',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist includes ${text}`, releaseReadiness);
     }
@@ -2117,6 +2166,8 @@ function runTests() {
       '```mermaid',
       'verify-archive',
       'manual evidence only',
+      './operator-readiness.md',
+      'readiness-gap',
     ]) {
       assert(operatorQuickstart.includes(text), `operator quickstart includes ${text}`, operatorQuickstart);
     }

@@ -19,6 +19,7 @@ CLI records reviewable evidence.
 | Current command contract and output rules | [Command Contract](./command-contract.md) |
 | First-hour operator path | [Operator Quickstart](./operator-quickstart.md) |
 | Manual operator sequence | [Operator Guide](./operator-guide.md) |
+| Readiness-gap closure for operators | [Operator Readiness](./operator-readiness.md) |
 | Codex self-improvement workflow | [Manual bmad-self-improve Operator Runbook](./self-improvement-codex.md) |
 | Current system summary | [Current State](./current-state.md) |
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |

@@ -9,9 +9,9 @@ This archive replaces the scattered per-release BMAD planning files that previou
 
 ## Compilation Scope
 
-- Source artifacts compiled: 68
-- Release groups compiled: 22
-- Compact entries compiled: 5
+- Source artifacts compiled: 69
+- Release groups compiled: 23
+- Compact entries compiled: 6
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -546,6 +546,30 @@ This archive replaces the scattered per-release BMAD planning files that previou
   - No push-readiness claim until `npm ci && npm run quality` passes on exact `HEAD`.
 - Acceptance anchors: readiness-verdict-ready-with-gaps, authority-order-preserved, capability-fixtures-ok, graphify-static-evidence-valid, toml-no-mutation-needed, low-findings-disposition, workspace-validation-green, pre-push-quality-deferred
 - Traceability markers: Evidence, Validation, Readiness Gap
+
+### V25
+
+- Compiled artifacts: Consensus Plan, Operator Readiness UX, Contract Tests, Link Updates, Validation Plan
+- Consensus Plan: Party Mode aligned on a tiny BMAD Operator readiness artifact that closes the V24 UX gap without expanding Workspace behavior
+- Operator Readiness UX: `docs/workspace/operator-readiness.md` is a non-authoritative one-page runbook for finding authority docs, checking evidence inputs, preserving Graphify/TOML/verifier boundaries, and applying the exact push gate
+- Contract Tests: Workspace contract tests cover the operator-readiness doc, inbound links, release-neutral AC-OPR labels, verifier input boundary, Graphify advisory boundary, TOML non-authority boundary, and compiled history anchor
+- Link Updates: Workspace index, Operator Quickstart, and Release Checklist point operators at the readiness-gap closure path
+- Validation Plan: Targeted checks cover Workspace contracts, refs, skills, Graphify manifests, capability fixtures, and the exact pre-push `npm ci && npm run quality` gate
+- Overview: V25 turns the V24 `ready with gaps` UX caveat into an operator-facing readiness closure candidate. It keeps authority in existing Workspace contract docs and release rules only; committed fixtures, manifests, and Graphify static artifacts remain evidence inputs, not authority.
+- Goals:
+  - Give a BMAD Operator a concise readiness path without maintainer context.
+  - Preserve self-contained Capability Request JSON as the only verifier input.
+  - Keep checked-in Graphify graph files and manifest validation advisory only.
+  - Keep TOML/customize out of verifier, grant, runtime, and hidden-execution authority.
+  - Preserve the exact release push gate on `HEAD`.
+- Non-goals:
+  - No public CLI/API/schema change.
+  - No TOML file or behavior change.
+  - No Graphify behavior change.
+  - No verifier behavior change.
+  - No scheduler, watcher, replay, restore, merge, promotion, or live adapter behavior.
+- Acceptance anchors: v25-readiness-closure-candidate, ac-v25-01-operator-runbook, ac-v25-02-inbound-links, ac-v25-03-verifier-json-only, ac-v25-04-graphify-advisory-only, ac-v25-05-toml-not-authority, ac-v25-06-history-count-convention, ac-v25-07-exact-head-push-gate
+- Traceability markers: Evidence, Operator UX, Boundary, Test Target
 
 ## Old Artifact Removal
 
