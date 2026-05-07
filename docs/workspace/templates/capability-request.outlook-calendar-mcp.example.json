@@ -1,0 +1,124 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.outlook-calendar.remote",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "outlook-calendar-mcp",
+    "interface": "remote-calendar-mcp",
+    "writes": ["external/outlook-calendar/events"],
+    "outputs": ["outlook-calendar-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.outlook-calendar.remote",
+      "group": "host.mcp",
+      "provider": "outlook-calendar-mcp",
+      "interface": "remote-calendar-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": false,
+      "requiresGrant": true,
+      "writes": ["external/outlook-calendar/events"],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "microsoft-graph-permission-change",
+        "oauth-token-store",
+        "mailbox-state"
+      ],
+      "outputs": ["outlook-calendar-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "OUTLOOK_CALENDAR_MCP_SOURCE_REGISTER",
+      "message": "Microsoft Graph calendar docs and Codex MCP docs were reviewed for Outlook Calendar MCP planning context only.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "sources": [
+          {
+            "sourceId": "microsoft_graph_calendar_events",
+            "title": "List events",
+            "sourceUrl": "https://learn.microsoft.com/en-us/graph/api/calendar-list-events?view=graph-rest-1.0",
+            "publisher": "Microsoft Learn",
+            "usedFor": ["calendar events vocabulary", "delegated/application permission boundary", "event collection shape"],
+            "doNotUseFor": ["live MCP proof", "OAuth proof", "Workspace verifier input"]
+          },
+          {
+            "sourceId": "microsoft_graph_find_meeting_times",
+            "title": "user: findMeetingTimes",
+            "sourceUrl": "https://learn.microsoft.com/en-us/graph/api/user-findmeetingtimes?view=graph-rest-1.0",
+            "publisher": "Microsoft Learn",
+            "usedFor": ["availability vocabulary", "meeting time suggestion boundary"],
+            "doNotUseFor": ["mailbox state proof", "Workspace verifier input"]
+          },
+          {
+            "sourceId": "office_addins_platform_overview",
+            "title": "Office Add-ins platform overview",
+            "sourceUrl": "https://learn.microsoft.com/en-us/office/dev/add-ins/overview/office-add-ins",
+            "publisher": "Microsoft Learn",
+            "usedFor": ["Office.js add-in runtime boundary", "manifest and host vocabulary"],
+            "doNotUseFor": ["remote MCP proof", "Workspace verifier input"]
+          },
+          {
+            "sourceId": "office_js_outlook_apis",
+            "title": "Outlook add-in APIs",
+            "sourceUrl": "https://learn.microsoft.com/office/dev/add-ins/outlook/apis",
+            "publisher": "Microsoft Learn",
+            "usedFor": ["Office.js Outlook item API vocabulary", "client add-in boundary"],
+            "doNotUseFor": ["Microsoft Graph permission proof", "Workspace verifier input"]
+          },
+          {
+            "sourceId": "openai_codex_mcp_docs",
+            "title": "Model Context Protocol for Codex",
+            "sourceUrl": "https://developers.openai.com/codex/mcp",
+            "publisher": "OpenAI Developers",
+            "usedFor": ["Codex MCP host boundary", "remote MCP setup vocabulary"],
+            "doNotUseFor": ["Microsoft product claims", "Workspace verifier input"]
+          },
+          {
+            "sourceId": "bmad_workspace_capability_contract",
+            "title": "BMAD Workspace Capability Contract",
+            "sourceUrl": "docs/workspace/capability-contract.md",
+            "publisher": "BMAD-METHOD",
+            "usedFor": ["declared capability schema", "exact id matching", "sealed verifier invariant"],
+            "doNotUseFor": ["Microsoft external product claims"]
+          }
+        ]
+      }
+    },
+    {
+      "code": "OUTLOOK_CALENDAR_MCP_CONTRACT_DRAFT",
+      "message": "Outlook Calendar declaration metadata is advisory context; unsupported fields stay out of capabilities[].",
+      "details": {
+        "candidateId": "host.mcp.outlook-calendar.remote",
+        "supportState": "experimental",
+        "provider": "outlook-calendar-mcp",
+        "interface": "remote-calendar-mcp",
+        "output": "outlook-calendar-mcp-operator-evidence.json",
+        "boundary": "declaration-only; live MCP discovery, Outlook Calendar connector availability, Microsoft Graph permissions, Office.js add-in runtime state, local OAuth setup, token cache, mailbox state, and calendar contents are not verifier input and not Workspace authority"
+      }
+    },
+    {
+      "code": "OUTLOOK_CALENDAR_MCP_AUTH_BOUNDARY",
+      "message": "Authorization state is operator-owned and may be recorded only as set or unset.",
+      "details": {
+        "credentialEvidence": "OUTLOOK_CALENDAR_AUTH=set|unset",
+        "forbiddenStorage": [
+          "OAuth tokens",
+          "refresh tokens",
+          "mailbox screenshots",
+          "event payloads",
+          "calendar contents",
+          "logs",
+          "fixtures"
+        ]
+      }
+    }
+  ]
+}

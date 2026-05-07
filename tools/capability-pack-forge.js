@@ -13,8 +13,8 @@ const ARTIFACTS = Object.freeze([
   },
   {
     path: 'capability-request.json',
-    kind: 'bmad-workspace-capability-request',
-    role: 'offline verifier-compatible draft',
+    kind: 'bmad-capability-request-artifact',
+    role: 'verifier-ready or draft capability request artifact',
   },
   {
     path: 'operator-evidence-template.json',
@@ -42,6 +42,8 @@ const ARTIFACTS = Object.freeze([
     role: 'instruction draft only',
   },
 ]);
+const PACK_MODES = Object.freeze(['verifier-ready', 'draft-authoring']);
+const SOURCE_TYPES = Object.freeze(['context7', 'local_docs', 'manual_contract', 'repo_template', 'other']);
 
 function parseArgs(argv) {
   const args = {};
@@ -91,56 +93,56 @@ function runForge({ inputPath, outputDir }) {
   const request = parseJson(requestContent, 'FORGE_REQUEST_INVALID', resolvedInputPath);
   validateForgeRequest(request);
 
-  const capabilityRequestPath = resolveLocalRef(requestRoot, request.capabilityRequestRef, '$.capabilityRequestRef');
-  const context7EvidencePath = resolveLocalRef(requestRoot, request.context7EvidenceRef, '$.context7EvidenceRef');
-  const capabilityRequestContent = readFile(capabilityRequestPath, 'FORGE_INPUT_READ_FAILED');
-  const context7EvidenceContent = readFile(context7EvidencePath, 'FORGE_INPUT_READ_FAILED');
-  assertNoSecrets(capabilityRequestContent, request.capabilityRequestRef);
-  assertNoSecrets(context7EvidenceContent, request.context7EvidenceRef);
+  const packMode = request.packMode || 'verifier-ready';
+  const evidenceRefs = normalizeEvidenceRefs(request);
+  const inputs = [];
+  let capabilityRequest;
 
-  const capabilityRequest = parseJson(capabilityRequestContent, 'FORGE_INPUT_INVALID', capabilityRequestPath);
-  const context7Evidence = parseJson(context7EvidenceContent, 'FORGE_INPUT_INVALID', context7EvidencePath);
-  const verdict = verifyCapabilityRequest(capabilityRequest);
-  if (!verdict.ok) {
-    throw forgeError('FORGE_CAPABILITY_REQUEST_INVALID', JSON.stringify(verdict.errors));
+  if (request.capabilityRequestRef) {
+    const capabilityRequestPath = resolveLocalRef(requestRoot, request.capabilityRequestRef, '$.capabilityRequestRef');
+    const capabilityRequestContent = readFile(capabilityRequestPath, 'FORGE_INPUT_READ_FAILED');
+    assertNoSecrets(capabilityRequestContent, request.capabilityRequestRef);
+    capabilityRequest = parseJson(capabilityRequestContent, 'FORGE_INPUT_INVALID', capabilityRequestPath);
+    if (packMode === 'verifier-ready') {
+      const verdict = verifyCapabilityRequest(capabilityRequest);
+      if (!verdict.ok) {
+        throw forgeError('FORGE_CAPABILITY_REQUEST_INVALID', JSON.stringify(verdict.errors));
+      }
+    }
+    inputs.push(
+      createInputRecord(
+        'capability-request',
+        capabilityRequest.kind || 'capability-request',
+        request.capabilityRequestRef,
+        packMode === 'verifier-ready' ? 'declared capability request' : 'draft capability request reference',
+        'manual_contract',
+        capabilityRequestContent,
+      ),
+    );
+  } else {
+    capabilityRequest = createDraftCapabilityRequest(request);
   }
 
-  const inputs = [
-    createInputRecord(
-      'capability-request',
-      capabilityRequest.kind,
-      request.capabilityRequestRef,
-      'declared capability request',
-      capabilityRequestContent,
-    ),
-    createInputRecord(
-      'context7-docs-evidence',
-      context7Evidence.kind || 'context7-docs-operator-evidence',
-      request.context7EvidenceRef,
-      'advisory docs evidence',
-      context7EvidenceContent,
-    ),
-  ];
-
   const seenInputIds = new Set(inputs.map((input) => input.id));
-  for (const evidenceRef of request.evidenceRefs || []) {
-    resolveLocalRef(requestRoot, evidenceRef.path, `$.evidenceRefs.${evidenceRef.id}.path`);
-    const evidencePath = path.resolve(requestRoot, evidenceRef.path);
+  for (const evidenceRef of evidenceRefs) {
+    const evidencePath = resolveLocalRef(requestRoot, evidenceRef.path, `$.evidenceRefs.${evidenceRef.id}.path`);
     const evidenceContent = readFile(evidencePath, 'FORGE_INPUT_READ_FAILED');
     assertNoSecrets(evidenceContent, evidenceRef.path);
     if (seenInputIds.has(evidenceRef.id)) {
       continue;
     }
     seenInputIds.add(evidenceRef.id);
-    inputs.push(createInputRecord(evidenceRef.id, evidenceRef.kind, evidenceRef.path, evidenceRef.role, evidenceContent));
+    inputs.push(
+      createInputRecord(evidenceRef.id, evidenceRef.kind, evidenceRef.path, evidenceRef.role, evidenceRef.sourceType, evidenceContent),
+    );
   }
 
-  const pack = createCapabilityPack({ request, inputs });
+  const pack = createCapabilityPack({ request, inputs, packMode });
   validateCapabilityPack(pack);
 
   const resolvedOutputDir = path.resolve(outputDir);
   prepareOutputDir(resolvedOutputDir);
-  const files = createArtifactFiles({ request, pack, capabilityRequest, context7Evidence });
+  const files = createArtifactFiles({ request, pack, capabilityRequest, evidenceRefs, packMode });
   for (const [relativePath, content] of Object.entries(files)) {
     writeOutputFile(resolvedOutputDir, relativePath, content);
   }
@@ -167,8 +169,21 @@ function validateForgeRequest(request) {
   for (const field of ['id', 'displayName', 'summary']) {
     requireNonEmptyString(request.capability[field], `$.capability.${field}`);
   }
-  requireLocalRefString(request.context7EvidenceRef, '$.context7EvidenceRef');
-  requireLocalRefString(request.capabilityRequestRef, '$.capabilityRequestRef');
+  const packMode = request.packMode || 'verifier-ready';
+  if (!PACK_MODES.includes(packMode)) {
+    throw forgeError('FORGE_REQUEST_INVALID', '$.packMode must be verifier-ready or draft-authoring');
+  }
+  if (packMode === 'verifier-ready') {
+    requireLocalRefString(request.capabilityRequestRef, '$.capabilityRequestRef');
+  } else if ('capabilityRequestRef' in request) {
+    requireLocalRefString(request.capabilityRequestRef, '$.capabilityRequestRef');
+  }
+  if ('context7EvidenceRef' in request) {
+    requireLocalRefString(request.context7EvidenceRef, '$.context7EvidenceRef');
+  }
+  if ('primaryEvidenceRef' in request) {
+    requireNonEmptyString(request.primaryEvidenceRef, '$.primaryEvidenceRef');
+  }
   if ('targetCustomizationSurface' in request) {
     requireNonEmptyString(request.targetCustomizationSurface, '$.targetCustomizationSurface');
   }
@@ -185,6 +200,9 @@ function validateForgeRequest(request) {
   if ('evidenceRefs' in request && !Array.isArray(request.evidenceRefs)) {
     throw forgeError('FORGE_REQUEST_INVALID', '$.evidenceRefs must be an array');
   }
+  if (!request.context7EvidenceRef && (!Array.isArray(request.evidenceRefs) || request.evidenceRefs.length === 0)) {
+    throw forgeError('FORGE_REQUEST_INVALID', '$.evidenceRefs must be non-empty when $.context7EvidenceRef is absent');
+  }
   for (const [index, evidenceRef] of (request.evidenceRefs || []).entries()) {
     if (!isObject(evidenceRef)) {
       throw forgeError('FORGE_REQUEST_INVALID', `$.evidenceRefs[${index}] must be an object`);
@@ -192,11 +210,55 @@ function validateForgeRequest(request) {
     for (const field of ['id', 'kind', 'path', 'role']) {
       requireNonEmptyString(evidenceRef[field], `$.evidenceRefs[${index}].${field}`);
     }
+    if ('sourceType' in evidenceRef && !SOURCE_TYPES.includes(evidenceRef.sourceType)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `$.evidenceRefs[${index}].sourceType must be a supported source type`);
+    }
     requireLocalRefString(evidenceRef.path, `$.evidenceRefs[${index}].path`);
+  }
+  if (request.primaryEvidenceRef) {
+    const evidenceIds = new Set((request.evidenceRefs || []).map((ref) => ref.id));
+    if (!evidenceIds.has(request.primaryEvidenceRef)) {
+      throw forgeError('FORGE_REQUEST_INVALID', '$.primaryEvidenceRef must reference evidenceRefs[].id');
+    }
   }
 }
 
-function createCapabilityPack({ request, inputs }) {
+function normalizeEvidenceRefs(request) {
+  const context7Path = request.context7EvidenceRef;
+  const refs = (request.evidenceRefs || []).map((ref) => ({
+    id: ref.id,
+    kind: ref.kind,
+    path: ref.path,
+    role: ref.role,
+    sourceType: ref.sourceType || (context7Path && ref.path === context7Path ? 'context7' : 'other'),
+  }));
+  if (context7Path && !refs.some((ref) => ref.path === context7Path)) {
+    refs.push({
+      id: 'context7-docs-evidence',
+      kind: 'context7-docs-operator-evidence',
+      path: context7Path,
+      role: 'advisory-docs',
+      sourceType: 'context7',
+    });
+  }
+  return refs;
+}
+
+function createCapabilityPack({ request, inputs, packMode }) {
+  const status =
+    packMode === 'verifier-ready'
+      ? {
+          packMode,
+          verificationStatus: 'ready',
+          label: 'Ready',
+          summary: 'Verifier contract exists and the supplied capability request verified offline.',
+        }
+      : {
+          packMode,
+          verificationStatus: 'draft_no_contract',
+          label: 'Draft',
+          summary: 'Draft authoring artifacts only; no verifier compatibility is claimed.',
+        };
   return {
     kind: 'bmad-capability-pack',
     schemaVersion: 1,
@@ -209,6 +271,7 @@ function createCapabilityPack({ request, inputs }) {
       displayName: request.capability.displayName,
       summary: request.capability.summary,
     },
+    status,
     inputs,
     artifacts: ARTIFACTS.map((artifact) => ({ ...artifact })),
     boundaries: [
@@ -227,7 +290,9 @@ function createCapabilityPack({ request, inputs }) {
       required: true,
       nextSteps: [
         'Review generated artifacts before use.',
-        'Run bmad workspace verify-capability on capability-request.json when verifier evidence is needed.',
+        packMode === 'verifier-ready'
+          ? 'Run bmad workspace verify-capability on capability-request.json when verifier evidence is needed.'
+          : 'Do not treat capability-request.json as verifier input until a declared contract is added.',
         'Route customization-draft.toml through bmad-customize before any override is written.',
         'Treat codex-task-packet.md as an instruction draft, not an execution trigger.',
       ],
@@ -252,11 +317,20 @@ function validateCapabilityPack(pack) {
   requireNonEmptyString(pack.capability?.id, '$.capability.id');
   requireNonEmptyString(pack.capability?.displayName, '$.capability.displayName');
   requireNonEmptyString(pack.capability?.summary, '$.capability.summary');
+  if (!isObject(pack.status)) {
+    throw forgeError('FORGE_PACK_INVALID', '$.status must be an object');
+  }
+  for (const field of ['packMode', 'verificationStatus', 'label', 'summary']) {
+    requireNonEmptyString(pack.status[field], `$.status.${field}`);
+  }
+  if (!PACK_MODES.includes(pack.status.packMode)) {
+    throw forgeError('FORGE_PACK_INVALID', '$.status.packMode must be supported');
+  }
   if (!Array.isArray(pack.inputs) || pack.inputs.length === 0) {
     throw forgeError('FORGE_PACK_INVALID', '$.inputs must be non-empty');
   }
   for (const input of pack.inputs) {
-    for (const field of ['id', 'kind', 'path', 'role', 'sha256']) {
+    for (const field of ['id', 'kind', 'path', 'role', 'sourceType', 'sha256']) {
       requireNonEmptyString(input[field], `$.inputs.${field}`);
     }
     if (!/^[a-f0-9]{64}$/.test(input.sha256)) {
@@ -278,27 +352,32 @@ function validateCapabilityPack(pack) {
   }
 }
 
-function createArtifactFiles({ request, pack, capabilityRequest, context7Evidence }) {
+function createArtifactFiles({ request, pack, capabilityRequest, evidenceRefs, packMode }) {
   return {
     'capability-pack.json': `${JSON.stringify(pack, null, 2)}\n`,
     'capability-request.json': `${JSON.stringify(capabilityRequest, null, 2)}\n`,
-    'operator-evidence-template.json': `${JSON.stringify(createOperatorEvidenceTemplate(request, context7Evidence), null, 2)}\n`,
+    'operator-evidence-template.json': `${JSON.stringify(createOperatorEvidenceTemplate(request, evidenceRefs, packMode), null, 2)}\n`,
     'customization-draft.toml': createCustomizationDraft(request),
     'skill-outline.md': createSkillOutline(request),
-    'readiness-checklist.md': createReadinessChecklist(request),
+    'readiness-checklist.md': createReadinessChecklist(request, packMode),
     'codex-task-packet.md': createCodexTaskPacket(request),
   };
 }
 
-function createOperatorEvidenceTemplate(request, context7Evidence) {
+function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
   return {
     kind: 'capability-pack-operator-evidence-template',
     schemaVersion: 1,
     capabilityId: request.capability.id,
+    packMode,
     observer: 'Codex operator',
-    evidenceRefs: (request.evidenceRefs || []).map((ref) => ({ id: ref.id, path: ref.path, role: ref.role })),
-    context7EvidenceKind: context7Evidence.kind || 'context7-docs-operator-evidence',
-    credentialEvidence: 'CONTEXT7_API_KEY=set|unset',
+    evidenceRefs: evidenceRefs.map((ref) => ({
+      id: ref.id,
+      path: ref.path,
+      role: ref.role,
+      sourceType: ref.sourceType,
+    })),
+    credentialEvidence: 'Record set|unset only when evidence source needs a credential.',
     credentialValue: '[REDACTED]',
     pass: false,
     boundary:
@@ -346,11 +425,15 @@ function createSkillOutline(request) {
   ].join('\n');
 }
 
-function createReadinessChecklist(request) {
+function createReadinessChecklist(request, packMode) {
+  const verifierLine =
+    packMode === 'verifier-ready'
+      ? '- [ ] Capability request verifies offline with `bmad workspace verify-capability`.'
+      : '- [ ] Draft-authoring pack is marked not verifier-declared until a contract/template/test path exists.';
   return [
     `# ${request.capability.displayName} Readiness Checklist`,
     '',
-    '- [ ] Capability request verifies offline with `bmad workspace verify-capability`.',
+    verifierLine,
     '- [ ] Evidence refs are local files and advisory only.',
     '- [ ] No raw secrets, query results, or runtime credentials are stored.',
     '- [ ] Customization draft is routed through `bmad-customize` before use.',
@@ -377,7 +460,7 @@ function createCodexTaskPacket(request) {
     '',
     '## Guardrails',
     '',
-    '- Do not call live Context7, MCP, Docker, PostgreSQL, Git, Codex app-server, Apple Passwords, keychain, or network.',
+    '- Do not call live evidence providers, MCP, Docker, PostgreSQL, Git, Codex app-server, secret stores, keychain, or network.',
     '- Do not change `bmad workspace` command registry.',
     '- Do not change `verify-capability` behavior.',
     '- Do not treat `_bmad/custom` as authority.',
@@ -413,12 +496,28 @@ function createManifest(files) {
   };
 }
 
-function createInputRecord(id, kind, refPath, role, content) {
+function createDraftCapabilityRequest(request) {
+  return {
+    kind: 'bmad-workspace-capability-request-draft',
+    schemaVersion: 1,
+    verificationStatus: 'draft_no_contract',
+    capability: {
+      id: request.capability.id,
+      displayName: request.capability.displayName,
+      summary: request.capability.summary,
+    },
+    boundary:
+      'Draft authoring artifact only; not verifier input, not grant authority, not runtime authority, and not Workspace command authority.',
+  };
+}
+
+function createInputRecord(id, kind, refPath, role, sourceType, content) {
   return {
     id,
     kind,
     path: normalizePosix(refPath),
     role,
+    sourceType,
     sha256: sha256(content),
   };
 }

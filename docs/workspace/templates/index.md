@@ -24,6 +24,7 @@ description: Index of BMAD Workspace templates
 - **[capability-request.git-worktree-review.example.json](./capability-request.git-worktree-review.example.json)** - Git Worktree Review capability request example
 - **[capability-request.graphify-repo-intake.example.json](./capability-request.graphify-repo-intake.example.json)** - Graphify repo-intake capability request example
 - **[capability-request.google-calendar-mcp.example.json](./capability-request.google-calendar-mcp.example.json)** - Google Calendar remote MCP capability request example
+- **[capability-request.outlook-calendar-mcp.example.json](./capability-request.outlook-calendar-mcp.example.json)** - Outlook Calendar remote MCP capability request example
 - **[capability-request.template.json](./capability-request.template.json)** - Declared capability verification request example
 - **[capability-request.postgresql-mcp-readonly.example.json](./capability-request.postgresql-mcp-readonly.example.json)** - PostgreSQL MCP read-only capability request example
 - **[browser-affordance-evidence.template.json](./browser-affordance-evidence.template.json)** - Manual browser and desktop affordance evidence template
@@ -33,6 +34,7 @@ description: Index of BMAD Workspace templates
 - **[git-mcp-operator-evidence.template.json](./git-mcp-operator-evidence.template.json)** - Manual Git MCP operator evidence template
 - **[highest-leverage-official-mcp-addition.template.md](./highest-leverage-official-mcp-addition.template.md)** - Capability Improvement Toolkit official MCP addition review template
 - **[loop-party-mode-gate.template.md](./loop-party-mode-gate.template.md)** - Generic Party Mode gate output for loop-specific planning
+- **[outlook-calendar-mcp-operator-evidence.template.json](./outlook-calendar-mcp-operator-evidence.template.json)** - Manual Outlook Calendar MCP operator evidence template
 - **[postgres-mcp-operator-evidence.template.json](./postgres-mcp-operator-evidence.template.json)** - Manual PostgreSQL MCP read-only operator evidence template
 - **[self-improvement-checkpoint.template.md](./self-improvement-checkpoint.template.md)** - Checkpoint template for BMAD self-improvement automation runs
 - **[self-improvement-codex-prompt.md](./self-improvement-codex-prompt.md)** - Codex prompt for local automation-capable BMAD self-improvement runs

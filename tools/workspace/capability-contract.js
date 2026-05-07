@@ -160,6 +160,28 @@ function createCapabilityContract(workspaceBasePath) {
         outputs: ['calendar-mcp-operator-evidence.json'],
         upstreamGapProofRequired: false,
       },
+      {
+        id: 'host.mcp.outlook-calendar.remote',
+        group: 'host.mcp',
+        provider: 'outlook-calendar-mcp',
+        interface: 'remote-calendar-mcp',
+        allowedInNormalSession: true,
+        allowedInBaseImprovement: false,
+        requiresGrant: true,
+        writes: ['external/outlook-calendar/events'],
+        forbiddenWrites: [
+          'workspace-base',
+          'target-repo',
+          'scheduler',
+          'daemon',
+          'live-adapter',
+          'microsoft-graph-permission-change',
+          'oauth-token-store',
+          'mailbox-state',
+        ],
+        outputs: ['outlook-calendar-mcp-operator-evidence.json'],
+        upstreamGapProofRequired: false,
+      },
     ],
   };
 }

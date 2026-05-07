@@ -28,6 +28,7 @@ CLI records reviewable evidence.
 | Capability pack artifact generator | [Capability Pack Forge](./capability-pack-forge.md) |
 | Customize and Codex MCP planning boundary | [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) |
 | Google Calendar MCP capability planning boundary | [Google Calendar Capability Planning](./google-calendar-capability-planning.md) |
+| Outlook Calendar MCP capability planning boundary | [Outlook Calendar Capability Planning](./outlook-calendar-capability-planning.md) |
 | Docker MCP Toolkit and Context7 secret-safe planning | [Docker MCP Toolkit And Context7 Planning](./docker-mcp-context7-planning.md) |
 | PostgreSQL MCP capability planning boundary | [PostgreSQL MCP Capability Planning](./postgresql-mcp-capability-planning.md) |
 | Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
@@ -100,6 +101,13 @@ Workspace MCP, Google Calendar API, a Codex Google Calendar connector, or the
 target repo `/Users/edam/Documents/TODA/toda-gsuite-plugin`. The portable
 example is
 [Google Calendar MCP Capability Request](./templates/capability-request.google-calendar-mcp.example.json).
+
+Use [Outlook Calendar Capability Planning](./outlook-calendar-capability-planning.md)
+when a customization or Workspace discussion mentions Outlook Calendar MCP,
+Microsoft Graph calendar APIs, Microsoft 365 calendar connectors, or Office.js
+Outlook add-ins. The portable example is
+[Outlook Calendar MCP Capability Request](./templates/capability-request.outlook-calendar-mcp.example.json).
+Office.js remains advisory add-in/runtime context and is not verifier input.
 
 Use [Docker MCP Toolkit And Context7 Planning](./docker-mcp-context7-planning.md)
 when a customization or Workspace discussion mentions Docker MCP Toolkit,

@@ -1,20 +1,22 @@
 {
   "kind": "bmad-capability-pack-forge-request",
   "schemaVersion": 1,
+  "packMode": "verifier-ready",
   "capability": {
     "id": "host.mcp.context7.docs",
     "displayName": "Context7 Docs MCP",
-    "summary": "Draft a BMAD capability pack from local Context7 docs evidence."
+    "summary": "Draft a BMAD capability pack from local evidence refs."
   },
-  "context7EvidenceRef": "context7-docs-operator-evidence.json",
   "capabilityRequestRef": "capability-request.context7-docs.example.json",
   "targetCustomizationSurface": "bmad-agent-dev",
+  "primaryEvidenceRef": "context7-docs",
   "evidenceRefs": [
     {
       "id": "context7-docs",
       "kind": "context7-docs-operator-evidence",
       "path": "context7-docs-operator-evidence.json",
-      "role": "advisory-docs"
+      "role": "advisory-docs",
+      "sourceType": "context7"
     }
   ],
   "acceptanceCriteria": [

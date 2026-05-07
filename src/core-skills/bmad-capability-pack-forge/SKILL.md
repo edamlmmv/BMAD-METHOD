@@ -1,6 +1,6 @@
 ---
 name: bmad-capability-pack-forge
-description: 'Generates draft BMAD capability-pack artifacts from local evidence files. Use when you need to turn Context7 docs evidence and optional Workspace evidence refs into reviewable capability request, readiness, customization, and Codex task drafts.'
+description: 'Generates draft BMAD capability-pack artifacts from local evidence files. Use when you need to turn evidence refs and optional Workspace Capability Requests into reviewable capability request, readiness, customization, and Codex task drafts.'
 ---
 
 # Capability Pack Forge
@@ -18,11 +18,12 @@ human reviews the output and chooses the next BMAD workflow.
 
 Use Forge when:
 
-- Context7 docs evidence should become a repeatable BMAD capability pack.
+- Local evidence refs should become a repeatable BMAD capability pack.
 - A Capability Request needs companion readiness, customization, and Codex task
   drafts.
-- Optional Graphify, PostgreSQL, Docker, Git, or Codex observations need to be
-  referenced as advisory evidence without becoming live integrations.
+- Optional Context7, Graphify, PostgreSQL, Docker, Git, Codex, Outlook, or
+  other observations need to be referenced as advisory evidence without becoming
+  live integrations.
 
 ## Command
 
@@ -35,11 +36,15 @@ relative paths under the request file directory.
 
 ## Inputs
 
-- Context7 docs evidence JSON.
-- Existing or candidate Workspace Capability Request JSON.
-- Optional Graphify, PostgreSQL, Docker, Git, or Codex evidence references.
+- `evidenceRefs[]` with local paths and `sourceType` such as `context7`,
+  `local_docs`, `manual_contract`, `repo_template`, or `other`.
+- Existing Workspace Capability Request JSON for `packMode: "verifier-ready"`.
+- Optional candidate/draft context for `packMode: "draft-authoring"`.
 - Optional target customization surface name.
 - Acceptance criteria.
+
+`context7EvidenceRef` is a deprecated compatibility alias that normalizes into
+`evidenceRefs[]`. Context7 is an evidence source, not a Forge requirement.
 
 ## Outputs
 

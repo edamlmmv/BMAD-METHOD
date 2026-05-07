@@ -31,7 +31,7 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 | `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI              |
 | `runtime.session`           | Provide sessions, tasks, goals, Cron, or Heartbeat.                                                     | OpenClaw, Hermes                 |
 | `repo.git`                  | Create worktrees, diff, status, commit, rollback.                                                       | Git                              |
-| `host.mcp`                  | Expose bounded tool and context surfaces.                                                               | MCP servers, Context7, Git MCP, Docker MCP Toolkit, PostgreSQL MCP, Google Calendar MCP |
+| `host.mcp`                  | Expose bounded tool and context surfaces.                                                               | MCP servers, Context7, Git MCP, Docker MCP Toolkit, PostgreSQL MCP, Google Calendar MCP, Outlook Calendar MCP |
 | `collab.github`             | Inspect issues, PRs, CI, and reviews.                                                                   | GitHub                           |
 
 ## Contract Sketch
@@ -128,6 +128,8 @@ Docker MCP Toolkit lives at
 `docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
 PostgreSQL MCP lives at
 `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
+Outlook Calendar MCP lives at
+`docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`.
 
 ### Git Worktree Review Capability
 
@@ -252,12 +254,27 @@ boundary and portable verifier example live at
 `docs/workspace/google-calendar-capability-planning.md` and
 `docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
 
+### Outlook Calendar Remote MCP Candidate
+
+`host.mcp.outlook-calendar.remote` declares an experimental `host.mcp`
+capability for Outlook Calendar remote MCP planning. It uses
+`provider: outlook-calendar-mcp`, `interface: remote-calendar-mcp`,
+`requiresGrant: true`, `writes: ["external/outlook-calendar/events"]`, and
+`outputs: ["outlook-calendar-mcp-operator-evidence.json"]`.
+
+This declaration is not a statement that Outlook Calendar MCP is configured, a
+connector is installed, Microsoft Graph permissions are granted, local OAuth is
+set up, a token cache exists, or mailbox state is available. The planning
+boundary and portable verifier example live at
+`docs/workspace/outlook-calendar-capability-planning.md` and
+`docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`.
+
 ## Capability Profile Registry
 
 The Capability Profile Registry is the advisory snapshot at
 `docs/workspace/capability-profile-registry.json`. It helps authors map named
 tools such as Codex, Graphify, Git, Context7 MCP, Git MCP, Docker MCP Toolkit,
-and PostgreSQL MCP to declared
+PostgreSQL MCP, and Outlook Calendar MCP to declared
 Workspace capability ids, support-state notes, evidence refs, trust boundaries,
 and repair hints. It may also inventory optional host MCP surfaces as advisory
 authoring context.

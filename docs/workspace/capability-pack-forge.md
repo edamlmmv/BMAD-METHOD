@@ -6,8 +6,8 @@ description: Local artifact generator for draft BMAD capability packs
 # Capability Pack Forge
 
 Capability Pack Forge turns local evidence files into reviewable BMAD
-capability-pack drafts. It helps operators move from Context7 docs evidence to
-repeatable BMAD artifacts without changing Workspace runtime behavior.
+capability-pack drafts. It helps operators move from evidence refs to repeatable
+BMAD artifacts without changing Workspace runtime behavior.
 
 ## Mental Model
 
@@ -22,7 +22,7 @@ live adapter, or `_bmad/custom` authority.
 | In v1 | Out of scope |
 | --- | --- |
 | Local `forge-request.json` input | Live Context7 or MCP calls |
-| Local Context7 docs evidence refs | Docker, PostgreSQL, Git, Graphify, or Codex execution |
+| Local evidence refs, including optional Context7 docs evidence | Docker, PostgreSQL, Git, Graphify, or Codex execution |
 | Existing or candidate Capability Request JSON | Workspace command additions |
 | Optional advisory evidence references | `verify-capability` behavior changes |
 | Draft TOML, skill, readiness, and Codex task artifacts | Skill install or `_bmad/custom` writes |
@@ -36,6 +36,15 @@ node tools/capability-pack-forge.js --input <forge-request.json> --output <dir>
 
 The request file and all evidence refs must be local files. Evidence refs are
 references, not integrations.
+
+Forge requests use `evidenceRefs[]` as the primary evidence input. Each ref
+records a local path plus `sourceType` such as `context7`, `local_docs`,
+`manual_contract`, `repo_template`, or `other`. The older `context7EvidenceRef`
+field is accepted as a compatibility alias and normalized into `evidenceRefs[]`.
+
+`packMode: "verifier-ready"` requires a verifier-compatible
+`capabilityRequestRef`. `packMode: "draft-authoring"` emits reviewable draft
+artifacts without claiming verifier compatibility.
 
 ## Outputs
 

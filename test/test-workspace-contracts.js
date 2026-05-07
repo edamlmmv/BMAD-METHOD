@@ -308,6 +308,10 @@ function googleCalendarCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
 }
 
+function outlookCalendarCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.outlook-calendar.remote');
+}
+
 function context7DocsCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
 }
@@ -343,6 +347,35 @@ function validGoogleCalendarCapabilityRequest(overrides = {}) {
     schemaVersion: 1,
     request,
     capabilities: overrides.capabilities || [googleCalendarCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validOutlookCalendarCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.outlook-calendar.remote',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'outlook-calendar-mcp',
+    interface: 'remote-calendar-mcp',
+    writes: ['external/outlook-calendar/events'],
+    outputs: ['outlook-calendar-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [outlookCalendarCapabilityDeclaration()],
   };
   if (overrides.observations) {
     capabilityRequest.observations = overrides.observations;
@@ -1779,6 +1812,11 @@ function runTests() {
       'templates',
       'capability-request.google-calendar-mcp.example.json',
     );
+    const outlookCalendarCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.outlook-calendar-mcp.example.json',
+    );
     const dockerMcpCapabilityRequestExamplePath = path.join(
       workspaceDocsRoot,
       'templates',
@@ -1792,6 +1830,7 @@ function runTests() {
     const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
     const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
     const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
+    const outlookCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'outlook-calendar-capability-planning.md');
     const dockerMcpContext7PlanningPath = path.join(workspaceDocsRoot, 'docker-mcp-context7-planning.md');
     const postgresqlMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'postgresql-mcp-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
@@ -1799,6 +1838,11 @@ function runTests() {
     const context7DocsEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'context7-docs-operator-evidence.template.json');
     const gitMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'git-mcp-operator-evidence.template.json');
     const postgresqlMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'postgres-mcp-operator-evidence.template.json');
+    const outlookCalendarEvidenceTemplatePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'outlook-calendar-mcp-operator-evidence.template.json',
+    );
     const toolDocumentationCommandTemplatePath = path.join(workspaceDocsRoot, 'templates', 'tool-documentation-command.template.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
@@ -1829,6 +1873,7 @@ function runTests() {
       'capability-contract.md',
       'customize-codex-mcp-planning.md',
       'google-calendar-capability-planning.md',
+      'outlook-calendar-capability-planning.md',
       'docker-mcp-context7-planning.md',
       'postgresql-mcp-capability-planning.md',
       'self-improvement-codex.md',
@@ -1842,11 +1887,13 @@ function runTests() {
     assert(fs.existsSync(gitMcpCapabilityRequestExamplePath), 'Git MCP Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
     assert(fs.existsSync(googleCalendarCapabilityRequestExamplePath), 'Google Calendar Capability Request example exists');
+    assert(fs.existsSync(outlookCalendarCapabilityRequestExamplePath), 'Outlook Calendar Capability Request example exists');
     assert(fs.existsSync(dockerMcpCapabilityRequestExamplePath), 'Docker MCP Toolkit Capability Request example exists');
     assert(fs.existsSync(postgresqlMcpCapabilityRequestExamplePath), 'PostgreSQL MCP Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
     assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
+    assert(fs.existsSync(outlookCalendarCapabilityPlanningPath), 'Outlook Calendar capability planning doc exists');
     assert(fs.existsSync(dockerMcpContext7PlanningPath), 'Docker MCP Toolkit and Context7 planning doc exists');
     assert(fs.existsSync(postgresqlMcpCapabilityPlanningPath), 'PostgreSQL MCP capability planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
@@ -1854,6 +1901,7 @@ function runTests() {
     assert(fs.existsSync(context7DocsEvidenceTemplatePath), 'Context7 Docs MCP evidence template exists');
     assert(fs.existsSync(gitMcpEvidenceTemplatePath), 'Git MCP evidence template exists');
     assert(fs.existsSync(postgresqlMcpEvidenceTemplatePath), 'PostgreSQL MCP evidence template exists');
+    assert(fs.existsSync(outlookCalendarEvidenceTemplatePath), 'Outlook Calendar MCP evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
@@ -1888,6 +1936,7 @@ function runTests() {
       './capability-profile-registry.json',
       './customize-codex-mcp-planning.md',
       './google-calendar-capability-planning.md',
+      './outlook-calendar-capability-planning.md',
       './docker-mcp-context7-planning.md',
       './postgresql-mcp-capability-planning.md',
       './release-note-6.6.0.md',
@@ -1916,6 +1965,11 @@ function runTests() {
     assert(
       index.includes('./templates/capability-request.postgresql-mcp-readonly.example.json'),
       'workspace index links PostgreSQL MCP capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.outlook-calendar-mcp.example.json'),
+      'workspace index links Outlook Calendar capability request example',
       index,
     );
     assert(
@@ -2002,6 +2056,9 @@ function runTests() {
       : '';
     const googleCalendarCapabilityPlanning = fs.existsSync(googleCalendarCapabilityPlanningPath)
       ? fs.readFileSync(googleCalendarCapabilityPlanningPath, 'utf8')
+      : '';
+    const outlookCalendarCapabilityPlanning = fs.existsSync(outlookCalendarCapabilityPlanningPath)
+      ? fs.readFileSync(outlookCalendarCapabilityPlanningPath, 'utf8')
       : '';
     const dockerMcpContext7Planning = fs.existsSync(dockerMcpContext7PlanningPath)
       ? fs.readFileSync(dockerMcpContext7PlanningPath, 'utf8')
@@ -2164,6 +2221,31 @@ function runTests() {
         googleCalendarCapabilityPlanning.includes(required),
         `Google Calendar capability planning includes ${required}`,
         googleCalendarCapabilityPlanning,
+      );
+    }
+    for (const required of [
+      'host.mcp.outlook-calendar.remote',
+      'Source Register',
+      'Boundary Map',
+      'Outlook Calendar remote MCP',
+      'Microsoft Graph',
+      'Office.js',
+      'add-in runtime',
+      'Outlook Calendar connector',
+      'Workspace verifier',
+      'capability-request.outlook-calendar-mcp.example.json',
+      'outlook-calendar-mcp-operator-evidence.template.json',
+      'live MCP discovery',
+      'local OAuth setup',
+      'token cache',
+      'mailbox state',
+      'human review before',
+      'Calendar-affecting',
+    ]) {
+      assert(
+        outlookCalendarCapabilityPlanning.includes(required),
+        `Outlook Calendar capability planning includes ${required}`,
+        outlookCalendarCapabilityPlanning,
       );
     }
     for (const required of [
@@ -2498,6 +2580,7 @@ function runTests() {
       'git.cli.worktree-review',
       'git.mcp.local-repository-tools',
       'google-calendar.remote-mcp.operator-affordance',
+      'outlook-calendar.remote-mcp.operator-affordance',
       'postgresql.mcp.readonly-reference',
       'graphify.repo-intake.static-graph-evidence',
       'graphify.query.static-graph-navigation',
@@ -2569,6 +2652,7 @@ function runTests() {
     assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
     assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
     assert((profilesByToolName.get('Google Calendar MCP') || 0) >= 1, 'capability profile registry inventories Google Calendar profiles');
+    assert((profilesByToolName.get('Outlook Calendar MCP') || 0) >= 1, 'capability profile registry inventories Outlook Calendar profiles');
     assert((profilesByToolName.get('Git') || 0) >= 1, 'capability profile registry inventories Git profiles');
     assert((profilesByToolName.get('Context7 MCP') || 0) >= 1, 'capability profile registry inventories Context7 profiles');
     assert((profilesByToolName.get('Git MCP') || 0) >= 1, 'capability profile registry inventories Git MCP profiles');
@@ -2606,6 +2690,25 @@ function runTests() {
       profilesById.get('google-calendar.remote-mcp.operator-affordance')?.trustBoundary.includes('target repo manifests'),
       'Google Calendar profile rejects target repo manifests as verifier input',
       JSON.stringify(profilesById.get('google-calendar.remote-mcp.operator-affordance'), null, 2),
+    );
+    const outlookCalendarProfile = profilesById.get('outlook-calendar.remote-mcp.operator-affordance');
+    assert(
+      outlookCalendarProfile?.capabilityId === 'host.mcp.outlook-calendar.remote',
+      'Outlook Calendar profile maps to remote MCP capability',
+      JSON.stringify(outlookCalendarProfile),
+    );
+    assert(
+      outlookCalendarProfile?.trustBoundary.includes('live MCP server discovery') &&
+        outlookCalendarProfile.trustBoundary.includes('token cache') &&
+        outlookCalendarProfile.trustBoundary.includes('not verifier input'),
+      'Outlook Calendar profile rejects live host and token state as verifier input',
+      JSON.stringify(outlookCalendarProfile),
+    );
+    assert(
+      outlookCalendarProfile?.evidenceRefs.includes('docs/workspace/outlook-calendar-capability-planning.md') &&
+        outlookCalendarProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json'),
+      'Outlook Calendar profile cites planning doc and portable fixture',
+      JSON.stringify(outlookCalendarProfile),
     );
     const context7Profile = profilesById.get('context7.docs.git-mcp-reference');
     assert(
@@ -2774,6 +2877,11 @@ function runTests() {
       templateIndex,
     );
     assert(
+      templateIndex.includes('capability-request.outlook-calendar-mcp.example.json'),
+      'template index links Outlook Calendar capability request example',
+      templateIndex,
+    );
+    assert(
       templateIndex.includes('capability-request.docker-mcp-toolkit.example.json'),
       'template index links Docker MCP Toolkit capability request example',
       templateIndex,
@@ -2801,6 +2909,11 @@ function runTests() {
     assert(
       templateIndex.includes('postgres-mcp-operator-evidence.template.json'),
       'template index links PostgreSQL MCP evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('outlook-calendar-mcp-operator-evidence.template.json'),
+      'template index links Outlook Calendar MCP evidence template',
       templateIndex,
     );
     assert(
@@ -2971,6 +3084,40 @@ function runTests() {
         postgresqlMcpEvidenceTemplate.boundary.includes(boundary),
         `PostgreSQL MCP evidence template boundary includes ${boundary}`,
         JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
+      );
+    }
+
+    const outlookCalendarEvidenceTemplate = JSON.parse(fs.readFileSync(outlookCalendarEvidenceTemplatePath, 'utf8'));
+    for (const field of [
+      'observer',
+      'timestamp',
+      'mcpServer',
+      'configured',
+      'expectedTools',
+      'grantRequired',
+      'credentialEvidence',
+      'calendarScope',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in outlookCalendarEvidenceTemplate, `Outlook Calendar evidence template includes ${field}`);
+    }
+    assert(
+      outlookCalendarEvidenceTemplate.mcpServer === 'outlook-calendar-mcp',
+      'Outlook Calendar evidence template names provider',
+      JSON.stringify(outlookCalendarEvidenceTemplate, null, 2),
+    );
+    assert(
+      outlookCalendarEvidenceTemplate.credentialEvidence === 'OUTLOOK_CALENDAR_AUTH=set|unset',
+      'Outlook Calendar evidence template records auth state only',
+      JSON.stringify(outlookCalendarEvidenceTemplate, null, 2),
+    );
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        outlookCalendarEvidenceTemplate.boundary.includes(boundary),
+        `Outlook Calendar evidence template boundary includes ${boundary}`,
+        JSON.stringify(outlookCalendarEvidenceTemplate, null, 2),
       );
     }
 
@@ -3317,6 +3464,38 @@ function runTests() {
         JSON.stringify(googleCalendarCapabilityRequestExample.observations).includes(sourceId),
         `Google Calendar Capability Request example cites source id ${sourceId}`,
         JSON.stringify(googleCalendarCapabilityRequestExample.observations, null, 2),
+      );
+    }
+
+    const outlookCalendarCapabilityRequestExample = JSON.parse(fs.readFileSync(outlookCalendarCapabilityRequestExamplePath, 'utf8'));
+    const outlookCalendarExampleVerdict = verifyCapabilityRequest(outlookCalendarCapabilityRequestExample);
+    assert(
+      outlookCalendarExampleVerdict.ok === true,
+      'Outlook Calendar Capability Request example verifies',
+      JSON.stringify(outlookCalendarExampleVerdict, null, 2),
+    );
+    assert(
+      outlookCalendarExampleVerdict.request.id === 'host.mcp.outlook-calendar.remote',
+      'Outlook Calendar Capability Request example persists remote MCP capability',
+      JSON.stringify(outlookCalendarExampleVerdict, null, 2),
+    );
+    assert(
+      outlookCalendarExampleVerdict.matchedDeclaration.requiresGrant === true,
+      'Outlook Calendar Capability Request example requires grant',
+      JSON.stringify(outlookCalendarExampleVerdict, null, 2),
+    );
+    for (const sourceId of [
+      'microsoft_graph_calendar_events',
+      'microsoft_graph_find_meeting_times',
+      'office_addins_platform_overview',
+      'office_js_outlook_apis',
+      'openai_codex_mcp_docs',
+      'bmad_workspace_capability_contract',
+    ]) {
+      assert(
+        JSON.stringify(outlookCalendarCapabilityRequestExample.observations).includes(sourceId),
+        `Outlook Calendar Capability Request example cites source id ${sourceId}`,
+        JSON.stringify(outlookCalendarCapabilityRequestExample.observations, null, 2),
       );
     }
 
@@ -3871,6 +4050,31 @@ function runTests() {
   }
 
   {
+    const verdict = verifyCapabilityRequest(validOutlookCalendarCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Outlook Calendar remote MCP declaration', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.request.id === 'host.mcp.outlook-calendar.remote',
+      'Outlook Calendar verifier echoes exact id',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.provider === 'outlook-calendar-mcp',
+      'Outlook Calendar verifier records provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.outputs.includes('outlook-calendar-mcp-operator-evidence.json'),
+      'Outlook Calendar verifier records operator evidence output',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Outlook Calendar verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
     const verdict = verifyCapabilityRequest(validContext7DocsCapabilityRequest());
     assert(verdict.ok === true, 'capability verifier accepts Context7 Docs MCP declaration', JSON.stringify(verdict, null, 2));
     assert(verdict.request.id === 'host.mcp.context7.docs', 'Context7 verifier echoes exact id', JSON.stringify(verdict, null, 2));
@@ -4048,6 +4252,42 @@ function runTests() {
   }
 
   {
+    const verdict = verifyCapabilityRequest(validOutlookCalendarCapabilityRequest({ request: { provider: 'google-calendar-mcp' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong Outlook Calendar provider');
+    assert(
+      verdict.errors.some((error) => error.code === 'PROVIDER_MISMATCH'),
+      'Outlook Calendar wrong provider fails provider constraint',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validOutlookCalendarCapabilityRequest({ request: { sessionType: 'base-improvement' } }));
+    assert(
+      verdict.ok === false,
+      'capability verifier rejects Outlook Calendar capability in base-improvement session',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'SESSION_NOT_ALLOWED'),
+      'Outlook Calendar base-improvement denial names SESSION_NOT_ALLOWED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(
+      validOutlookCalendarCapabilityRequest({ request: { writes: ['external/google-calendar/events'] } }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects Google Calendar writes for Outlook Calendar');
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'Outlook Calendar wrong write rejection names WRITE_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
     const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { writes: ['target-repo/appsscript'] } }));
     assert(verdict.ok === false, 'capability verifier rejects appsscript-derived writes', JSON.stringify(verdict, null, 2));
     assert(
@@ -4126,6 +4366,30 @@ function runTests() {
       assert(
         verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
         `${field} rejection names REQUEST_INVALID and request path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of [
+      'liveMcpDiscovery',
+      'installedConnectorAvailable',
+      'localOauthSetup',
+      'graphApiPermission',
+      'mailboxState',
+      'targetRuntimeState',
+      'tokenCache',
+    ]) {
+      const verdict = verifyCapabilityRequest(validOutlookCalendarCapabilityRequest({ request: { [field]: true } }));
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Outlook Calendar ambient proof field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
+        `${field} Outlook Calendar rejection names REQUEST_INVALID and request path`,
         JSON.stringify(verdict, null, 2),
       );
     }

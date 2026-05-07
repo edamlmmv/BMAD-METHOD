@@ -315,6 +315,26 @@
       "repairHint": "Refresh official Google Calendar MCP docs, source register, fixture, capability contract, and tests before changing support claims."
     },
     {
+      "profileId": "outlook-calendar.remote-mcp.operator-affordance",
+      "capabilityId": "host.mcp.outlook-calendar.remote",
+      "toolName": "Outlook Calendar MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Outlook Calendar remote MCP can expose operator-granted Microsoft Graph calendar tools, but live MCP server discovery, Outlook Calendar connector availability, Microsoft Graph permission state, Office.js add-in runtime state, local OAuth setup, token cache, mailbox state, event payloads, and Codex config are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://learn.microsoft.com/en-us/graph/api/calendar-list-events?view=graph-rest-1.0",
+        "https://learn.microsoft.com/en-us/graph/api/user-findmeetingtimes?view=graph-rest-1.0",
+        "https://learn.microsoft.com/en-us/office/dev/add-ins/overview/office-add-ins",
+        "https://learn.microsoft.com/office/dev/add-ins/outlook/apis",
+        "https://developers.openai.com/codex/mcp",
+        "docs/workspace/outlook-calendar-capability-planning.md",
+        "docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json",
+        "docs/workspace/templates/outlook-calendar-mcp-operator-evidence.template.json",
+        "tools/workspace/capability-contract.js",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh Microsoft Graph calendar, Office.js Outlook add-in, and Codex MCP references, keep OAuth/token/mailbox state redacted, and record manual evidence before citing live Outlook Calendar output."
+    },
+    {
       "profileId": "graphify.query.static-graph-navigation",
       "capabilityId": "evidence.graph.repo-intake",
       "toolName": "Graphify",

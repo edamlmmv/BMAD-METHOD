@@ -17,6 +17,50 @@ const repoRoot = path.join(__dirname, '..');
 const forgeCli = path.join(repoRoot, 'tools', 'capability-pack-forge.js');
 const fixtureRoot = path.join(repoRoot, 'test', 'fixtures', 'cpf', 'context7-minimal');
 const schemaPath = path.join(repoRoot, 'tools', 'schemas', 'bmad-capability-pack.schema.json');
+const declaredPackTemplates = [
+  {
+    slug: 'codex-manual-executor',
+    id: 'executor.codex.manual',
+    displayName: 'Codex Manual Executor',
+    summary: 'Draft a BMAD capability pack for manual Codex executor readiness.',
+    template: 'capability-request.codex-manual.example.json',
+  },
+  {
+    slug: 'git-worktree-review',
+    id: 'repo.git.worktree-review',
+    displayName: 'Git Worktree Review',
+    summary: 'Draft a BMAD capability pack for Git worktree review evidence.',
+    template: 'capability-request.git-worktree-review.example.json',
+  },
+  {
+    slug: 'git-local-mcp',
+    id: 'host.mcp.git.local',
+    displayName: 'Git Local MCP',
+    summary: 'Draft a BMAD capability pack for local Git MCP repository tools.',
+    template: 'capability-request.git-mcp-local.example.json',
+  },
+  {
+    slug: 'docker-mcp-toolkit',
+    id: 'host.mcp.docker.toolkit',
+    displayName: 'Docker MCP Toolkit',
+    summary: 'Draft a BMAD capability pack for Docker MCP Toolkit gateway-profile evidence.',
+    template: 'capability-request.docker-mcp-toolkit.example.json',
+  },
+  {
+    slug: 'postgresql-readonly-mcp',
+    id: 'host.mcp.postgresql.readonly',
+    displayName: 'PostgreSQL Readonly MCP',
+    summary: 'Draft a BMAD capability pack for PostgreSQL MCP read-only evidence.',
+    template: 'capability-request.postgresql-mcp-readonly.example.json',
+  },
+  {
+    slug: 'google-calendar-remote-mcp',
+    id: 'host.mcp.google-calendar.remote',
+    displayName: 'Google Calendar Remote MCP',
+    summary: 'Draft a BMAD capability pack for Google Calendar remote MCP evidence.',
+    template: 'capability-request.google-calendar-mcp.example.json',
+  },
+];
 const expectedFiles = [
   'capability-pack.json',
   'capability-request.json',
@@ -45,6 +89,61 @@ function listRelativeFiles(root) {
     .readdirSync(root)
     .filter((entry) => fs.statSync(path.join(root, entry)).isFile())
     .sort();
+}
+
+function writeForgeFixture({ capability, capabilityRequestTemplate, packMode = 'verifier-ready', evidenceSourceType = 'repo_template' }) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `cpf-${capability.slug || 'fixture'}-`));
+  const evidence = {
+    kind: 'capability-pack-local-evidence',
+    schemaVersion: 1,
+    capabilityId: capability.id,
+    evidenceSource: 'repo-local fixture',
+    reviewedAt: '2026-05-07',
+    notes: ['Local deterministic evidence only.', 'No live tools, network, credentials, or runtime state.'],
+  };
+  fs.writeFileSync(path.join(tempDir, 'operator-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+
+  const request = {
+    kind: 'bmad-capability-pack-forge-request',
+    schemaVersion: 1,
+    packMode,
+    capability: {
+      id: capability.id,
+      displayName: capability.displayName,
+      summary: capability.summary,
+    },
+    targetCustomizationSurface: 'bmad-agent-dev',
+    primaryEvidenceRef: 'operator-evidence',
+    evidenceRefs: [
+      {
+        id: 'operator-evidence',
+        kind: 'capability-pack-local-evidence',
+        path: 'operator-evidence.json',
+        role: 'advisory-local-evidence',
+        sourceType: evidenceSourceType,
+      },
+    ],
+    acceptanceCriteria: [
+      {
+        id: 'AC-MCPF-TEST',
+        statement: 'Forge emits deterministic draft artifacts from local evidence files.',
+      },
+    ],
+  };
+
+  if (capabilityRequestTemplate) {
+    fs.copyFileSync(
+      path.join(repoRoot, 'docs', 'workspace', 'templates', capabilityRequestTemplate),
+      path.join(tempDir, 'capability-request.json'),
+    );
+    request.capabilityRequestRef = 'capability-request.json';
+  }
+
+  fs.writeFileSync(path.join(tempDir, 'forge-request.json'), `${JSON.stringify(request, null, 2)}\n`);
+  return {
+    inputPath: path.join(tempDir, 'forge-request.json'),
+    outputDir: path.join(tempDir, 'out'),
+  };
 }
 
 function assertNoSecretLookingValues(label, content) {
@@ -86,6 +185,8 @@ function testContext7MinimalPack() {
   assert.equal(pack.kind, 'bmad-capability-pack');
   assert.equal(pack.schemaVersion, 1);
   assert.equal(pack.metadata.source, 'capability-pack-forge');
+  assert.equal(pack.status.packMode, 'verifier-ready');
+  assert.equal(pack.status.label, 'Ready');
   assert.equal(pack.capability.id, 'host.mcp.context7.docs');
   assert(pack.boundaries.includes('No live tool access.'), 'pack records no live tool boundary');
   assert(pack.boundaries.includes('No Workspace command is added.'), 'pack records Workspace command boundary');
@@ -127,6 +228,109 @@ function testContext7MinimalPack() {
       `${file} is deterministic`,
     );
   }
+}
+
+function testGenericEvidenceRefsWithoutContext7() {
+  const { inputPath, outputDir } = writeForgeFixture({
+    capability: declaredPackTemplates[0],
+    capabilityRequestTemplate: declaredPackTemplates[0].template,
+    evidenceSourceType: 'local_docs',
+  });
+
+  const request = readJson(inputPath);
+  assert(!('context7EvidenceRef' in request), 'generic fixture omits deprecated Context7 evidence field');
+
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.status.packMode, 'verifier-ready');
+  const operatorInput = pack.inputs.find((input) => input.id === 'operator-evidence');
+  assert.equal(operatorInput.sourceType, 'local_docs');
+
+  const outputText = expectedFiles.map((file) => fs.readFileSync(path.join(outputDir, file), 'utf8')).join('\n');
+  assert(!outputText.includes('context7EvidenceRef'), 'generated artifacts omit deprecated Context7 evidence field name');
+  assert(!outputText.includes('Context7'), 'generic non-Context7 evidence does not render Context7 wording');
+}
+
+function testDeclaredCapabilityPacksGenerate() {
+  for (const capability of declaredPackTemplates) {
+    const { inputPath, outputDir } = writeForgeFixture({
+      capability,
+      capabilityRequestTemplate: capability.template,
+      evidenceSourceType: 'repo_template',
+    });
+
+    const result = runForge(['--input', inputPath, '--output', outputDir]);
+    assert.equal(result.status, 0, `${capability.slug}\n${result.stdout}\n${result.stderr}`);
+    assert.deepEqual(listRelativeFiles(outputDir), expectedFiles, `${capability.slug} emits expected files`);
+
+    const capabilityRequest = readJson(path.join(outputDir, 'capability-request.json'));
+    const verdict = verifyCapabilityRequest(capabilityRequest);
+    assert.equal(verdict.ok, true, `${capability.slug} capability request verifies\n${JSON.stringify(verdict, null, 2)}`);
+
+    const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+    assert.equal(pack.capability.id, capability.id, `${capability.slug} records capability id`);
+    assert.equal(pack.status.packMode, 'verifier-ready', `${capability.slug} records verifier-ready mode`);
+    assert.equal(pack.status.verificationStatus, 'ready', `${capability.slug} records ready verification status`);
+    assert.equal(pack.status.label, 'Ready', `${capability.slug} records Ready label`);
+
+    const manifest = readJson(path.join(outputDir, 'manifest.json'));
+    assert.deepEqual(
+      manifest.artifacts.map((artifact) => artifact.path).sort(),
+      expectedFiles.filter((file) => file !== 'manifest.json').sort(),
+      `${capability.slug} manifest lists non-manifest artifacts`,
+    );
+  }
+}
+
+function testDraftAuthoringTomlPack() {
+  const { inputPath, outputDir } = writeForgeFixture({
+    capability: {
+      slug: 'toml-authoring-draft',
+      id: 'authoring.toml.bmad-customize-draft',
+      displayName: 'TOML Authoring Draft',
+      summary: 'Draft a BMAD capability pack for TOML customization authoring guidance.',
+    },
+    packMode: 'draft-authoring',
+    evidenceSourceType: 'local_docs',
+  });
+
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.status.packMode, 'draft-authoring');
+  assert.equal(pack.status.verificationStatus, 'draft_no_contract');
+  assert.equal(pack.status.label, 'Draft');
+
+  const draftRequest = readJson(path.join(outputDir, 'capability-request.json'));
+  assert.equal(draftRequest.kind, 'bmad-workspace-capability-request-draft');
+  assert.equal(draftRequest.verificationStatus, 'draft_no_contract');
+  assert.equal(verifyCapabilityRequest(draftRequest).ok, false, 'TOML draft is not verifier-compatible');
+
+  const checklist = fs.readFileSync(path.join(outputDir, 'readiness-checklist.md'), 'utf8');
+  assert(checklist.includes('not verifier-declared'), 'TOML checklist states non-verifier status');
+  assert(!checklist.includes('verifies offline'), 'TOML draft checklist avoids verifier-ready claim');
+}
+
+function testVerifierReadyRequiresCapabilityRequest() {
+  const { inputPath, outputDir } = writeForgeFixture({
+    capability: {
+      slug: 'toml-verifier-rejected',
+      id: 'authoring.toml.bmad-customize-draft',
+      displayName: 'TOML Verifier Rejected',
+      summary: 'Attempt to forge TOML as verifier-ready without a capability request.',
+    },
+    packMode: 'verifier-ready',
+    evidenceSourceType: 'local_docs',
+  });
+
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_REQUEST_INVALID'));
 }
 
 function testMissingInputFails() {
@@ -194,6 +398,10 @@ function testExistingOutputDirWithFilesFails() {
 }
 
 testContext7MinimalPack();
+testGenericEvidenceRefsWithoutContext7();
+testDeclaredCapabilityPacksGenerate();
+testDraftAuthoringTomlPack();
+testVerifierReadyRequiresCapabilityRequest();
 testMissingInputFails();
 testMalformedJsonFails();
 testRemoteEvidencePathFails();

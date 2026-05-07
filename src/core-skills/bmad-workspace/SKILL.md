@@ -142,10 +142,13 @@ for a Git Worktree Review fixture. Use
 `docs/workspace/templates/capability-request.context7-docs.example.json` for a
 Context7 Docs MCP fixture and
 `docs/workspace/templates/capability-request.git-mcp-local.example.json` for a
-Git local MCP fixture.
+Git local MCP fixture. Use
+`docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`
+for an Outlook Calendar remote MCP fixture.
 
 `docs/workspace/capability-profile-registry.json` is advisory authoring context
-for named tools such as Codex, Graphify, Git, Context7 MCP, and Git MCP. It
+for named tools such as Codex, Graphify, Git, Context7 MCP, Git MCP, Docker MCP
+Toolkit, PostgreSQL MCP, Google Calendar MCP, and Outlook Calendar MCP. It
 maps profiles to exact capability ids, support states, trust boundaries,
 evidence refs, and repair hints. It is not verifier input, grant authority,
 runtime availability proof, or support-promotion authority.
@@ -210,6 +213,19 @@ Live MCP discovery, connector availability, Codex config, local OAuth setup,
 state are not verifier input, grant authority, or runtime guarantees. Name
 indirect prompt injection as a security risk and require human review before
 Calendar-affecting actions.
+
+For Outlook Calendar remote MCP planning, use
+`docs/workspace/outlook-calendar-capability-planning.md` and
+`docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`.
+The exact declared id is `host.mcp.outlook-calendar.remote`. Keep Outlook
+Calendar MCP, Microsoft Graph calendar APIs, Office.js Outlook add-in runtime,
+Codex Outlook/Calendar connector state, Workspace verifier, and any target repo
+manifest separate. Live MCP discovery, connector availability, Graph permission
+state, Office.js runtime state, local OAuth setup, token cache, mailbox state,
+event payloads, and calendar contents are not verifier input, grant authority,
+or runtime guarantees. Record `OUTLOOK_CALENDAR_AUTH=set` or unset only, never
+OAuth tokens, refresh tokens, mailbox screenshots, event payloads, logs, or
+calendar contents. Require human review before Calendar-affecting actions.
 
 ## Codex Operator Affordances
 

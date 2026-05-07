@@ -1,0 +1,18 @@
+{
+  "observer": "BMAD operator",
+  "timestamp": "YYYY-MM-DDTHH:mm:ssZ",
+  "mcpServer": "outlook-calendar-mcp",
+  "configured": false,
+  "expectedTools": ["list_calendars", "list_events", "find_meeting_times", "create_event", "update_event"],
+  "grantRequired": true,
+  "credentialEvidence": "OUTLOOK_CALENDAR_AUTH=set|unset",
+  "calendarScope": {
+    "tenant": "unset",
+    "mailbox": "unset",
+    "allowedCalendars": [],
+    "deniedWrites": ["workspace-base", "target-repo", "oauth-token-store", "mailbox-state"]
+  },
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Manual operator evidence only; not verifier input, not grant authority, not runtime authority, not Workspace authority. Do not store OAuth tokens, refresh tokens, mailbox screenshots, event payloads, calendar contents, logs, or live MCP output in this artifact."
+}
