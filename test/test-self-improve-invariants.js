@@ -55,6 +55,13 @@ function makeFixture() {
     'docs/workspace/templates/bmad-loop-checkpoint.example.md',
     'docs/workspace/templates/workflow-bundle.template.md',
     'docs/workspace/templates/loop-party-mode-gate.template.md',
+    'docs/workspace/templates/index.md',
+    'docs/workspace/templates/architecture-drift-review.template.md',
+    'docs/workspace/templates/tool-leverage-review.template.md',
+    'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'src/core-skills/bmad-architecture-drift-review/SKILL.md',
+    'src/core-skills/bmad-tool-leverage-review/SKILL.md',
+    'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
     'docs/workspace/templates/self-improvement-codex-prompt.md',
     'docs/workspace/templates/self-improvement-codex-resume-prompt.md',
     'docs/workspace/templates/self-improvement-checkpoint.template.md',
@@ -199,6 +206,29 @@ function testPromptRequiresGoalSource() {
   assertInvalid(root, 'Goal source:');
 }
 
+function testCapabilityImprovementToolkitPromptRequired() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/templates/self-improvement-codex-prompt.md',
+    'Capability Improvement Toolkit',
+    'Capability Planning Kit',
+  );
+  assertInvalid(root, 'Capability Improvement Toolkit');
+}
+
+function testHighestLeverageOfficialMcpTemplateRequired() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'));
+  assertInvalid(root, 'highest-leverage-official-mcp-addition.template.md');
+}
+
+function testCapabilityImprovementToolkitSkillsRequired() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-tool-leverage-review', 'SKILL.md'));
+  assertInvalid(root, 'bmad-tool-leverage-review');
+}
+
 function testCliUsesInvariantPrefix() {
   const root = makeFixture();
   const overridePath = path.join(root, '_bmad', 'custom', 'bmad-self-improve.toml');
@@ -250,6 +280,9 @@ function run() {
     testLoopCoreWeakeningFailsSelfImprove,
     testPartyModeCannotCreateGoalTextDisappear,
     testPromptRequiresGoalSource,
+    testCapabilityImprovementToolkitPromptRequired,
+    testHighestLeverageOfficialMcpTemplateRequired,
+    testCapabilityImprovementToolkitSkillsRequired,
     testCliUsesInvariantPrefix,
     testSelfImproveInheritsFutureLoopField,
     testSelfImproveMayOverrideInheritedFutureLoopField,

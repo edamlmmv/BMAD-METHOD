@@ -170,6 +170,133 @@
       "repairHint": "Treat list_apps as app-inventory evidence only; record separate manual evidence before claiming broader desktop action support."
     },
     {
+      "profileId": "git.cli.worktree-review",
+      "capabilityId": "repo.git.worktree-review",
+      "toolName": "Git",
+      "supportState": "supported",
+      "trustBoundary": "Git CLI status and diff output can provide Workspace Worktree Review evidence for an operator; Git command output is not verifier input and not Workspace authority.",
+      "commandEvidence": {
+        "boundary": "Informational operator evidence only; not verifier input, not support promotion, and not grant authority.",
+        "canonicalInvocation": "git",
+        "nonMutatingCommands": [
+          {
+            "command": "git --version",
+            "purpose": "Capture Git CLI version used for manual evidence."
+          },
+          {
+            "command": "git rev-parse --show-toplevel",
+            "purpose": "Capture canonical worktree root before status or diff inspection."
+          },
+          {
+            "command": "git status --porcelain=v1 --untracked-files=all",
+            "purpose": "Capture dirty state, including staged, unstaged, and untracked paths."
+          },
+          {
+            "command": "git diff --binary",
+            "purpose": "Capture unstaged patch evidence without mutating repository state."
+          },
+          {
+            "command": "git diff --cached --binary",
+            "purpose": "Capture staged patch evidence without mutating repository state."
+          }
+        ],
+        "forbiddenCommands": ["git push", "git reset", "git clean"]
+      },
+      "evidenceRefs": [
+        "https://git-scm.com/docs/git-status",
+        "https://git-scm.com/docs/git-diff",
+        "https://git-scm.com/docs/git-commit",
+        "https://git-scm.com/docs/git-worktree.html",
+        "tools/workspace/capability-contract.js",
+        "tools/workspace/review.js",
+        "docs/workspace/capability-contract.md",
+        "docs/workspace/templates/capability-request.git-worktree-review.example.json",
+        "test/test-workspace-contracts.js",
+        "test/test-workspace-cli.js"
+      ],
+      "repairHint": "Keep Git Worktree Review contract fields, official Git references, review artifacts, fixture, and Workspace tests aligned before claiming support."
+    },
+    {
+      "profileId": "context7.docs.git-mcp-reference",
+      "capabilityId": "host.mcp.context7.docs",
+      "toolName": "Context7 MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Context7 MCP can provide docs evidence for an operator, including Git MCP package docs, but live MCP availability, Apple Passwords state, API key presence, docs output, and local Codex config are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://context7.com/docs/installation",
+        "https://context7.com/modelcontextprotocol/docs",
+        "https://context7.com/modelcontextprotocol/servers",
+        "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "docs/workspace/templates/capability-request.context7-docs.example.json",
+        "docs/workspace/templates/context7-docs-operator-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh Context7 and Codex MCP docs, keep Apple Passwords item Context7 secret handling redacted, and record manual operator evidence before citing live Context7 output."
+    },
+    {
+      "profileId": "docker-mcp.toolkit.gateway-profile",
+      "capabilityId": "host.mcp.docker.toolkit",
+      "toolName": "Docker MCP Toolkit",
+      "supportState": "experimental",
+      "trustBoundary": "Docker MCP Toolkit can help an operator author Docker MCP Gateway profiles and Context7 server setup, but live Docker MCP Gateway state, Docker MCP Catalog state, Docker secrets, secretRef resolution, Apple Passwords state, Context7 API key presence, network access, MCP access, and local Docker CLI shape are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/",
+        "https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/",
+        "https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/",
+        "https://hub.docker.com/mcp/server/context7",
+        "https://github.com/upstash/context7",
+        "https://github.com/upstash/context7/blob/master/docs/agentic-tools/ai-sdk/getting-started.mdx",
+        "https://github.com/upstash/context7/blob/master/docs/integrations/mastra.mdx",
+        "docs/workspace/docker-mcp-context7-planning.md",
+        "docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json",
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh official Docker MCP and Context7 references before changing support claims; keep Docker MCP Toolkit version-dependent and secret placeholders limited to <CONTEXT7_API_KEY> or <redacted>."
+    },
+    {
+      "profileId": "postgresql.mcp.readonly-reference",
+      "capabilityId": "host.mcp.postgresql.readonly",
+      "toolName": "PostgreSQL MCP",
+      "supportState": "experimental",
+      "trustBoundary": "PostgreSQL MCP can expose operator-provided read-only database query evidence through an archived/deprecated reference server, but live PostgreSQL state, Docker MCP runtime state, connection strings, query results, local MCP config, network access, and Codex config are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://github.com/modelcontextprotocol/servers",
+        "https://hub.docker.com/mcp/server/postgres/overview",
+        "https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/",
+        "https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/",
+        "https://www.npmjs.com/package/%40modelcontextprotocol/server-postgres",
+        "docs/workspace/postgresql-mcp-capability-planning.md",
+        "docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json",
+        "docs/workspace/templates/postgres-mcp-operator-evidence.template.json",
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh PostgreSQL MCP source refs, keep read-only and secret boundaries explicit, and record manual evidence before citing database observations."
+    },
+    {
+      "profileId": "git.mcp.local-repository-tools",
+      "capabilityId": "host.mcp.git.local",
+      "toolName": "Git MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Git MCP can expose local repository status, diff, add, commit, and branch tools, but live MCP availability, repository dirty state, write tools, and GitHub connector state are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://context7.com/modelcontextprotocol/docs",
+        "https://context7.com/modelcontextprotocol/servers",
+        "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "tools/workspace/capability-contract.js",
+        "docs/workspace/capability-contract.md",
+        "docs/workspace/templates/capability-request.git-mcp-local.example.json",
+        "docs/workspace/templates/git-mcp-operator-evidence.template.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Configure mcp-server-git only as an operator-granted local Git tool, record manual evidence, and keep add, commit, and branch actions grant-gated before claiming support."
+    },
+    {
       "profileId": "google-calendar.remote-mcp.operator-affordance",
       "capabilityId": "host.mcp.google-calendar.remote",
       "toolName": "Google Calendar MCP",

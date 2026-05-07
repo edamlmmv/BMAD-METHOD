@@ -1,5 +1,5 @@
 ---
-title: "BMAD Workspace Capability Contract"
+title: 'BMAD Workspace Capability Contract'
 description: BMAD-governed capability registry for BMAD Workspace adapters
 ---
 
@@ -21,18 +21,18 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 
 ## Capability Groups
 
-| Group | Purpose | Known Providers |
-| --- | --- | --- |
-| `bmad.workflow` | Route, create artifacts, check readiness, review. | BMAD skills |
-| `evidence.graph` | Produce Repo Intake from code and docs. | Graphify |
-| `evidence.docs` | Retrieve trusted current docs. | Context7, official docs |
-| `executor.codex` | Execute rendered prompts. | Codex |
-| `executor.codex.manual` | Declare manual Codex readiness without runtime execution. | Codex |
-| `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI |
-| `runtime.session` | Provide sessions, tasks, goals, Cron, or Heartbeat. | OpenClaw, Hermes |
-| `repo.git` | Create worktrees, diff, status, commit, rollback. | Git |
-| `host.mcp` | Expose bounded tool and context surfaces. | MCP servers, Google Calendar MCP |
-| `collab.github` | Inspect issues, PRs, CI, and reviews. | GitHub |
+| Group                       | Purpose                                                                                                 | Known Providers                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `bmad.workflow`             | Route, create artifacts, check readiness, review.                                                       | BMAD skills                      |
+| `evidence.graph`            | Produce Repo Intake from code and docs.                                                                 | Graphify                         |
+| `evidence.docs`             | Retrieve trusted current docs.                                                                          | Context7, official docs          |
+| `executor.codex`            | Execute rendered prompts.                                                                               | Codex                            |
+| `executor.codex.manual`     | Declare manual Codex readiness without runtime execution.                                               | Codex                            |
+| `operator.codex.affordance` | Surface slash commands, goals, hooks, subagents, plugins, and future Codex tools as operator aids only. | Codex config and UI              |
+| `runtime.session`           | Provide sessions, tasks, goals, Cron, or Heartbeat.                                                     | OpenClaw, Hermes                 |
+| `repo.git`                  | Create worktrees, diff, status, commit, rollback.                                                       | Git                              |
+| `host.mcp`                  | Expose bounded tool and context surfaces.                                                               | MCP servers, Context7, Git MCP, Docker MCP Toolkit, PostgreSQL MCP, Google Calendar MCP |
+| `collab.github`             | Inspect issues, PRs, CI, and reviews.                                                                   | GitHub                           |
 
 ## Contract Sketch
 
@@ -60,19 +60,19 @@ capability is needed; the BMAD Workspace decides which adapter provides it.
 
 ## Adapter Record
 
-| Field | Meaning |
-| --- | --- |
-| `id` | Stable BMAD-owned capability identifier. |
-| `group` | Capability family used by BMAD Router. |
-| `provider` | Concrete adapter implementation. |
-| `interface` | Contract the adapter satisfies. |
-| `allowedInNormalSession` | Whether normal sessions may use it. |
-| `allowedInBaseImprovement` | Whether base improvement sessions may use it. |
-| `requiresGrant` | Whether explicit grant is required. |
-| `writes` | Paths or artifact classes the adapter may write. |
-| `forbiddenWrites` | Paths or artifact classes the adapter must never write. |
-| `outputs` | Reviewable artifacts expected after use. |
-| `upstreamGapProofRequired` | Whether provider duplicates an existing engine class. |
+| Field                      | Meaning                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| `id`                       | Stable BMAD-owned capability identifier.                |
+| `group`                    | Capability family used by BMAD Router.                  |
+| `provider`                 | Concrete adapter implementation.                        |
+| `interface`                | Contract the adapter satisfies.                         |
+| `allowedInNormalSession`   | Whether normal sessions may use it.                     |
+| `allowedInBaseImprovement` | Whether base improvement sessions may use it.           |
+| `requiresGrant`            | Whether explicit grant is required.                     |
+| `writes`                   | Paths or artifact classes the adapter may write.        |
+| `forbiddenWrites`          | Paths or artifact classes the adapter must never write. |
+| `outputs`                  | Reviewable artifacts expected after use.                |
+| `upstreamGapProofRequired` | Whether provider duplicates an existing engine class.   |
 
 ## Grant Interaction
 
@@ -118,6 +118,123 @@ the verifier depend on hand-authored TOML or customization merge internals.
 Codex and Graphify examples live at
 `docs/workspace/templates/capability-request.codex-manual.example.json` and
 `docs/workspace/templates/capability-request.graphify-repo-intake.example.json`.
+Git Worktree Review lives at
+`docs/workspace/templates/capability-request.git-worktree-review.example.json`.
+Context7 Docs MCP lives at
+`docs/workspace/templates/capability-request.context7-docs.example.json`.
+Git local MCP lives at
+`docs/workspace/templates/capability-request.git-mcp-local.example.json`.
+Docker MCP Toolkit lives at
+`docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
+PostgreSQL MCP lives at
+`docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
+
+### Git Worktree Review Capability
+
+`repo.git.worktree-review` declares the Git CLI review surface already used by
+`bmad workspace review`. It uses `provider: git`,
+`interface: worktree-review`, `writes: ["workspace-session/review"]`, and outputs
+`summary.json`, `review-manifest.json`, `status.json`, and `diff.patch`.
+
+The declaration does not authorize target repo mutation, push, reset, clean,
+merge, restore, replay, promotion, scheduler behavior, daemon behavior, or live
+adapter activation. Git status and diff output are Worktree Review evidence for
+manual inspection; they are not verifier input, Grant Guard authority, or
+runtime permission.
+
+### Context7 Docs MCP Candidate
+
+`host.mcp.context7.docs` declares an experimental `host.mcp` capability for
+Context7-backed documentation retrieval. It uses `provider: context7`,
+`interface: remote-docs-mcp`, `requiresGrant: true`, `writes: []`, and
+`outputs: ["context7-docs-operator-evidence.json"]`.
+
+Context7 fetches documentation context; it does not perform Git operations,
+mutate the target repo, authorize writes, configure MCP servers, or prove live
+MCP availability. Context7 may help an operator research Git MCP docs, but the
+self-contained Capability Request JSON remains the only verifier input.
+
+Recommended local credential source is Apple Passwords item `Context7`. The
+operator may manually expose the key only as `CONTEXT7_API_KEY` in a local
+shell/session. No repository script, fixture, evidence artifact, screenshot,
+log, issue, PR, or docs example may contain the real value. Examples may use
+only `<CONTEXT7_API_KEY>` or `<redacted>`. Evidence may record
+`CONTEXT7_API_KEY=set` and
+`credentialSource: "Apple Passwords item Context7"`, never the key value.
+There is no Apple Passwords or keychain automation in this slice.
+
+### Docker MCP Toolkit Candidate
+
+`host.mcp.docker.toolkit` declares an experimental, declaration-only
+`host.mcp` capability for Docker MCP Toolkit gateway-profile authoring. It uses
+`provider: docker-mcp-toolkit`, `interface: docker-mcp-gateway-profile`,
+`requiresGrant: true`, `writes: []`, and outputs
+`docker-mcp-operator-evidence.json`.
+
+This declaration is not a statement that Docker Desktop is installed, Docker
+MCP Gateway is running, Docker MCP Catalog can be reached, Docker MCP secrets
+exist, Docker Hub `mcp/context7` is configured, a Context7 MCP server is live,
+or Apple Passwords entry `Context7` contains a key. Docker MCP Toolkit, Docker
+MCP Gateway, Docker MCP Catalog, Context7 output, Docker secrets, local MCP
+config, network state, and Apple Passwords state are not verifier input and not
+Workspace authority.
+
+The secret-safe planning boundary and portable verifier example live at
+`docs/workspace/docker-mcp-context7-planning.md` and
+`docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
+`secretRef: Context7` is non-secret metadata. Prefer Docker MCP secret /
+`secretRef`, then `CONTEXT7_API_KEY` from a secret manager, and use `--api-key`
+only as a last-resort manual path because process args can leak. Placeholders
+must be only `<CONTEXT7_API_KEY>` or `<redacted>`. This capability does not
+change verifier behavior.
+
+### PostgreSQL Readonly MCP Candidate
+
+`host.mcp.postgresql.readonly` declares an experimental, declaration-only
+`host.mcp` capability for operator-provided PostgreSQL MCP read-only evidence.
+It uses `provider: modelcontextprotocol/server-postgres`,
+`interface: readonly-postgresql-mcp`, `requiresGrant: true`, `writes: []`, and
+outputs `postgres-mcp-operator-evidence.json`.
+
+The provider is reference metadata from archived/deprecated upstream sources,
+not an endorsement. `readonly-postgresql-mcp` is BMAD-owned contract language,
+not an upstream protocol name. The expected operator surface is a `query` tool
+running under read-only transaction behavior, but live PostgreSQL state, Docker
+MCP runtime state, MCP tool output, local MCP config, Codex config, network
+access, `_bmad/custom`, query results, and Workspace Session artifacts are not
+verifier input and not Workspace authority.
+
+The secret-safe planning boundary and portable verifier example live at
+`docs/workspace/postgresql-mcp-capability-planning.md` and
+`docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
+Manual operator evidence should use
+`docs/workspace/templates/postgres-mcp-operator-evidence.template.json` and may
+record only `POSTGRES_URL=set` or unset, expected tools, read-only access mode,
+allowed schemas/tables, denied writes, and why DB evidence is needed.
+
+Read-only prevents mutation; it does not prevent sensitive reads. PostgreSQL MCP
+readiness requires least-privilege database scope and must keep raw connection
+strings, passwords, local MCP config secrets, and query results out of docs,
+fixtures, evidence, logs, screenshots, transcripts, PRs, and issues.
+
+### Git Local MCP Candidate
+
+`host.mcp.git.local` declares an experimental `host.mcp` capability for local
+Git MCP repository tools. It uses `provider: mcp-server-git`,
+`interface: local-git-mcp`, `requiresGrant: true`, and outputs
+`git-mcp-operator-evidence.json`.
+
+The declaration allows only explicit artifact classes for write-capable local
+Git tools: `target-repo/git-index`, `target-repo/git-commit`, and
+`target-repo/git-branch`. Git MCP tools such as add, commit, and branch are
+manual/grant-gated actions. The declaration forbids Workspace Base writes,
+push, fetch, reset, clean, restore, merge, scheduler behavior, daemon behavior,
+and live adapter activation.
+
+GitHub connector or GitHub MCP support is separate from local Git MCP. Local
+`git` CLI remains the fallback and the exact pre-push authority; before push,
+the operator must still run `npm ci && npm run quality` on the exact checkout
+and `HEAD` being pushed.
 
 ### Google Calendar Remote MCP Candidate
 
@@ -139,8 +256,11 @@ boundary and portable verifier example live at
 
 The Capability Profile Registry is the advisory snapshot at
 `docs/workspace/capability-profile-registry.json`. It helps authors map named
-tools such as Codex and Graphify to declared Workspace capability ids,
-support-state notes, evidence refs, trust boundaries, and repair hints.
+tools such as Codex, Graphify, Git, Context7 MCP, Git MCP, Docker MCP Toolkit,
+and PostgreSQL MCP to declared
+Workspace capability ids, support-state notes, evidence refs, trust boundaries,
+and repair hints. It may also inventory optional host MCP surfaces as advisory
+authoring context.
 
 The registry is not read by `verify-capability`. It cannot grant compatibility,
 authorize writes, prove runtime availability, promote support, or demote
@@ -196,11 +316,11 @@ promote support by themselves.
 
 Rendered prompts should reference capability intent, not provider internals.
 
-| Preferred | Avoid |
-| --- | --- |
-| "Use Repo Intake evidence." | "Run Graphify unless you think OpenClaw is better." |
-| "Use Worktree Review." | "Open GitHub Desktop then inspect manually." |
-| "Use runtime task capability if BMAD requires it." | "Schedule an OpenClaw Cron job by default." |
+| Preferred                                          | Avoid                                               |
+| -------------------------------------------------- | --------------------------------------------------- |
+| "Use Repo Intake evidence."                        | "Run Graphify unless you think OpenClaw is better." |
+| "Use Worktree Review."                             | "Open GitHub Desktop then inspect manually."        |
+| "Use runtime task capability if BMAD requires it." | "Schedule an OpenClaw Cron job by default."         |
 
 ## Upstream-Gap Proof
 

@@ -60,6 +60,7 @@ _bmad/custom/*
 !_bmad/custom/bmad-quick-dev.toml
 !_bmad/custom/bmad-code-review.toml
 !_bmad/custom/bmad-check-implementation-readiness.toml
+!_bmad/custom/bmad-self-improve.toml
 _bmad-output
 
 # Personal customization files (team files are committed, personal files are not)

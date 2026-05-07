@@ -1,0 +1,37 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.context7.docs",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "context7",
+    "interface": "remote-docs-mcp",
+    "writes": [],
+    "outputs": ["context7-docs-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.context7.docs",
+      "group": "host.mcp",
+      "provider": "context7",
+      "interface": "remote-docs-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": ["workspace-base", "target-repo", "scheduler", "daemon", "live-adapter", "secret-store"],
+      "outputs": ["context7-docs-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_DOCS_ONLY",
+      "message": "Context7 docs are advisory source evidence only.",
+      "details": {
+        "sourceUrl": "https://context7.com/docs/installation"
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "repo.git.worktree-review",
+    "sessionType": "normal",
+    "group": "repo.git",
+    "provider": "git",
+    "interface": "worktree-review",
+    "writes": ["workspace-session/review"],
+    "outputs": ["summary.json", "review-manifest.json", "status.json", "diff.patch"]
+  },
+  "capabilities": [
+    {
+      "id": "repo.git.worktree-review",
+      "group": "repo.git",
+      "provider": "git",
+      "interface": "worktree-review",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": false,
+      "writes": ["workspace-session/review"],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "target-repo/mutation",
+        "target-repo/push",
+        "target-repo/reset",
+        "target-repo/clean",
+        "scheduler",
+        "daemon",
+        "live-adapter"
+      ],
+      "outputs": ["summary.json", "review-manifest.json", "status.json", "diff.patch"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "GIT_STATUS_DOCS",
+      "message": "Git status docs reviewed for advisory dirty-state evidence only.",
+      "details": {
+        "sourceUrl": "https://git-scm.com/docs/git-status",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "GIT_DIFF_DOCS",
+      "message": "Git diff docs reviewed for advisory staged and unstaged patch evidence only.",
+      "details": {
+        "sourceUrl": "https://git-scm.com/docs/git-diff",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "GIT_COMMIT_DOCS",
+      "message": "Git commit docs reviewed for Conventional Commit and operator review context only.",
+      "details": {
+        "sourceUrl": "https://git-scm.com/docs/git-commit",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "GIT_WORKTREE_DOCS",
+      "message": "Git worktree docs reviewed for Workspace Worktree Review provenance context only.",
+      "details": {
+        "sourceUrl": "https://git-scm.com/docs/git-worktree.html",
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

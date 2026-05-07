@@ -1,0 +1,14 @@
+[workflow]
+output_path = "{output_folder}/capability-packs"
+request_template = "docs/workspace/templates/capability-pack-forge-request.template.json"
+pack_schema = "tools/schemas/bmad-capability-pack.schema.json"
+quality_command = "npm run test:capability-pack-forge"
+on_complete = "Review generated artifacts before using bmad-customize, verify-capability, or Codex task drafts."
+
+persistent_facts = [
+  "Capability Pack Forge consumes local evidence files and emits draft artifacts only.",
+  "Forge does not call live Context7, MCP, Docker, PostgreSQL, Git, Codex app-server, Apple Passwords, keychain, or network.",
+  "Forge does not add Workspace commands, change verify-capability, install skills, configure MCP, grant authority, or treat _bmad/custom as authority.",
+  "Generated customization-draft.toml is inactive until routed through bmad-customize.",
+  "Generated codex-task-packet.md is an instruction draft only, never an execution trigger."
+]

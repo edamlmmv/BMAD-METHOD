@@ -1,5 +1,5 @@
 ---
-title: "BMAD Workspace Release Checklist"
+title: 'BMAD Workspace Release Checklist'
 description: Current validation checklist and historical release notes
 ---
 
@@ -45,6 +45,22 @@ Workspace release:
 - Capability Contract: owner is `npm run test:workspace`; manual-review note
   checks provider metadata grants no writes, route authority, live adapter
   activation, scheduler behavior, or base mutation.
+- Git Worktree Review: owner is `npm run test:workspace`; manual-review note
+  checks status and patch output stay manual review evidence only and cannot
+  authorize push, reset, clean, merge, promotion, or hidden execution.
+- Context7 Docs MCP: owner is `npm run test:workspace`; manual-review note
+  checks Context7 remains optional docs evidence only, Apple Passwords item
+  `Context7` is never read by repo automation, `CONTEXT7_API_KEY` values are
+  redacted, and live Context7 config is not verifier input.
+- Git Local MCP: owner is `npm run test:workspace`; manual-review note checks
+  `mcp-server-git` add, commit, and branch tools stay manual/grant-gated,
+  GitHub connector state stays separate, and local `git` CLI plus
+  `npm ci && npm run quality` remains exact pre-push authority.
+- PostgreSQL MCP: owner is `npm run test:workspace`; manual-review note checks
+  `host.mcp.postgresql.readonly` stays optional/operator-provided, read-only
+  database evidence stays out of verifier pass/fail, the secret boundary records
+  only set/unset state, and `postgres-mcp-operator-evidence.json` keeps
+  expected tools, allowed scope, denied writes, and evidence need explicit.
 - Capability Verifier: owner is `npm run test:workspace`; manual-review note
   checks `ok: true` means declared-contract compatibility only and cannot
   replace Evidence Gate, Grant Guard, Self-Improve, install, or quality checks.

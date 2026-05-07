@@ -1,0 +1,203 @@
+/**
+ * Capability Pack Forge public behavior tests.
+ *
+ * Usage: node test/test-capability-pack-forge.js
+ */
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const { verifyCapabilityRequest } = require('../tools/workspace/contracts');
+const { WORKSPACE_COMMAND_NAMES } = require('../tools/workspace/command-registry');
+
+const repoRoot = path.join(__dirname, '..');
+const forgeCli = path.join(repoRoot, 'tools', 'capability-pack-forge.js');
+const fixtureRoot = path.join(repoRoot, 'test', 'fixtures', 'cpf', 'context7-minimal');
+const schemaPath = path.join(repoRoot, 'tools', 'schemas', 'bmad-capability-pack.schema.json');
+const expectedFiles = [
+  'capability-pack.json',
+  'capability-request.json',
+  'codex-task-packet.md',
+  'customization-draft.toml',
+  'manifest.json',
+  'operator-evidence-template.json',
+  'readiness-checklist.md',
+  'skill-outline.md',
+];
+
+function runForge(args, options = {}) {
+  return spawnSync(process.execPath, [forgeCli, ...args], {
+    cwd: options.cwd || repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
+  });
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function listRelativeFiles(root) {
+  return fs
+    .readdirSync(root)
+    .filter((entry) => fs.statSync(path.join(root, entry)).isFile())
+    .sort();
+}
+
+function assertNoSecretLookingValues(label, content) {
+  const withoutAllowedContext7Placeholder = content.replaceAll('ctx7_test_placeholder_DO_NOT_USE', '');
+  assert(!/ctx7_[A-Za-z0-9_-]{12,}/.test(withoutAllowedContext7Placeholder), `${label} omits real-looking Context7 keys`);
+  assert(!/\bsk-[A-Za-z0-9_-]{8,}/.test(content), `${label} omits API-key-like values`);
+  assert(!/postgres(?:ql)?:\/\/[^"'<\s)]+/i.test(content), `${label} omits PostgreSQL URLs`);
+  assert(!/POSTGRES_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} omits raw POSTGRES_URL values`);
+  assert(!/DATABASE_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} omits raw DATABASE_URL values`);
+  assert(!/PGPASSWORD\s*=/.test(content), `${label} omits raw PGPASSWORD values`);
+}
+
+function assertSchemaSurface(schema) {
+  assert.equal(schema.title, 'BMAD Capability Pack');
+  assert.equal(schema.type, 'object');
+  assert(schema.required.includes('kind'), 'schema requires kind');
+  assert(schema.required.includes('schemaVersion'), 'schema requires schemaVersion');
+  assert(schema.required.includes('metadata'), 'schema requires metadata');
+  assert(schema.required.includes('capability'), 'schema requires capability');
+  assert(schema.required.includes('artifacts'), 'schema requires artifacts');
+  assert.equal(schema.properties.kind.const, 'bmad-capability-pack');
+  assert.equal(schema.properties.schemaVersion.const, 1);
+}
+
+function testContext7MinimalPack() {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-context7-'));
+  const requestPath = path.join(fixtureRoot, 'forge-request.json');
+  const beforeCommands = [...WORKSPACE_COMMAND_NAMES];
+
+  const result = runForge(['--input', requestPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(WORKSPACE_COMMAND_NAMES, beforeCommands, 'Forge does not mutate Workspace command registry');
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const schema = readJson(schemaPath);
+  assertSchemaSurface(schema);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.kind, 'bmad-capability-pack');
+  assert.equal(pack.schemaVersion, 1);
+  assert.equal(pack.metadata.source, 'capability-pack-forge');
+  assert.equal(pack.capability.id, 'host.mcp.context7.docs');
+  assert(pack.boundaries.includes('No live tool access.'), 'pack records no live tool boundary');
+  assert(pack.boundaries.includes('No Workspace command is added.'), 'pack records Workspace command boundary');
+  assert(pack.boundaries.includes('Generated artifacts are drafts until human review.'), 'pack records draft boundary');
+  assert(
+    pack.inputs.every((entry) => !/^[a-z][a-z0-9+.-]*:/i.test(entry.path)),
+    'pack input refs are local paths',
+  );
+  assert(!JSON.stringify(pack).includes('liveToolInvocation'), 'pack omits live tool invocation fields');
+
+  const capabilityRequest = readJson(path.join(outputDir, 'capability-request.json'));
+  const verdict = verifyCapabilityRequest(capabilityRequest);
+  assert.equal(verdict.ok, true, JSON.stringify(verdict, null, 2));
+
+  const manifest = readJson(path.join(outputDir, 'manifest.json'));
+  assert.equal(manifest.kind, 'bmad-capability-pack-manifest');
+  assert.equal(manifest.schemaVersion, 1);
+  assert.deepEqual(
+    manifest.artifacts.map((artifact) => artifact.path).sort(),
+    expectedFiles.filter((file) => file !== 'manifest.json').sort(),
+  );
+  for (const artifact of manifest.artifacts) {
+    assert(/^[a-f0-9]{64}$/.test(artifact.sha256), `manifest records sha256 for ${artifact.path}`);
+  }
+
+  for (const file of expectedFiles) {
+    assertNoSecretLookingValues(file, fs.readFileSync(path.join(outputDir, file), 'utf8'));
+  }
+  assert(fs.readFileSync(path.join(outputDir, 'customization-draft.toml'), 'utf8').includes('[workflow]'));
+  assert(fs.readFileSync(path.join(outputDir, 'codex-task-packet.md'), 'utf8').includes('instruction draft'));
+
+  const secondOutputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-context7-second-'));
+  const secondResult = runForge(['--input', requestPath, '--output', secondOutputDir]);
+  assert.equal(secondResult.status, 0, `${secondResult.stdout}\n${secondResult.stderr}`);
+  for (const file of expectedFiles) {
+    assert.equal(
+      fs.readFileSync(path.join(outputDir, file), 'utf8'),
+      fs.readFileSync(path.join(secondOutputDir, file), 'utf8'),
+      `${file} is deterministic`,
+    );
+  }
+}
+
+function testMissingInputFails() {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-missing-input-'));
+  const result = runForge(['--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(
+    `${result.stdout}\n${result.stderr}`.includes('Usage: node tools/capability-pack-forge.js --input <forge-request.json> --output <dir>'),
+  );
+}
+
+function testMalformedJsonFails() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-malformed-'));
+  const inputPath = path.join(tempDir, 'forge-request.json');
+  fs.writeFileSync(inputPath, '{not-json\n');
+  const outputDir = path.join(tempDir, 'out');
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_REQUEST_INVALID'));
+}
+
+function testRemoteEvidencePathFails() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-remote-ref-'));
+  const request = readJson(path.join(fixtureRoot, 'forge-request.json'));
+  request.context7EvidenceRef = 'https://context7.com/docs/installation';
+  const inputPath = path.join(tempDir, 'forge-request.json');
+  fs.writeFileSync(inputPath, `${JSON.stringify(request, null, 2)}\n`);
+  const outputDir = path.join(tempDir, 'out');
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_LOCAL_FILE_ONLY'));
+}
+
+function testSecretLikeValueFails() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-secret-'));
+  const request = readJson(path.join(fixtureRoot, 'forge-request.json'));
+  request.evidenceRefs.push({
+    id: 'bad-secret',
+    kind: 'operator-note',
+    path: 'context7-docs-operator-evidence.json',
+    role: 'ctx7_live_secret_ctx7_badSecretValue123456789',
+  });
+  fs.copyFileSync(
+    path.join(fixtureRoot, 'context7-docs-operator-evidence.json'),
+    path.join(tempDir, 'context7-docs-operator-evidence.json'),
+  );
+  fs.copyFileSync(path.join(fixtureRoot, 'capability-request.json'), path.join(tempDir, 'capability-request.json'));
+  const inputPath = path.join(tempDir, 'forge-request.json');
+  fs.writeFileSync(inputPath, `${JSON.stringify(request, null, 2)}\n`);
+  const outputDir = path.join(tempDir, 'out');
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_SECRET_DETECTED'));
+}
+
+function testExistingOutputDirWithFilesFails() {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-output-exists-'));
+  const outputDir = path.join(tempDir, 'out');
+  fs.mkdirSync(outputDir);
+  fs.writeFileSync(path.join(outputDir, 'leftover.txt'), 'do not overwrite\n');
+  const result = runForge(['--input', path.join(fixtureRoot, 'forge-request.json'), '--output', outputDir]);
+  assert.notEqual(result.status, 0);
+  assert(`${result.stdout}\n${result.stderr}`.includes('FORGE_OUTPUT_EXISTS'));
+  assert.equal(fs.readFileSync(path.join(outputDir, 'leftover.txt'), 'utf8'), 'do not overwrite\n');
+}
+
+testContext7MinimalPack();
+testMissingInputFails();
+testMalformedJsonFails();
+testRemoteEvidencePathFails();
+testSecretLikeValueFails();
+testExistingOutputDirWithFilesFails();
+
+console.log('Capability Pack Forge tests passed');

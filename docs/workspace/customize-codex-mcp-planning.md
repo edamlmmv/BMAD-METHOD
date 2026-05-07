@@ -149,6 +149,36 @@ evidence only. Record:
 Do not make deterministic Workspace checks, capability verification, skill
 validation, or plan acceptance depend on live browser/tool/config/network reads.
 
+## Codex MCP / TOML Docs Readiness Checklist
+
+Use this checklist when a customization or implementation-readiness discussion
+mentions Codex MCP, MCP server TOML, `mcp_servers.*`, `codex mcp`,
+`~/.codex/config.toml`, or project `.codex/config.toml`.
+
+- TOML target identified: per-skill `_bmad/custom/{skill}.toml`, user override,
+  Codex user config, or trusted project Codex config.
+- Official source refs cited:
+  `https://developers.openai.com/codex/config-reference#configtoml` and
+  `https://developers.openai.com/codex/cli/reference#codex-mcp`.
+- BMad customization path selected: exposed per-skill `customize.toml` fields
+  through `bmad-customize`; no central config generation in v1.
+- Evidence boundary stated: self-contained Capability Request JSON is sealed
+  verifier evidence; live MCP output, local config, `_bmad/custom`, app-server
+  state, and Workspace Session artifacts are not verifier input.
+- Validation commands named before implementation: `resolve_customization`,
+  `node test/test-workspace-contracts.js`, `npm run validate:skills`, and
+  `git diff --check`.
+- No runtime contract drift introduced: no Workspace verifier, CLI, schema,
+  or capability registry changes for docs/customization-only readiness.
+
+## Implementation Readiness Handoff
+
+`bmad-check-implementation-readiness` should treat Codex MCP/TOML docs readiness
+as blocked unless source refs, validation commands, operator evidence, and the
+no-runtime-drift boundary are all present. OpenAI Docs MCP may inform guidance,
+examples, prompts, and evidence checklists, but it is advisory authoring context
+only.
+
 ## Planning Backlog
 
 1. Baseline current authority across `bmad-customize`, Workspace docs,

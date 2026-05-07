@@ -492,6 +492,8 @@ function validateCapabilityRequestDeclarations(capabilities, errors) {
       validateCapabilityDeclarationStringArray(capability, field, errors, label);
     }
 
+    validateCapabilityRequestSpecificDeclaration(capability, label, errors);
+
     if (isEngineLike(capability) && capability.upstreamGapProofRequired !== true) {
       errors.push(
         capabilityIssue(
@@ -501,6 +503,67 @@ function validateCapabilityRequestDeclarations(capabilities, errors) {
         ),
       );
     }
+  }
+}
+
+function validateCapabilityRequestSpecificDeclaration(capability, label, errors) {
+  if (capability.id !== 'host.mcp.postgresql.readonly') {
+    return;
+  }
+
+  const expectedFields = {
+    group: 'host.mcp',
+    provider: 'modelcontextprotocol/server-postgres',
+    interface: 'readonly-postgresql-mcp',
+  };
+  for (const [field, expected] of Object.entries(expectedFields)) {
+    if (capability[field] !== expected) {
+      errors.push(capabilityIssue('REQUEST_INVALID', `PostgreSQL MCP declaration ${field} must be ${expected}.`, `${label}.${field}`));
+    }
+  }
+
+  if (capability.allowedInBaseImprovement !== false) {
+    errors.push(
+      capabilityIssue(
+        'REQUEST_INVALID',
+        'PostgreSQL MCP declaration allowedInBaseImprovement must be false.',
+        `${label}.allowedInBaseImprovement`,
+      ),
+    );
+  }
+  if (capability.requiresGrant !== true) {
+    errors.push(capabilityIssue('REQUEST_INVALID', 'PostgreSQL MCP declaration requiresGrant must be true.', `${label}.requiresGrant`));
+  }
+  if (Array.isArray(capability.writes) && capability.writes.length > 0) {
+    errors.push(capabilityIssue('REQUEST_INVALID', 'PostgreSQL MCP declaration writes must be empty.', `${label}.writes`));
+  }
+  for (const forbiddenWrite of [
+    'workspace-base',
+    'target-repo',
+    'external/postgresql/database',
+    'scheduler',
+    'daemon',
+    'live-adapter',
+    'secret-store',
+  ]) {
+    if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+      errors.push(
+        capabilityIssue(
+          'REQUEST_INVALID',
+          `PostgreSQL MCP declaration forbiddenWrites must include ${forbiddenWrite}.`,
+          `${label}.forbiddenWrites`,
+        ),
+      );
+    }
+  }
+  if (!arrayIncludes(capability.outputs, 'postgres-mcp-operator-evidence.json')) {
+    errors.push(
+      capabilityIssue(
+        'REQUEST_INVALID',
+        'PostgreSQL MCP declaration outputs must include postgres-mcp-operator-evidence.json.',
+        `${label}.outputs`,
+      ),
+    );
   }
 }
 
@@ -744,6 +807,122 @@ function validateCapability(capability, index, errors) {
     }
     if (!arrayIncludes(capability.outputs, 'executor-contract.json')) {
       errors.push(`${label}.outputs must include executor-contract.json`);
+    }
+  }
+
+  if (capability.id === 'repo.git.worktree-review') {
+    if (capability.group !== 'repo.git') {
+      errors.push(`${label}.group must be repo.git for Git Worktree Review`);
+    }
+    if (capability.provider !== 'git') {
+      errors.push(`${label}.provider must be git for Git Worktree Review`);
+    }
+    if (capability.interface !== 'worktree-review') {
+      errors.push(`${label}.interface must be worktree-review`);
+    }
+    if (!arrayIncludes(capability.writes, 'workspace-session/review')) {
+      errors.push(`${label}.writes must include workspace-session/review`);
+    }
+    for (const forbiddenWrite of ['workspace-base', 'target-repo', 'target-repo/push', 'target-repo/reset', 'target-repo/clean']) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    for (const output of ['summary.json', 'review-manifest.json', 'status.json', 'diff.patch']) {
+      if (!arrayIncludes(capability.outputs, output)) {
+        errors.push(`${label}.outputs must include ${output}`);
+      }
+    }
+  }
+
+  if (capability.id === 'host.mcp.context7.docs') {
+    if (capability.group !== 'host.mcp') {
+      errors.push(`${label}.group must be host.mcp for Context7 Docs MCP`);
+    }
+    if (capability.provider !== 'context7') {
+      errors.push(`${label}.provider must be context7 for Context7 Docs MCP`);
+    }
+    if (capability.interface !== 'remote-docs-mcp') {
+      errors.push(`${label}.interface must be remote-docs-mcp`);
+    }
+    if (capability.requiresGrant !== true) {
+      errors.push(`${label}.requiresGrant must be true for Context7 Docs MCP`);
+    }
+    if (Array.isArray(capability.writes) && capability.writes.length > 0) {
+      errors.push(`${label}.writes must be empty for Context7 Docs MCP`);
+    }
+    for (const forbiddenWrite of ['workspace-base', 'target-repo', 'secret-store']) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    if (!arrayIncludes(capability.outputs, 'context7-docs-operator-evidence.json')) {
+      errors.push(`${label}.outputs must include context7-docs-operator-evidence.json`);
+    }
+  }
+
+  if (capability.id === 'host.mcp.git.local') {
+    if (capability.group !== 'host.mcp') {
+      errors.push(`${label}.group must be host.mcp for Git MCP`);
+    }
+    if (capability.provider !== 'mcp-server-git') {
+      errors.push(`${label}.provider must be mcp-server-git for Git MCP`);
+    }
+    if (capability.interface !== 'local-git-mcp') {
+      errors.push(`${label}.interface must be local-git-mcp`);
+    }
+    if (capability.requiresGrant !== true) {
+      errors.push(`${label}.requiresGrant must be true for Git MCP`);
+    }
+    for (const write of ['target-repo/git-index', 'target-repo/git-commit', 'target-repo/git-branch']) {
+      if (!arrayIncludes(capability.writes, write)) {
+        errors.push(`${label}.writes must include ${write}`);
+      }
+    }
+    for (const forbiddenWrite of [
+      'workspace-base',
+      'target-repo/push',
+      'target-repo/fetch',
+      'target-repo/reset',
+      'target-repo/clean',
+      'target-repo/restore',
+      'target-repo/merge',
+    ]) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    if (!arrayIncludes(capability.outputs, 'git-mcp-operator-evidence.json')) {
+      errors.push(`${label}.outputs must include git-mcp-operator-evidence.json`);
+    }
+  }
+
+  if (capability.id === 'host.mcp.postgresql.readonly') {
+    if (capability.group !== 'host.mcp') {
+      errors.push(`${label}.group must be host.mcp for PostgreSQL MCP`);
+    }
+    if (capability.provider !== 'modelcontextprotocol/server-postgres') {
+      errors.push(`${label}.provider must be modelcontextprotocol/server-postgres for PostgreSQL MCP`);
+    }
+    if (capability.interface !== 'readonly-postgresql-mcp') {
+      errors.push(`${label}.interface must be readonly-postgresql-mcp`);
+    }
+    if (capability.requiresGrant !== true) {
+      errors.push(`${label}.requiresGrant must be true for PostgreSQL MCP`);
+    }
+    if (capability.allowedInBaseImprovement !== false) {
+      errors.push(`${label}.allowedInBaseImprovement must be false for PostgreSQL MCP`);
+    }
+    if (Array.isArray(capability.writes) && capability.writes.length > 0) {
+      errors.push(`${label}.writes must be empty for PostgreSQL MCP`);
+    }
+    for (const forbiddenWrite of ['workspace-base', 'target-repo', 'external/postgresql/database', 'secret-store']) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    if (!arrayIncludes(capability.outputs, 'postgres-mcp-operator-evidence.json')) {
+      errors.push(`${label}.outputs must include postgres-mcp-operator-evidence.json`);
     }
   }
 

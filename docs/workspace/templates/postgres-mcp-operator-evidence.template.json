@@ -1,0 +1,17 @@
+{
+  "kind": "postgres-mcp-operator-evidence",
+  "schemaVersion": 1,
+  "observer": "Codex operator",
+  "timestamp": "<ISO-8601>",
+  "mcpServer": "modelcontextprotocol/server-postgres",
+  "configured": false,
+  "expectedTools": ["query"],
+  "accessMode": "read-only",
+  "secretEvidence": "POSTGRES_URL=set|unset",
+  "allowedSchemasOrTables": [],
+  "deniedWrites": ["INSERT", "UPDATE", "DELETE", "DDL", "bulk copy", "administrative writes"],
+  "evidenceNeed": "<why DB evidence is needed>",
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "PostgreSQL MCP observations are not verifier input, not grant authority, not runtime authority, and not Workspace authority; record POSTGRES_URL=set or unset only, never the connection string value."
+}

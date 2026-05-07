@@ -136,13 +136,19 @@ example. Use
 `docs/workspace/templates/capability-request.codex-manual.example.json` for a
 Codex manual executor fixture and
 `docs/workspace/templates/capability-request.graphify-repo-intake.example.json`
-for a Graphify repo-intake fixture.
+for a Graphify repo-intake fixture. Use
+`docs/workspace/templates/capability-request.git-worktree-review.example.json`
+for a Git Worktree Review fixture. Use
+`docs/workspace/templates/capability-request.context7-docs.example.json` for a
+Context7 Docs MCP fixture and
+`docs/workspace/templates/capability-request.git-mcp-local.example.json` for a
+Git local MCP fixture.
 
 `docs/workspace/capability-profile-registry.json` is advisory authoring context
-for named tools such as Codex and Graphify. It maps profiles to exact
-capability ids, support states, trust boundaries, evidence refs, and repair
-hints. It is not verifier input, grant authority, runtime availability proof,
-or support-promotion authority.
+for named tools such as Codex, Graphify, Git, Context7 MCP, and Git MCP. It
+maps profiles to exact capability ids, support states, trust boundaries,
+evidence refs, and repair hints. It is not verifier input, grant authority,
+runtime availability proof, or support-promotion authority.
 
 Use the profile registry to explain known Codex and Graphify affordances before
 authoring a Capability Request: Codex config and app-server context remain
@@ -154,6 +160,44 @@ execution. Codex manual executor readiness is human-mediated/manual and is not
 a guarantee that a runnable local Codex CLI exists. Record any actual operator
 observation through `bmad workspace result` or `bmad workspace closeout`; never
 treat the profile as execution evidence.
+
+Git Worktree Review uses declared id `repo.git.worktree-review`. Treat
+`git status`, `git diff`, and `git diff --cached` as manual review evidence
+only. They can explain dirty state, changed files, and patch evidence; they do
+not authorize push, reset, clean, merge, hidden execution, or target repo
+mutation.
+
+Context7 Docs MCP uses declared id `host.mcp.context7.docs`. Treat Context7 as
+optional docs evidence only. Context7 can fetch current documentation, including
+MCP and Git MCP docs, but it does not perform Git operations, configure MCP
+servers, authorize writes, or prove runtime availability. Recommended local
+credential source is Apple Passwords item `Context7`; the operator may manually
+expose only `CONTEXT7_API_KEY` in a local shell/session. Record
+`CONTEXT7_API_KEY=set` or unset and
+`credentialSource: "Apple Passwords item Context7"` only; never record the key
+value, keychain output, screenshots, logs, PR text, or issue text containing
+the secret.
+
+Git local MCP uses declared id `host.mcp.git.local`. Treat `mcp-server-git` as
+optional local repository tools. Status, diff, log, and branch observations are
+manual evidence only; add, commit, and branch write tools are manual/grant-gated
+and never replace Grant Guard. GitHub connector or GitHub MCP state is separate
+from local Git MCP. Local `git` CLI remains fallback and exact pre-push
+authority, including `npm ci && npm run quality` on the exact checkout and
+`HEAD` being pushed.
+
+PostgreSQL MCP uses declared id `host.mcp.postgresql.readonly`. Treat
+`modelcontextprotocol/server-postgres` as archived/deprecated reference
+metadata for optional/operator-provided read-only database evidence, not
+endorsement or runtime proof. Use
+`docs/workspace/postgresql-mcp-capability-planning.md` and
+`docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
+Record `POSTGRES_URL=set` or unset only, never the connection string value.
+Read-only evidence can expose sensitive rows, so require least-privilege scope,
+allowed schemas/tables, denied writes, and why DB evidence is needed. Live
+PostgreSQL, Docker, MCP, network, Codex config, local MCP config,
+`_bmad/custom`, Workspace Session artifacts, and query results are not verifier
+input.
 
 For Google Calendar remote MCP planning, use
 `docs/workspace/google-calendar-capability-planning.md` and

@@ -1,0 +1,18 @@
+{
+  "kind": "git-mcp-operator-evidence",
+  "schemaVersion": 1,
+  "observer": "Codex operator",
+  "timestamp": "<ISO-8601>",
+  "mcpServer": "mcp-server-git",
+  "repository": "<absolute repo path>",
+  "configured": false,
+  "toolsObserved": ["git_status", "git_diff_unstaged", "git_diff_staged", "git_log", "git_branch"],
+  "writeTools": ["git_add", "git_commit", "git_create_branch"],
+  "grantRequired": true,
+  "manualReviewRequired": true,
+  "credentialHandling": "No Context7 credential is used by Git MCP; Context7 credentials stay in local operator environment only.",
+  "commandSummary": "<operator-observed Git MCP command or transcript summary>",
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Git MCP observations are not verifier input, not grant authority, not runtime authority, and not Workspace authority; write tools require manual grant and local git CLI remains fallback plus exact pre-push authority."
+}

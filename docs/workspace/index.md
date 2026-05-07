@@ -25,8 +25,11 @@ CLI records reviewable evidence.
 | Session lifecycle and artifacts | [Session Lifecycle](./session-lifecycle.md) |
 | Capability and grant model | [Capability Contract](./capability-contract.md) |
 | Advisory capability profiles | [Capability Profile Registry](./capability-profile-registry.json) |
+| Capability pack artifact generator | [Capability Pack Forge](./capability-pack-forge.md) |
 | Customize and Codex MCP planning boundary | [BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) |
 | Google Calendar MCP capability planning boundary | [Google Calendar Capability Planning](./google-calendar-capability-planning.md) |
+| Docker MCP Toolkit and Context7 secret-safe planning | [Docker MCP Toolkit And Context7 Planning](./docker-mcp-context7-planning.md) |
+| PostgreSQL MCP capability planning boundary | [PostgreSQL MCP Capability Planning](./postgresql-mcp-capability-planning.md) |
 | Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
 | Thin pre-established loop platform | [Loop Platform v1](./loop-platform-v1.md) |
 | Deferred starter loop backlog | [Loop Candidate Registry](./loop-candidate-registry.md) |
@@ -73,6 +76,13 @@ declared capabilities and advisory observations from the request fixture only;
 it does not inspect `_bmad/custom`, local Codex config, app-server APIs, or live
 Graphify state.
 
+Use [Capability Pack Forge](./capability-pack-forge.md) with
+[Capability Pack Forge Request Template](./templates/capability-pack-forge-request.template.json)
+when local Context7 docs evidence and Capability Request JSON should become a
+reviewable BMAD capability-pack draft. Forge emits draft artifacts only; it does
+not add Workspace commands, call live tools, change verifier behavior, install
+skills, grant authority, or activate `_bmad/custom`.
+
 Use [Browser Affordance Evidence Template](./templates/browser-affordance-evidence.template.json)
 to record manual Playwright CLI, Agent Browser CLI, Browser Use IAB, or Computer
 Use MCP observations. Browser and desktop observations are manual evidence only;
@@ -90,6 +100,31 @@ Workspace MCP, Google Calendar API, a Codex Google Calendar connector, or the
 target repo `/Users/edam/Documents/TODA/toda-gsuite-plugin`. The portable
 example is
 [Google Calendar MCP Capability Request](./templates/capability-request.google-calendar-mcp.example.json).
+
+Use [Docker MCP Toolkit And Context7 Planning](./docker-mcp-context7-planning.md)
+when a customization or Workspace discussion mentions Docker MCP Toolkit,
+Docker MCP Gateway, Docker MCP Catalog, Docker Hub `mcp/context7`, or Context7
+through Docker MCP. The portable example is
+[Docker MCP Toolkit Capability Request](./templates/capability-request.docker-mcp-toolkit.example.json).
+Docker MCP and Context7 remain advisory unless explicit manual evidence is
+recorded; `secretRef: Context7` is non-secret metadata and key material must
+stay runtime-only.
+
+Use [PostgreSQL MCP Capability Planning](./postgresql-mcp-capability-planning.md)
+when a customization or Workspace discussion mentions PostgreSQL MCP, Postgres
+MCP, Docker Hub PostgreSQL MCP, or `modelcontextprotocol/server-postgres`. The
+portable example is
+[PostgreSQL MCP Capability Request](./templates/capability-request.postgresql-mcp-readonly.example.json).
+PostgreSQL MCP is optional/operator-provided read-only evidence only; record
+`POSTGRES_URL=set|unset`, allowed schemas/tables, denied writes, and why DB
+evidence is needed, never the connection string or query results.
+
+Use [Context7 Docs MCP Capability Request](./templates/capability-request.context7-docs.example.json)
+when a Workspace discussion needs Context7 as optional docs evidence. Use
+[Git MCP Capability Request](./templates/capability-request.git-mcp-local.example.json)
+when a Workspace discussion needs local `mcp-server-git` tools. Context7 does
+not perform Git operations, Git MCP is separate from the GitHub connector, and
+both surfaces remain advisory until explicit manual evidence is recorded.
 
 Use [BMAD Loop Codex Prompt](./templates/bmad-loop-codex-prompt.md) when Codex
 should run a generic local BMAD loop for one-shot or recurring

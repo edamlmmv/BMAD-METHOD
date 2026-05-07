@@ -1,0 +1,68 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.context7.docs",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "context7",
+    "interface": "remote-docs-mcp",
+    "writes": [],
+    "outputs": ["context7-docs-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.context7.docs",
+      "group": "host.mcp",
+      "provider": "context7",
+      "interface": "remote-docs-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": ["workspace-base", "target-repo", "scheduler", "daemon", "live-adapter", "secret-store"],
+      "outputs": ["context7-docs-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_INSTALL_DOCS",
+      "message": "Context7 installation docs describe CLI plus MCP modes, optional API key use, and CONTEXT7_API_KEY header configuration.",
+      "details": {
+        "sourceId": "context7_install_docs",
+        "sourceUrl": "https://context7.com/docs/installation",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "CONTEXT7_MCP_DOCS_INDEX",
+      "message": "Context7 indexes Model Context Protocol docs as documentation context only.",
+      "details": {
+        "sourceId": "context7_modelcontextprotocol_docs",
+        "sourceUrl": "https://context7.com/modelcontextprotocol/docs",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "OPENAI_CODEX_MCP_CONFIG_DOCS",
+      "message": "Codex MCP configuration docs describe MCP server setup as host configuration, not Workspace verifier input.",
+      "details": {
+        "sourceId": "openai_codex_mcp_docs",
+        "sourceUrl": "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "CONTEXT7_SECRET_BOUNDARY",
+      "message": "Recommended credential source is Apple Passwords item Context7; operator may expose only CONTEXT7_API_KEY in a local shell/session and must never record the value.",
+      "details": {
+        "credentialSource": "Apple Passwords item Context7",
+        "credentialEvidence": "CONTEXT7_API_KEY=set",
+        "credentialValue": "[REDACTED]",
+        "allowedPlaceholders": ["YOUR_API_KEY", "[REDACTED]", "ctx7_test_placeholder_DO_NOT_USE"],
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

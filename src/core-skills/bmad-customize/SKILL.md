@@ -82,6 +82,91 @@ checklists. It may also add per-skill reminders through exposed
 MCP host config, calls live MCP servers, or treats MCP availability as declared
 capability compatibility.
 
+When the user says "use Context7", "use Context7 MCP", "use Git MCP", or "use
+mcp-server-git", separate the surfaces before authoring:
+
+- **Context7 Docs MCP** — optional documentation context only. Use
+  `host.mcp.context7.docs` and
+  `docs/workspace/templates/capability-request.context7-docs.example.json`.
+  Context7 may fetch current docs, including MCP and Git MCP docs, but it does
+  not perform Git operations.
+- **Context7 credential handling** — recommended local credential source is
+  Apple Passwords item `Context7`. The operator may manually expose only
+  `CONTEXT7_API_KEY` in a local shell/session. Customize must never read Apple
+  Passwords, ask the user to paste the key, store the key, screenshot it, or put
+  it in examples, MCP config, evidence artifacts, logs, PRs, or issues.
+  Examples may use only `<CONTEXT7_API_KEY>` or `<redacted>`. Evidence may record
+  `CONTEXT7_API_KEY=set` and
+  `credentialSource: "Apple Passwords item Context7"`, never the value.
+- **Git MCP local repository tools** — optional local Git tools only. Use
+  `host.mcp.git.local` and
+  `docs/workspace/templates/capability-request.git-mcp-local.example.json`.
+  Status, diff, log, and branch observations are manual evidence only; add,
+  commit, and branch tools are write-capable and manual/grant-gated.
+- **GitHub connector or GitHub MCP** — separate collaboration surface for
+  issues, PRs, CI, and reviews. Do not treat it as local Git MCP proof.
+- **Workspace verifier** — self-contained Capability Request JSON only. Live
+  Context7 config, Git MCP runtime state, repository dirty state, GitHub
+  connector state, Codex config, and `_bmad/custom` are not verifier input.
+- **Pre-push authority** — local `git` CLI remains fallback and exact pre-push
+  authority, including `npm ci && npm run quality` on the exact checkout and
+  `HEAD` being pushed.
+
+When the user says "use Docker MCP", "use Docker MCP Toolkit", "use Docker MCP
+Gateway", "use Docker MCP Catalog", or "use Context7 through Docker MCP",
+separate the surfaces before authoring:
+
+- **Docker MCP Toolkit** — optional Docker Desktop/CLI setup and catalog
+  guidance only. Use `host.mcp.docker.toolkit`,
+  `docs/workspace/docker-mcp-context7-planning.md`, and
+  `docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
+- **Docker MCP Gateway** — runtime gateway process and profile execution. Live
+  gateway state, tool lists, Docker CLI shape, and local profile files are not
+  verifier authority.
+- **Docker MCP Catalog and Docker Hub Context7 MCP server** — source and package
+  lookup context only, including Docker Hub `mcp/context7`; catalog availability
+  does not prove local Context7 configuration.
+- **Context7 secret handling** — prefer Docker MCP secret / `secretRef: Context7`,
+  then `CONTEXT7_API_KEY` from a secret manager. Use `--api-key` only as a
+  last-resort manual path because process args can leak.
+- **Apple Passwords entry named `Context7`** — user-owned runtime source only.
+  Before future local secret setup, ask the user to confirm the entry exists.
+  Do not read, display, store, log, screenshot, or record the key.
+- **Workspace verifier** — self-contained Capability Request JSON only. Docker
+  MCP Toolkit, Docker MCP Gateway, Docker MCP Catalog, Docker secrets, live
+  Context7 output, Apple Passwords state, local MCP config, network state, and
+  `_bmad/custom` are not verifier input.
+
+For Docker MCP and Context7 examples, use only `<CONTEXT7_API_KEY>` or
+`<redacted>`. Do not create repo MCP config, env files, logs, fixtures,
+results, closeouts, docs examples, or tests containing key material.
+
+When the user says "use PostgreSQL MCP", "use Postgres MCP", "use Docker Hub
+PostgreSQL MCP", or names `modelcontextprotocol/server-postgres`, separate the
+surfaces before authoring:
+
+- **PostgreSQL read-only MCP** — optional/operator-provided database evidence
+  only. Use `host.mcp.postgresql.readonly`,
+  `docs/workspace/postgresql-mcp-capability-planning.md`, and
+  `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
+- **Reference provider** — `modelcontextprotocol/server-postgres` is
+  archived/deprecated reference metadata, not endorsement. The BMAD-owned
+  interface name is `readonly-postgresql-mcp`.
+- **Runtime secret state** — record only `POSTGRES_URL=set|unset`; never read,
+  display, store, screenshot, log, or serialize the connection string value.
+- **Read scope** — read-only is not safe. Require least-privilege database
+  scope, allowed schemas/tables, denied writes, and why DB evidence is needed
+  before citing PostgreSQL query evidence.
+- **Workspace verifier** — self-contained Capability Request JSON only. Live
+  PostgreSQL, Docker, MCP, network, Codex config, local MCP config,
+  `_bmad/custom`, Workspace Session artifacts, and query results are not
+  verifier input.
+
+Because this `bmad-customize` source skill has no exposed `customize.toml`,
+PostgreSQL MCP capability behavior changes require source/docs edits, not
+central config. Customize may add reminders through exposed persistent facts
+only; those reminders must not affect verifier pass/fail.
+
 ## Browser Affordance Authoring
 
 When the user says "use Playwright MCP", "use Playwright", "use Agent Browser",

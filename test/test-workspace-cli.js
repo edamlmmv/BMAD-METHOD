@@ -1666,6 +1666,26 @@ function runTests() {
       'Capability Contract includes manual Codex executor readiness',
       JSON.stringify(capabilityContract, null, 2),
     );
+    const gitCapability = capabilityContract.capabilities.find((capability) => capability.id === 'repo.git.worktree-review');
+    assert(
+      gitCapability?.provider === 'git' && gitCapability?.interface === 'worktree-review',
+      'Capability Contract records Git Worktree Review provider',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      gitCapability?.writes?.includes('workspace-session/review') &&
+        gitCapability?.outputs?.includes('review-manifest.json') &&
+        gitCapability.outputs.includes('diff.patch'),
+      'Capability Contract records Git review artifact writes and outputs',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      gitCapability?.forbiddenWrites?.includes('target-repo/push') &&
+        gitCapability.forbiddenWrites.includes('target-repo/reset') &&
+        gitCapability.forbiddenWrites.includes('target-repo/clean'),
+      'Capability Contract forbids destructive Git target actions',
+      JSON.stringify(capabilityContract, null, 2),
+    );
     const graphCapability = capabilityContract.capabilities.find((capability) => capability.id === 'evidence.graph.repo-intake');
     assert(
       graphCapability?.provider === 'graphify',
@@ -1694,6 +1714,25 @@ function runTests() {
           'does not authorize writes, pushes, MCP activation, hidden execution, or Graphify regeneration',
         ),
       'Capability Contract records advisory graph guidance',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    const postgresqlMcpCapability = capabilityContract.capabilities.find((capability) => capability.id === 'host.mcp.postgresql.readonly');
+    assert(
+      postgresqlMcpCapability?.provider === 'modelcontextprotocol/server-postgres' &&
+        postgresqlMcpCapability?.interface === 'readonly-postgresql-mcp',
+      'Capability Contract records PostgreSQL MCP readonly provider',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      postgresqlMcpCapability?.writes?.length === 0 &&
+        postgresqlMcpCapability?.forbiddenWrites?.includes('external/postgresql/database') &&
+        postgresqlMcpCapability?.forbiddenWrites?.includes('secret-store'),
+      'Capability Contract records PostgreSQL MCP readonly and secret boundaries',
+      JSON.stringify(capabilityContract, null, 2),
+    );
+    assert(
+      postgresqlMcpCapability?.outputs?.includes('postgres-mcp-operator-evidence.json'),
+      'Capability Contract records PostgreSQL MCP operator evidence output',
       JSON.stringify(capabilityContract, null, 2),
     );
 

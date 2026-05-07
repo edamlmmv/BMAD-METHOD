@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 
 const { validateCapabilityContract, validateWorkPacket, verifyCapabilityRequest } = require('../tools/workspace/contracts');
 const { createCapabilityContract } = require('../tools/workspace/capability-contract');
@@ -111,6 +112,85 @@ function assertCommandEvidence(profile, profileId, expectedCommandFragments) {
       JSON.stringify(evidence.smokeTests, null, 2),
     );
   }
+}
+
+function assertGitCommandEvidence(profile) {
+  const profileId = 'git.cli.worktree-review';
+  const evidence = profile?.commandEvidence;
+  assert(evidence && typeof evidence === 'object', `${profileId} exposes commandEvidence`, JSON.stringify(profile, null, 2));
+  if (!evidence || typeof evidence !== 'object') {
+    return;
+  }
+
+  assert(evidence.canonicalInvocation === 'git', `${profileId} uses Git canonical invocation`, JSON.stringify(evidence, null, 2));
+  for (const boundary of ['not verifier input', 'not support promotion', 'not grant authority']) {
+    assert(
+      typeof evidence.boundary === 'string' && evidence.boundary.includes(boundary),
+      `${profileId} commandEvidence boundary includes ${boundary}`,
+      JSON.stringify(evidence, null, 2),
+    );
+  }
+  assert(
+    Array.isArray(evidence.nonMutatingCommands) && evidence.nonMutatingCommands.length >= 5,
+    `${profileId} lists non-mutating commands`,
+    JSON.stringify(evidence, null, 2),
+  );
+  for (const fragment of [
+    'git --version',
+    'git rev-parse --show-toplevel',
+    'git status --porcelain=v1 --untracked-files=all',
+    'git diff --binary',
+    'git diff --cached --binary',
+  ]) {
+    assert(
+      evidence.nonMutatingCommands.some((entry) => entry.command === fragment),
+      `${profileId} commandEvidence includes ${fragment}`,
+      JSON.stringify(evidence.nonMutatingCommands, null, 2),
+    );
+  }
+  for (const forbiddenCommand of ['git push', 'git reset', 'git clean']) {
+    assert(
+      evidence.forbiddenCommands.includes(forbiddenCommand),
+      `${profileId} commandEvidence forbids ${forbiddenCommand}`,
+      JSON.stringify(evidence, null, 2),
+    );
+  }
+}
+
+function assertNoContext7SecretLeak(label, content) {
+  const allowedPlaceholderContent = content.replaceAll('ctx7_test_placeholder_DO_NOT_USE', '');
+  assert(!/ctx7_[A-Za-z0-9_-]{12,}/.test(allowedPlaceholderContent), `${label} omits real-looking Context7 keys`);
+  assert(
+    !/CONTEXT7_API_KEY\s*=\s*(?!set\b|unset\b|YOUR_API_KEY\b|\[REDACTED\]\b)/.test(content),
+    `${label} avoids raw CONTEXT7_API_KEY values`,
+  );
+}
+
+function assertNoDockerContext7SecretLeak(label, content) {
+  const context7Prefix = ['ctx7', 'sk-'].join('');
+  const openAiPrefix = ['sk', '-'].join('');
+  const jwtPrefix = ['ey', 'J'].join('');
+  assert(!content.includes(context7Prefix), `${label} omits provider-specific Context7 key prefixes`);
+  assert(!new RegExp(`\\b${openAiPrefix}[A-Za-z0-9_-]{8,}`).test(content), `${label} omits OpenAI-style secret prefixes`);
+  assert(
+    !new RegExp(`\\b${jwtPrefix}[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b`).test(content),
+    `${label} omits JWT-like literals`,
+  );
+  assert(
+    !/CONTEXT7_API_KEY\s*=\s*(?!<CONTEXT7_API_KEY>\b|set\b|unset\b)/.test(content),
+    `${label} avoids raw CONTEXT7_API_KEY assignments`,
+  );
+  const suspiciousLiterals = findSyntheticHighEntropyLiterals(content);
+  assert(suspiciousLiterals.length === 0, `${label} omits synthetic high-entropy literals`, suspiciousLiterals.join(', '));
+}
+
+function assertNoPostgresqlSecretLeak(label, content) {
+  assert(!/postgres(?:ql)?:\/\/[^"'<\s)]+/i.test(content), `${label} avoids raw PostgreSQL connection URLs`);
+  assert(!/POSTGRES_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} avoids raw POSTGRES_URL values`);
+  assert(!/DATABASE_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} avoids raw DATABASE_URL values`);
+  assert(!/PGPASSWORD\s*=/.test(content), `${label} avoids raw PGPASSWORD values`);
+  const suspiciousLiterals = findSyntheticHighEntropyLiterals(content);
+  assert(suspiciousLiterals.length === 0, `${label} omits synthetic high-entropy literals`, suspiciousLiterals.join(', '));
 }
 
 function validWorkPacket() {
@@ -228,6 +308,22 @@ function googleCalendarCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
 }
 
+function context7DocsCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
+}
+
+function gitMcpCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.git.local');
+}
+
+function dockerMcpToolkitCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.docker.toolkit');
+}
+
+function postgresqlMcpReadonlyCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.postgresql.readonly');
+}
+
 function validGoogleCalendarCapabilityRequest(overrides = {}) {
   const request = {
     id: 'host.mcp.google-calendar.remote',
@@ -247,6 +343,122 @@ function validGoogleCalendarCapabilityRequest(overrides = {}) {
     schemaVersion: 1,
     request,
     capabilities: overrides.capabilities || [googleCalendarCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validContext7DocsCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.context7.docs',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'context7',
+    interface: 'remote-docs-mcp',
+    writes: [],
+    outputs: ['context7-docs-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [context7DocsCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validDockerMcpToolkitCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.docker.toolkit',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'docker-mcp-toolkit',
+    interface: 'docker-mcp-gateway-profile',
+    writes: [],
+    outputs: ['docker-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [dockerMcpToolkitCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validGitMcpCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.git.local',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'mcp-server-git',
+    interface: 'local-git-mcp',
+    writes: ['target-repo/git-index', 'target-repo/git-commit', 'target-repo/git-branch'],
+    outputs: ['git-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [gitMcpCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validPostgresqlMcpReadonlyCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.postgresql.readonly',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'modelcontextprotocol/server-postgres',
+    interface: 'readonly-postgresql-mcp',
+    writes: [],
+    outputs: ['postgres-mcp-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [postgresqlMcpReadonlyCapabilityDeclaration()],
   };
   if (overrides.observations) {
     capabilityRequest.observations = overrides.observations;
@@ -431,6 +643,16 @@ function listFiles(root, options = {}) {
   }
 
   return files;
+}
+
+function findSyntheticHighEntropyLiterals(text) {
+  const candidates = text.match(/[A-Za-z0-9_=-]{32,}/g) || [];
+  return candidates.filter((candidate) => {
+    if (!/[A-Z]/.test(candidate) || !/[a-z]/.test(candidate) || !/[0-9]/.test(candidate)) {
+      return false;
+    }
+    return new Set(candidate).size >= 12;
+  });
 }
 
 function findWorkspaceReleaseRefsOutsideHistory() {
@@ -1235,7 +1457,27 @@ function runTests() {
     const contract = createCapabilityContract(repoRoot);
     const result = validateCapabilityContract(contract);
     const calendarCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
+    const gitCapability = contract.capabilities.find((capability) => capability.id === 'repo.git.worktree-review');
+    const context7Capability = contract.capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
+    const gitMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.git.local');
+    const dockerMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.docker.toolkit');
+    const postgresqlMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.postgresql.readonly');
     assert(result.ok === true, 'current Workspace capability contract validates', result.errors.join('; '));
+    assert(Boolean(gitCapability), 'Git Worktree Review capability is declared');
+    assert(gitCapability.group === 'repo.git', 'Git capability uses repo.git group', JSON.stringify(gitCapability));
+    assert(gitCapability.provider === 'git', 'Git capability records provider', JSON.stringify(gitCapability));
+    assert(gitCapability.interface === 'worktree-review', 'Git capability records interface', JSON.stringify(gitCapability));
+    assert(
+      gitCapability.writes.includes('workspace-session/review'),
+      'Git capability writes review artifacts',
+      JSON.stringify(gitCapability),
+    );
+    assert(
+      gitCapability.forbiddenWrites.includes('target-repo/push'),
+      'Git capability forbids target repo push',
+      JSON.stringify(gitCapability),
+    );
+    assert(gitCapability.outputs.includes('diff.patch'), 'Git capability records patch output', JSON.stringify(gitCapability));
     assert(Boolean(calendarCapability), 'Google Calendar remote MCP capability is declared');
     assert(calendarCapability.group === 'host.mcp', 'Google Calendar capability uses host.mcp group', JSON.stringify(calendarCapability));
     assert(
@@ -1259,6 +1501,122 @@ function runTests() {
       'Google Calendar capability forbids appsscript-derived verifier writes',
       JSON.stringify(calendarCapability),
     );
+    assert(Boolean(context7Capability), 'Context7 Docs MCP capability is declared');
+    assert(context7Capability.group === 'host.mcp', 'Context7 capability uses host.mcp group', JSON.stringify(context7Capability));
+    assert(context7Capability.provider === 'context7', 'Context7 capability records provider', JSON.stringify(context7Capability));
+    assert(
+      context7Capability.interface === 'remote-docs-mcp',
+      'Context7 capability records remote docs interface',
+      JSON.stringify(context7Capability),
+    );
+    assert(context7Capability.requiresGrant === true, 'Context7 capability requires grant', JSON.stringify(context7Capability));
+    assert(context7Capability.writes.length === 0, 'Context7 capability declares no writes', JSON.stringify(context7Capability));
+    assert(
+      context7Capability.outputs.includes('context7-docs-operator-evidence.json'),
+      'Context7 capability records docs evidence output',
+      JSON.stringify(context7Capability),
+    );
+    assert(Boolean(gitMcpCapability), 'Git MCP local capability is declared');
+    assert(gitMcpCapability.group === 'host.mcp', 'Git MCP capability uses host.mcp group', JSON.stringify(gitMcpCapability));
+    assert(gitMcpCapability.provider === 'mcp-server-git', 'Git MCP capability records provider', JSON.stringify(gitMcpCapability));
+    assert(gitMcpCapability.interface === 'local-git-mcp', 'Git MCP capability records interface', JSON.stringify(gitMcpCapability));
+    assert(gitMcpCapability.requiresGrant === true, 'Git MCP capability requires grant', JSON.stringify(gitMcpCapability));
+    for (const write of ['target-repo/git-index', 'target-repo/git-commit', 'target-repo/git-branch']) {
+      assert(gitMcpCapability.writes.includes(write), `Git MCP capability declares write ${write}`, JSON.stringify(gitMcpCapability));
+    }
+    for (const forbiddenWrite of ['target-repo/push', 'target-repo/reset', 'target-repo/clean']) {
+      assert(
+        gitMcpCapability.forbiddenWrites.includes(forbiddenWrite),
+        `Git MCP capability forbids ${forbiddenWrite}`,
+        JSON.stringify(gitMcpCapability),
+      );
+    }
+    assert(
+      gitMcpCapability.outputs.includes('git-mcp-operator-evidence.json'),
+      'Git MCP capability records operator evidence output',
+      JSON.stringify(gitMcpCapability),
+    );
+    assert(Boolean(dockerMcpCapability), 'Docker MCP Toolkit capability is declared');
+    if (dockerMcpCapability) {
+      assert(dockerMcpCapability.group === 'host.mcp', 'Docker MCP capability uses host.mcp group', JSON.stringify(dockerMcpCapability));
+      assert(
+        dockerMcpCapability.provider === 'docker-mcp-toolkit',
+        'Docker MCP capability records provider',
+        JSON.stringify(dockerMcpCapability),
+      );
+      assert(
+        dockerMcpCapability.interface === 'docker-mcp-gateway-profile',
+        'Docker MCP capability records gateway profile interface',
+        JSON.stringify(dockerMcpCapability),
+      );
+      assert(dockerMcpCapability.requiresGrant === true, 'Docker MCP capability requires grant', JSON.stringify(dockerMcpCapability));
+      assert(dockerMcpCapability.writes.length === 0, 'Docker MCP capability declares no writes', JSON.stringify(dockerMcpCapability));
+      for (const forbiddenWrite of ['workspace-base', 'target-repo', 'scheduler', 'daemon', 'live-adapter', 'secret-store']) {
+        assert(
+          dockerMcpCapability.forbiddenWrites.includes(forbiddenWrite),
+          `Docker MCP capability forbids ${forbiddenWrite}`,
+          JSON.stringify(dockerMcpCapability),
+        );
+      }
+      assert(
+        dockerMcpCapability.outputs.includes('docker-mcp-operator-evidence.json'),
+        'Docker MCP capability records operator evidence output',
+        JSON.stringify(dockerMcpCapability),
+      );
+    }
+    assert(Boolean(postgresqlMcpCapability), 'PostgreSQL MCP readonly capability is declared');
+    if (postgresqlMcpCapability) {
+      assert(
+        postgresqlMcpCapability.group === 'host.mcp',
+        'PostgreSQL MCP capability uses host.mcp group',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      assert(
+        postgresqlMcpCapability.provider === 'modelcontextprotocol/server-postgres',
+        'PostgreSQL MCP capability records reference provider',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      assert(
+        postgresqlMcpCapability.interface === 'readonly-postgresql-mcp',
+        'PostgreSQL MCP capability records BMAD readonly interface',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      assert(
+        postgresqlMcpCapability.requiresGrant === true,
+        'PostgreSQL MCP capability requires grant',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      assert(
+        postgresqlMcpCapability.allowedInBaseImprovement === false,
+        'PostgreSQL MCP capability is not base-improvement compatible',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      assert(
+        postgresqlMcpCapability.writes.length === 0,
+        'PostgreSQL MCP capability declares no writes',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+      for (const forbiddenWrite of [
+        'workspace-base',
+        'target-repo',
+        'external/postgresql/database',
+        'scheduler',
+        'daemon',
+        'live-adapter',
+        'secret-store',
+      ]) {
+        assert(
+          postgresqlMcpCapability.forbiddenWrites.includes(forbiddenWrite),
+          `PostgreSQL MCP capability forbids ${forbiddenWrite}`,
+          JSON.stringify(postgresqlMcpCapability),
+        );
+      }
+      assert(
+        postgresqlMcpCapability.outputs.includes('postgres-mcp-operator-evidence.json'),
+        'PostgreSQL MCP capability records operator evidence output',
+        JSON.stringify(postgresqlMcpCapability),
+      );
+    }
   }
 
   {
@@ -1364,6 +1722,11 @@ function runTests() {
       skillContent.includes('docs/workspace/templates/capability-request.template.json'),
       'source skill links capability request template',
     );
+    assert(
+      skillContent.includes('capability-request.git-worktree-review.example.json'),
+      'source skill links Git capability request template',
+    );
+    assert(skillContent.includes('repo.git.worktree-review'), 'source skill documents Git Worktree Review capability');
     for (const text of [
       'Codex Operator Affordances',
       '`/goal`',
@@ -1399,6 +1762,13 @@ function runTests() {
     const templateIndexPath = path.join(workspaceDocsRoot, 'templates', 'index.md');
     const capabilityRequestTemplatePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.template.json');
     const codexCapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.codex-manual.example.json');
+    const context7CapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.context7-docs.example.json');
+    const gitMcpCapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.git-mcp-local.example.json');
+    const gitCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.git-worktree-review.example.json',
+    );
     const graphifyCapabilityRequestExamplePath = path.join(
       workspaceDocsRoot,
       'templates',
@@ -1409,11 +1779,27 @@ function runTests() {
       'templates',
       'capability-request.google-calendar-mcp.example.json',
     );
+    const dockerMcpCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.docker-mcp-toolkit.example.json',
+    );
+    const postgresqlMcpCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.postgresql-mcp-readonly.example.json',
+    );
     const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
     const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
     const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
+    const dockerMcpContext7PlanningPath = path.join(workspaceDocsRoot, 'docker-mcp-context7-planning.md');
+    const postgresqlMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'postgresql-mcp-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const browserAffordanceEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'browser-affordance-evidence.template.json');
+    const context7DocsEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'context7-docs-operator-evidence.template.json');
+    const gitMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'git-mcp-operator-evidence.template.json');
+    const postgresqlMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'postgres-mcp-operator-evidence.template.json');
+    const toolDocumentationCommandTemplatePath = path.join(workspaceDocsRoot, 'templates', 'tool-documentation-command.template.md');
     const qualityWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'quality.yaml');
     const publishWorkflowPath = path.join(repoRoot, '.github', 'workflows', 'publish.yaml');
     const packageJsonPath = path.join(repoRoot, 'package.json');
@@ -1426,6 +1812,7 @@ function runTests() {
     const customizeSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-customize', 'SKILL.md');
     const workspaceSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-workspace', 'SKILL.md');
     const selfImproveSkillPath = path.join(repoRoot, 'src', 'core-skills', 'bmad-self-improve', 'SKILL.md');
+    const readinessSkillPath = path.join(repoRoot, 'src', 'bmm-skills', '3-solutioning', 'bmad-check-implementation-readiness');
 
     for (const docName of [
       'index.md',
@@ -1442,6 +1829,8 @@ function runTests() {
       'capability-contract.md',
       'customize-codex-mcp-planning.md',
       'google-calendar-capability-planning.md',
+      'docker-mcp-context7-planning.md',
+      'postgresql-mcp-capability-planning.md',
       'self-improvement-codex.md',
       'release-note-6.6.0.md',
     ]) {
@@ -1449,13 +1838,22 @@ function runTests() {
     }
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
     assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
+    assert(fs.existsSync(context7CapabilityRequestExamplePath), 'Context7 Docs MCP Capability Request example exists');
+    assert(fs.existsSync(gitMcpCapabilityRequestExamplePath), 'Git MCP Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
     assert(fs.existsSync(googleCalendarCapabilityRequestExamplePath), 'Google Calendar Capability Request example exists');
+    assert(fs.existsSync(dockerMcpCapabilityRequestExamplePath), 'Docker MCP Toolkit Capability Request example exists');
+    assert(fs.existsSync(postgresqlMcpCapabilityRequestExamplePath), 'PostgreSQL MCP Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
     assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
+    assert(fs.existsSync(dockerMcpContext7PlanningPath), 'Docker MCP Toolkit and Context7 planning doc exists');
+    assert(fs.existsSync(postgresqlMcpCapabilityPlanningPath), 'PostgreSQL MCP capability planning doc exists');
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(browserAffordanceEvidenceTemplatePath), 'Browser affordance evidence template exists');
+    assert(fs.existsSync(context7DocsEvidenceTemplatePath), 'Context7 Docs MCP evidence template exists');
+    assert(fs.existsSync(gitMcpEvidenceTemplatePath), 'Git MCP evidence template exists');
+    assert(fs.existsSync(postgresqlMcpEvidenceTemplatePath), 'PostgreSQL MCP evidence template exists');
     assert(fs.existsSync(capabilityProfileRegistryPath), 'Capability profile registry exists');
 
     const historyFiles = fs.readdirSync(historyRoot);
@@ -1490,6 +1888,8 @@ function runTests() {
       './capability-profile-registry.json',
       './customize-codex-mcp-planning.md',
       './google-calendar-capability-planning.md',
+      './docker-mcp-context7-planning.md',
+      './postgresql-mcp-capability-planning.md',
       './release-note-6.6.0.md',
       './history/index.md',
     ]) {
@@ -1499,12 +1899,34 @@ function runTests() {
     assert(index.includes('not current operator guidance'), 'workspace index labels historical artifacts', index);
     assert(index.includes('./templates/capability-request.template.json'), 'workspace index links capability request template', index);
     assert(
+      index.includes('./templates/capability-request.context7-docs.example.json'),
+      'workspace index links Context7 capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.git-mcp-local.example.json'),
+      'workspace index links Git MCP capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.docker-mcp-toolkit.example.json'),
+      'workspace index links Docker MCP Toolkit capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.postgresql-mcp-readonly.example.json'),
+      'workspace index links PostgreSQL MCP capability request example',
+      index,
+    );
+    assert(
       index.includes('Capability Verification is declared-contract compatibility'),
       'workspace index defines verifier boundary',
       index,
     );
 
     const operatorReadiness = fs.existsSync(operatorReadinessPath) ? fs.readFileSync(operatorReadinessPath, 'utf8') : '';
+    assertNoContext7SecretLeak('operator readiness doc', operatorReadiness);
+    assertNoPostgresqlSecretLeak('operator readiness doc', operatorReadiness);
     const operatorReadinessRequiredText = [
       'AC-OPR-01',
       'AC-OPR-02',
@@ -1513,6 +1935,8 @@ function runTests() {
       'AC-OPR-05',
       'AC-OPR-06',
       'AC-OPR-07',
+      'AC-OPR-08',
+      'AC-OPR-09',
       'Operator Goal',
       'First 10 Minutes',
       'Readiness Checklist',
@@ -1531,10 +1955,37 @@ function runTests() {
       'no TOML mutation by default',
       '_bmad/custom is not verifier input',
       'npm ci && npm run quality',
+      'Apple Passwords',
+      'CONTEXT7_API_KEY=set',
+      'capability-request.context7-docs.example.json',
+      'capability-request.git-mcp-local.example.json',
+      'context7-docs-operator-evidence.template.json',
+      'git-mcp-operator-evidence.template.json',
+      'GitHub connector state',
+      'local `git` CLI',
+      'capability-request.postgresql-mcp-readonly.example.json',
+      'postgres-mcp-operator-evidence.template.json',
+      'POSTGRES_URL=set',
+      'Read-only',
+      'allowed schemas',
+      'denied writes',
+      'AC-OPR-11',
+      'Codex MCP/TOML docs readiness',
+      'https://developers.openai.com/codex/config-reference#configtoml',
+      'https://developers.openai.com/codex/cli/reference#codex-mcp',
+      'mcp_servers.*',
+      'codex mcp',
+      '~/.codex/config.toml',
+      '.codex/config.toml',
     ];
     for (const text of operatorReadinessRequiredText) {
       assert(operatorReadiness.includes(text), `operator readiness doc includes ${text}`, operatorReadiness);
     }
+    assert(
+      /Apple Passwords\s+item `Context7`/.test(operatorReadiness),
+      'operator readiness doc records Apple Passwords item Context7 as credential source',
+      operatorReadiness,
+    );
     assert(
       /fixtures\/manifests are evidence inputs, not authority/i.test(operatorReadiness),
       'operator readiness doc keeps fixtures and manifests as evidence, not authority',
@@ -1551,6 +2002,12 @@ function runTests() {
       : '';
     const googleCalendarCapabilityPlanning = fs.existsSync(googleCalendarCapabilityPlanningPath)
       ? fs.readFileSync(googleCalendarCapabilityPlanningPath, 'utf8')
+      : '';
+    const dockerMcpContext7Planning = fs.existsSync(dockerMcpContext7PlanningPath)
+      ? fs.readFileSync(dockerMcpContext7PlanningPath, 'utf8')
+      : '';
+    const postgresqlMcpCapabilityPlanning = fs.existsSync(postgresqlMcpCapabilityPlanningPath)
+      ? fs.readFileSync(postgresqlMcpCapabilityPlanningPath, 'utf8')
       : '';
     const codexExecutableEvidenceTemplate = fs.existsSync(codexExecutableEvidenceTemplatePath)
       ? fs.readFileSync(codexExecutableEvidenceTemplatePath, 'utf8')
@@ -1607,8 +2064,75 @@ function runTests() {
       'browser-derived observations',
       'manual result/review/closeout evidence',
       'No registry/profile mutation in this slice',
+      'Codex MCP / TOML Docs Readiness Checklist',
+      'Implementation Readiness Handoff',
+      'https://developers.openai.com/codex/config-reference#configtoml',
+      'https://developers.openai.com/codex/cli/reference#codex-mcp',
     ]) {
       assert(customizeCodexMcpPlanning.includes(required), `Customize Codex MCP planning includes ${required}`, customizeCodexMcpPlanning);
+    }
+    const resolvedReadinessCustomization = JSON.parse(
+      execFileSync(
+        'python3',
+        [path.join(repoRoot, '_bmad', 'scripts', 'resolve_customization.py'), '--skill', readinessSkillPath, '--key', 'workflow'],
+        { cwd: repoRoot, encoding: 'utf8' },
+      ),
+    );
+    const readinessFacts = resolvedReadinessCustomization.workflow?.persistent_facts || [];
+    for (const required of [
+      'Codex MCP/TOML docs readiness',
+      'https://developers.openai.com/codex/config-reference#configtoml',
+      'https://developers.openai.com/codex/cli/reference#codex-mcp',
+      'mcp_servers.*',
+      'codex mcp',
+      '~/.codex/config.toml',
+      '.codex/config.toml',
+      'OpenAI Docs MCP',
+      'self-contained Capability Request JSON',
+      'not verifier input',
+      'validation commands',
+      'no Workspace verifier, CLI, schema, or capability registry changes',
+    ]) {
+      assert(
+        readinessFacts.some((fact) => fact.includes(required)),
+        `implementation readiness customization includes ${required}`,
+        JSON.stringify(readinessFacts, null, 2),
+      );
+    }
+    for (const required of [
+      'Tool leverage review',
+      'known BMAD skills',
+      'use existing tool',
+      'proceed manually with reason',
+      'tooling enhancement',
+      'decision and rationale',
+    ]) {
+      assert(
+        readinessFacts.some((fact) => fact.includes(required)),
+        `implementation readiness customization includes tool leverage review anchor ${required}`,
+        JSON.stringify(readinessFacts, null, 2),
+      );
+    }
+    const resolvedSelfImproveCustomization = JSON.parse(
+      execFileSync(
+        'python3',
+        [
+          path.join(repoRoot, '_bmad', 'scripts', 'resolve_customization.py'),
+          '--skill',
+          path.dirname(selfImproveSkillPath),
+          '--key',
+          'workflow',
+        ],
+        { cwd: repoRoot, encoding: 'utf8' },
+      ),
+    );
+    const selfImproveFacts = resolvedSelfImproveCustomization.workflow?.persistent_facts || [];
+    for (const required of ['Tool leverage review', 'missed tool use', 'missing tooling', 'Self-Improve', 'improvement candidates']) {
+      assert(
+        selfImproveFacts.some((fact) => fact.includes(required)),
+        `self-improve customization includes tool leverage review anchor ${required}`,
+        JSON.stringify(selfImproveFacts, null, 2),
+      );
     }
     for (const required of [
       'host.mcp.google-calendar.remote',
@@ -1640,6 +2164,63 @@ function runTests() {
         googleCalendarCapabilityPlanning.includes(required),
         `Google Calendar capability planning includes ${required}`,
         googleCalendarCapabilityPlanning,
+      );
+    }
+    for (const required of [
+      'host.mcp.docker.toolkit',
+      'Source Register',
+      'Boundary Map',
+      'Docker MCP Toolkit',
+      'Docker MCP Gateway',
+      'Docker MCP Catalog',
+      'Docker Hub Context7 MCP server',
+      'Context7 MCP server',
+      'secretRef: Context7',
+      'Apple Passwords entry named `Context7`',
+      'CONTEXT7_API_KEY',
+      '--api-key',
+      'last-resort manual path',
+      'process args can leak',
+      'docker mcp secret set',
+      'Docker Desktop credential store',
+      'not verifier input',
+      'not Workspace authority',
+      'No live Docker, Context7, Apple Passwords, network, or MCP access',
+      'No .env',
+      'No synthetic high-entropy',
+      'capability-request.docker-mcp-toolkit.example.json',
+      'Docker MCP Toolkit remains optional and version-dependent',
+      'local Docker MCP CLI shape is observation only',
+    ]) {
+      assert(dockerMcpContext7Planning.includes(required), `Docker MCP planning includes ${required}`, dockerMcpContext7Planning);
+    }
+    assertNoPostgresqlSecretLeak('PostgreSQL MCP planning doc', postgresqlMcpCapabilityPlanning);
+    for (const required of [
+      'host.mcp.postgresql.readonly',
+      'Source Register',
+      'Boundary Map',
+      'modelcontextprotocol/server-postgres',
+      'readonly-postgresql-mcp',
+      'query',
+      'read-only transaction',
+      'archived',
+      'deprecated',
+      'not endorsement',
+      'POSTGRES_URL=set|unset',
+      'Read-only is not safe',
+      'least-privilege',
+      'allowed schemas',
+      'denied writes',
+      'not verifier input',
+      'not Workspace authority',
+      'No live PostgreSQL, Docker, MCP, network, Codex config, _bmad/custom, or Workspace Session artifacts',
+      'capability-request.postgresql-mcp-readonly.example.json',
+      'postgres-mcp-operator-evidence.json',
+    ]) {
+      assert(
+        postgresqlMcpCapabilityPlanning.includes(required),
+        `PostgreSQL MCP capability planning includes ${required}`,
+        postgresqlMcpCapabilityPlanning,
       );
     }
     for (const required of [
@@ -1766,6 +2347,8 @@ function runTests() {
     }
 
     const releaseReadiness = fs.readFileSync(releaseChecklistPath, 'utf8');
+    assertNoContext7SecretLeak('release checklist doc', releaseReadiness);
+    assertNoPostgresqlSecretLeak('release checklist doc', releaseReadiness);
     for (const text of [
       'npm ci',
       'npm run test:workspace',
@@ -1807,14 +2390,24 @@ function runTests() {
       'Route Trust And Advisory Evidence',
       'Planning Capabilities',
       'Capability Contract',
+      'Git Worktree Review',
+      'Context7 Docs MCP',
+      'Git Local MCP',
       'Self-Improve Safety Loop',
       'Exact Release Gate',
       'manual-review note',
+      'PostgreSQL MCP',
+      'host.mcp.postgresql.readonly',
+      'postgres-mcp-operator-evidence.json',
+      'read-only',
+      'secret boundary',
     ]) {
       assert(releaseReadiness.includes(text), `release checklist maps validator owner for ${text}`, releaseReadiness);
     }
 
     const capabilityContract = fs.readFileSync(path.join(workspaceDocsRoot, 'capability-contract.md'), 'utf8');
+    assertNoContext7SecretLeak('capability contract doc', capabilityContract);
+    assertNoPostgresqlSecretLeak('capability contract doc', capabilityContract);
     for (const text of [
       'operator.codex.affordance',
       'features.goals',
@@ -1832,16 +2425,63 @@ function runTests() {
       'remote-calendar-mcp',
       'calendar-mcp-operator-evidence.json',
       'capability-request.google-calendar-mcp.example.json',
+      'repo.git.worktree-review',
+      'worktree-review',
+      'capability-request.git-worktree-review.example.json',
+      'host.mcp.context7.docs',
+      'context7',
+      'remote-docs-mcp',
+      'context7-docs-operator-evidence.json',
+      'capability-request.context7-docs.example.json',
+      'Apple Passwords item `Context7`',
+      'CONTEXT7_API_KEY',
+      'host.mcp.git.local',
+      'mcp-server-git',
+      'local-git-mcp',
+      'target-repo/git-index',
+      'target-repo/git-commit',
+      'target-repo/git-branch',
+      'git-mcp-operator-evidence.json',
+      'capability-request.git-mcp-local.example.json',
+      'GitHub connector',
+      'host.mcp.docker.toolkit',
+      'docker-mcp-toolkit',
+      'docker-mcp-gateway-profile',
+      'docker-mcp-operator-evidence.json',
+      'capability-request.docker-mcp-toolkit.example.json',
+      'Docker MCP Toolkit',
+      'secretRef: Context7',
+      '<CONTEXT7_API_KEY>',
+      '<redacted>',
+      '--api-key',
+      'process args can leak',
+      'declaration-only',
+      'host.mcp.postgresql.readonly',
+      'modelcontextprotocol/server-postgres',
+      'readonly-postgresql-mcp',
+      'postgres-mcp-operator-evidence.json',
+      'capability-request.postgresql-mcp-readonly.example.json',
+      'PostgreSQL MCP',
+      'read-only transaction',
+      'archived/deprecated',
+      'not an endorsement',
+      'POSTGRES_URL=set',
+      'Read-only prevents mutation; it does not prevent sensitive reads.',
     ]) {
       assert(capabilityContract.includes(text), `capability contract includes ${text}`, capabilityContract);
     }
+    assert(
+      /local\s+`git` CLI remains the fallback/i.test(capabilityContract),
+      'capability contract documents local git CLI fallback',
+      capabilityContract,
+    );
 
     const capabilityProfileRegistry = JSON.parse(fs.readFileSync(capabilityProfileRegistryPath, 'utf8'));
     assert(capabilityProfileRegistry.schemaVersion === 1, 'capability profile registry uses schema version 1');
     assert(Array.isArray(capabilityProfileRegistry.profiles), 'capability profile registry has profiles array');
     assert(
-      capabilityProfileRegistry.profiles.length >= 8,
-      'capability profile registry inventories Codex, Graphify, and Google Calendar advisory profiles',
+      capabilityProfileRegistry.profiles.length >= 12,
+      'capability profile registry inventories Codex, Graphify, Git, Context7, Git MCP, Docker MCP, and Google Calendar advisory profiles',
     );
     const supportedProfileStates = new Set(['proposed', 'experimental', 'supported', 'stale', 'deprecated', 'invalid', 'removed']);
     const declaredCapabilityIds = new Set(createCapabilityContract(repoRoot).capabilities.map((capability) => capability.id));
@@ -1853,7 +2493,12 @@ function runTests() {
       'codex.browser.agent-browser-cli',
       'codex.browser.browser-use-iab',
       'codex.desktop.computer-use-mcp',
+      'context7.docs.git-mcp-reference',
+      'docker-mcp.toolkit.gateway-profile',
+      'git.cli.worktree-review',
+      'git.mcp.local-repository-tools',
       'google-calendar.remote-mcp.operator-affordance',
+      'postgresql.mcp.readonly-reference',
       'graphify.repo-intake.static-graph-evidence',
       'graphify.query.static-graph-navigation',
       'graphify.mcp.static-graph-tools',
@@ -1924,6 +2569,11 @@ function runTests() {
     assert((profilesByToolName.get('Codex') || 0) >= 3, 'capability profile registry inventories Codex profiles');
     assert((profilesByToolName.get('Graphify') || 0) >= 4, 'capability profile registry inventories Graphify profiles');
     assert((profilesByToolName.get('Google Calendar MCP') || 0) >= 1, 'capability profile registry inventories Google Calendar profiles');
+    assert((profilesByToolName.get('Git') || 0) >= 1, 'capability profile registry inventories Git profiles');
+    assert((profilesByToolName.get('Context7 MCP') || 0) >= 1, 'capability profile registry inventories Context7 profiles');
+    assert((profilesByToolName.get('Git MCP') || 0) >= 1, 'capability profile registry inventories Git MCP profiles');
+    assert((profilesByToolName.get('Docker MCP Toolkit') || 0) >= 1, 'capability profile registry inventories Docker MCP profiles');
+    assert((profilesByToolName.get('PostgreSQL MCP') || 0) >= 1, 'capability profile registry inventories PostgreSQL MCP profiles');
     const browserAffordanceProfiles = [
       ['codex.browser.playwright-cli', 'Playwright CLI', 'stale', 'unavailable alpha dependency'],
       ['codex.browser.agent-browser-cli', 'Agent Browser CLI', 'proposed', 'not detected on PATH'],
@@ -1957,6 +2607,103 @@ function runTests() {
       'Google Calendar profile rejects target repo manifests as verifier input',
       JSON.stringify(profilesById.get('google-calendar.remote-mcp.operator-affordance'), null, 2),
     );
+    const context7Profile = profilesById.get('context7.docs.git-mcp-reference');
+    assert(
+      context7Profile?.capabilityId === 'host.mcp.context7.docs',
+      'Context7 profile maps to docs MCP capability',
+      JSON.stringify(context7Profile),
+    );
+    assert(context7Profile?.toolName === 'Context7 MCP', 'Context7 profile names Context7 MCP', JSON.stringify(context7Profile));
+    assert(
+      context7Profile?.trustBoundary.includes('Apple Passwords state') &&
+        context7Profile.trustBoundary.includes('API key presence') &&
+        context7Profile.trustBoundary.includes('local Codex config'),
+      'Context7 profile rejects credential and host config state as verifier input',
+      JSON.stringify(context7Profile),
+    );
+    assert(
+      context7Profile?.repairHint.includes('Apple Passwords item Context7'),
+      'Context7 profile repair hint preserves credential source name',
+      JSON.stringify(context7Profile),
+    );
+    const gitMcpProfile = profilesById.get('git.mcp.local-repository-tools');
+    assert(
+      gitMcpProfile?.capabilityId === 'host.mcp.git.local',
+      'Git MCP profile maps to local Git MCP capability',
+      JSON.stringify(gitMcpProfile),
+    );
+    assert(gitMcpProfile?.toolName === 'Git MCP', 'Git MCP profile names Git MCP', JSON.stringify(gitMcpProfile));
+    assert(
+      gitMcpProfile?.trustBoundary.includes('repository dirty state') &&
+        gitMcpProfile.trustBoundary.includes('write tools') &&
+        gitMcpProfile.trustBoundary.includes('GitHub connector state'),
+      'Git MCP profile rejects dirty state, writes, and GitHub connector state as verifier input',
+      JSON.stringify(gitMcpProfile),
+    );
+    assert(
+      gitMcpProfile?.repairHint.includes('add, commit, and branch actions grant-gated'),
+      'Git MCP profile repair hint gates write tools',
+      JSON.stringify(gitMcpProfile),
+    );
+    const dockerMcpProfile = profilesById.get('docker-mcp.toolkit.gateway-profile');
+    assert(
+      dockerMcpProfile?.capabilityId === 'host.mcp.docker.toolkit',
+      'Docker MCP profile maps to Docker MCP Toolkit capability',
+      JSON.stringify(dockerMcpProfile),
+    );
+    assert(
+      dockerMcpProfile?.toolName === 'Docker MCP Toolkit',
+      'Docker MCP profile names Docker MCP Toolkit',
+      JSON.stringify(dockerMcpProfile),
+    );
+    assert(
+      dockerMcpProfile?.trustBoundary.includes('Apple Passwords') &&
+        dockerMcpProfile.trustBoundary.includes('secretRef') &&
+        dockerMcpProfile.trustBoundary.includes('not verifier input') &&
+        dockerMcpProfile.trustBoundary.includes('not Workspace authority'),
+      'Docker MCP profile rejects secret state and live gateway state as verifier input',
+      JSON.stringify(dockerMcpProfile),
+    );
+    assert(
+      dockerMcpProfile?.evidenceRefs.includes('docs/workspace/docker-mcp-context7-planning.md') &&
+        dockerMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json'),
+      'Docker MCP profile cites planning doc and portable fixture',
+      JSON.stringify(dockerMcpProfile),
+    );
+    assert(
+      dockerMcpProfile?.repairHint.includes('version-dependent') && dockerMcpProfile.repairHint.includes('placeholders'),
+      'Docker MCP profile repair hint preserves version and secret-placeholder boundaries',
+      JSON.stringify(dockerMcpProfile),
+    );
+    const postgresqlMcpProfile = profilesById.get('postgresql.mcp.readonly-reference');
+    assert(
+      postgresqlMcpProfile?.capabilityId === 'host.mcp.postgresql.readonly',
+      'PostgreSQL MCP profile maps to readonly capability',
+      JSON.stringify(postgresqlMcpProfile),
+    );
+    assert(
+      postgresqlMcpProfile?.toolName === 'PostgreSQL MCP',
+      'PostgreSQL MCP profile names PostgreSQL MCP',
+      JSON.stringify(postgresqlMcpProfile),
+    );
+    assert(
+      postgresqlMcpProfile?.trustBoundary.includes('archived/deprecated') &&
+        postgresqlMcpProfile.trustBoundary.includes('not verifier input') &&
+        postgresqlMcpProfile.trustBoundary.includes('not Workspace authority'),
+      'PostgreSQL MCP profile rejects upstream and live DB state as verifier input',
+      JSON.stringify(postgresqlMcpProfile),
+    );
+    assert(
+      postgresqlMcpProfile?.evidenceRefs.includes('docs/workspace/postgresql-mcp-capability-planning.md') &&
+        postgresqlMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json'),
+      'PostgreSQL MCP profile cites planning doc and portable fixture',
+      JSON.stringify(postgresqlMcpProfile),
+    );
+    assert(
+      postgresqlMcpProfile?.repairHint.includes('read-only') && postgresqlMcpProfile.repairHint.includes('secret'),
+      'PostgreSQL MCP profile repair hint preserves read-only and secret boundaries',
+      JSON.stringify(postgresqlMcpProfile),
+    );
     assertCommandEvidence(profilesById.get('graphify.query.static-graph-navigation'), 'graphify.query.static-graph-navigation', [
       '--help',
       ' query ',
@@ -1974,6 +2721,19 @@ function runTests() {
       JSON.stringify(profilesById.get('graphify.query.static-graph-navigation')?.commandEvidence, null, 2),
     );
     assertCommandEvidence(profilesById.get('graphify.hooks.watch-regeneration'), 'graphify.hooks.watch-regeneration', ['hook status']);
+    const gitProfile = profilesById.get('git.cli.worktree-review');
+    assert(
+      gitProfile?.capabilityId === 'repo.git.worktree-review',
+      'Git profile maps to Worktree Review capability',
+      JSON.stringify(gitProfile),
+    );
+    assert(gitProfile?.supportState === 'supported', 'Git profile records supported state', JSON.stringify(gitProfile));
+    assert(
+      gitProfile?.trustBoundary.includes('not verifier input') && gitProfile.trustBoundary.includes('not Workspace authority'),
+      'Git profile states manual evidence boundary',
+      JSON.stringify(gitProfile),
+    );
+    assertGitCommandEvidence(gitProfile);
 
     const graphifyNodeLinkFixturePath = path.join(repoRoot, 'test', 'fixtures', 'graphify', 'native-node-link.graph.json');
     const graphifyNodeLinkFixture = JSON.parse(fs.readFileSync(graphifyNodeLinkFixturePath, 'utf8'));
@@ -1989,6 +2749,21 @@ function runTests() {
       templateIndex,
     );
     assert(
+      templateIndex.includes('capability-request.context7-docs.example.json'),
+      'template index links Context7 capability request example',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('capability-request.git-mcp-local.example.json'),
+      'template index links Git MCP capability request example',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('capability-request.git-worktree-review.example.json'),
+      'template index links Git capability request example',
+      templateIndex,
+    );
+    assert(
       templateIndex.includes('capability-request.graphify-repo-intake.example.json'),
       'template index links Graphify capability request example',
       templateIndex,
@@ -1999,10 +2774,57 @@ function runTests() {
       templateIndex,
     );
     assert(
+      templateIndex.includes('capability-request.docker-mcp-toolkit.example.json'),
+      'template index links Docker MCP Toolkit capability request example',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('capability-request.postgresql-mcp-readonly.example.json'),
+      'template index links PostgreSQL MCP capability request example',
+      templateIndex,
+    );
+    assert(
       templateIndex.includes('browser-affordance-evidence.template.json'),
       'template index links browser affordance evidence template',
       templateIndex,
     );
+    assert(
+      templateIndex.includes('context7-docs-operator-evidence.template.json'),
+      'template index links Context7 docs evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('git-mcp-operator-evidence.template.json'),
+      'template index links Git MCP evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('postgres-mcp-operator-evidence.template.json'),
+      'template index links PostgreSQL MCP evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('tool-documentation-command.template.md'),
+      'template index links tool documentation command template',
+      templateIndex,
+    );
+
+    const toolDocumentationCommandTemplate = fs.readFileSync(toolDocumentationCommandTemplatePath, 'utf8');
+    for (const text of [
+      '/bmad-tool-doc',
+      'tool_name',
+      'tool_surface',
+      'official_docs',
+      'local_probe_commands',
+      'capability_id',
+      'output_doc',
+      'operator aid only',
+      'not a Workspace command',
+      'Capability Verifier input',
+      'hidden executor',
+    ]) {
+      assert(toolDocumentationCommandTemplate.includes(text), `tool documentation command template includes ${text}`);
+    }
 
     const browserAffordanceEvidenceTemplate = JSON.parse(fs.readFileSync(browserAffordanceEvidenceTemplatePath, 'utf8'));
     for (const field of [
@@ -2025,6 +2847,130 @@ function runTests() {
         browserAffordanceEvidenceTemplate.boundary.includes(boundary),
         `browser affordance evidence template boundary includes ${boundary}`,
         JSON.stringify(browserAffordanceEvidenceTemplate, null, 2),
+      );
+    }
+
+    const context7DocsEvidenceTemplateContent = fs.readFileSync(context7DocsEvidenceTemplatePath, 'utf8');
+    assertNoContext7SecretLeak('Context7 docs evidence template', context7DocsEvidenceTemplateContent);
+    const context7DocsEvidenceTemplate = JSON.parse(context7DocsEvidenceTemplateContent);
+    for (const field of [
+      'observer',
+      'timestamp',
+      'mcpServer',
+      'context7Configured',
+      'credentialSource',
+      'credentialEvidence',
+      'credentialValue',
+      'sourceUrls',
+      'querySummary',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in context7DocsEvidenceTemplate, `Context7 docs evidence template includes ${field}`);
+    }
+    assert(
+      context7DocsEvidenceTemplate.credentialSource === 'Apple Passwords item Context7',
+      'Context7 docs evidence template records credential source name',
+      JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7DocsEvidenceTemplate.credentialEvidence === 'CONTEXT7_API_KEY=set|unset',
+      'Context7 docs evidence template records env var state only',
+      JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7DocsEvidenceTemplate.credentialValue === '[REDACTED]',
+      'Context7 docs evidence template redacts credential value',
+      JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+    );
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        context7DocsEvidenceTemplate.boundary.includes(boundary),
+        `Context7 docs evidence template boundary includes ${boundary}`,
+        JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+      );
+    }
+
+    const gitMcpEvidenceTemplateContent = fs.readFileSync(gitMcpEvidenceTemplatePath, 'utf8');
+    assertNoContext7SecretLeak('Git MCP evidence template', gitMcpEvidenceTemplateContent);
+    const gitMcpEvidenceTemplate = JSON.parse(gitMcpEvidenceTemplateContent);
+    for (const field of [
+      'observer',
+      'timestamp',
+      'mcpServer',
+      'repository',
+      'configured',
+      'toolsObserved',
+      'writeTools',
+      'grantRequired',
+      'manualReviewRequired',
+      'credentialHandling',
+      'commandSummary',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in gitMcpEvidenceTemplate, `Git MCP evidence template includes ${field}`);
+    }
+    assert(gitMcpEvidenceTemplate.mcpServer === 'mcp-server-git', 'Git MCP evidence template names mcp-server-git');
+    assert(gitMcpEvidenceTemplate.grantRequired === true, 'Git MCP evidence template requires grant');
+    for (const toolName of ['git_add', 'git_commit', 'git_create_branch']) {
+      assert(gitMcpEvidenceTemplate.writeTools.includes(toolName), `Git MCP evidence template lists ${toolName}`);
+    }
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        gitMcpEvidenceTemplate.boundary.includes(boundary),
+        `Git MCP evidence template boundary includes ${boundary}`,
+        JSON.stringify(gitMcpEvidenceTemplate, null, 2),
+      );
+    }
+
+    const postgresqlMcpEvidenceTemplateContent = fs.readFileSync(postgresqlMcpEvidenceTemplatePath, 'utf8');
+    assertNoPostgresqlSecretLeak('PostgreSQL MCP evidence template', postgresqlMcpEvidenceTemplateContent);
+    const postgresqlMcpEvidenceTemplate = JSON.parse(postgresqlMcpEvidenceTemplateContent);
+    for (const field of [
+      'observer',
+      'timestamp',
+      'mcpServer',
+      'configured',
+      'expectedTools',
+      'accessMode',
+      'secretEvidence',
+      'allowedSchemasOrTables',
+      'deniedWrites',
+      'evidenceNeed',
+      'artifactRefs',
+      'pass',
+      'boundary',
+    ]) {
+      assert(field in postgresqlMcpEvidenceTemplate, `PostgreSQL MCP evidence template includes ${field}`);
+    }
+    assert(
+      postgresqlMcpEvidenceTemplate.mcpServer === 'modelcontextprotocol/server-postgres',
+      'PostgreSQL MCP evidence template names reference provider',
+      JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
+    );
+    assert(
+      postgresqlMcpEvidenceTemplate.expectedTools.includes('query'),
+      'PostgreSQL MCP evidence template lists query tool',
+      JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
+    );
+    assert(
+      postgresqlMcpEvidenceTemplate.accessMode === 'read-only',
+      'PostgreSQL MCP evidence template records read-only access mode',
+      JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
+    );
+    assert(
+      postgresqlMcpEvidenceTemplate.secretEvidence === 'POSTGRES_URL=set|unset',
+      'PostgreSQL MCP evidence template records secret state only',
+      JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
+    );
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        postgresqlMcpEvidenceTemplate.boundary.includes(boundary),
+        `PostgreSQL MCP evidence template boundary includes ${boundary}`,
+        JSON.stringify(postgresqlMcpEvidenceTemplate, null, 2),
       );
     }
 
@@ -2073,6 +3019,231 @@ function runTests() {
       ),
       'Codex Capability Request example cites config reference',
       JSON.stringify(codexCapabilityRequestExample.observations, null, 2),
+    );
+
+    const gitCapabilityRequestExample = JSON.parse(fs.readFileSync(gitCapabilityRequestExamplePath, 'utf8'));
+    const gitExampleVerdict = verifyCapabilityRequest(gitCapabilityRequestExample);
+    assert(gitExampleVerdict.ok === true, 'Git Capability Request example verifies', JSON.stringify(gitExampleVerdict, null, 2));
+    assert(
+      gitExampleVerdict.request.id === 'repo.git.worktree-review',
+      'Git Capability Request example persists Worktree Review capability',
+      JSON.stringify(gitExampleVerdict, null, 2),
+    );
+    assert(
+      gitExampleVerdict.matchedDeclaration.outputs.includes('review-manifest.json') &&
+        gitExampleVerdict.matchedDeclaration.outputs.includes('diff.patch'),
+      'Git Capability Request example declares review manifest and patch outputs',
+      JSON.stringify(gitExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://git-scm.com/docs/git-status',
+      'https://git-scm.com/docs/git-diff',
+      'https://git-scm.com/docs/git-commit',
+      'https://git-scm.com/docs/git-worktree.html',
+    ]) {
+      assert(
+        gitCapabilityRequestExample.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
+        `Git Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(gitCapabilityRequestExample.observations, null, 2),
+      );
+    }
+
+    const context7CapabilityRequestExampleContent = fs.readFileSync(context7CapabilityRequestExamplePath, 'utf8');
+    assertNoContext7SecretLeak('Context7 Capability Request example', context7CapabilityRequestExampleContent);
+    const context7CapabilityRequestExample = JSON.parse(context7CapabilityRequestExampleContent);
+    const context7ExampleVerdict = verifyCapabilityRequest(context7CapabilityRequestExample);
+    assert(
+      context7ExampleVerdict.ok === true,
+      'Context7 Docs MCP Capability Request example verifies',
+      JSON.stringify(context7ExampleVerdict, null, 2),
+    );
+    assert(
+      context7ExampleVerdict.request.id === 'host.mcp.context7.docs',
+      'Context7 Docs MCP Capability Request example persists docs capability',
+      JSON.stringify(context7ExampleVerdict, null, 2),
+    );
+    assert(
+      context7ExampleVerdict.matchedDeclaration.writes.length === 0,
+      'Context7 Docs MCP Capability Request example declares no writes',
+      JSON.stringify(context7ExampleVerdict, null, 2),
+    );
+    assert(
+      context7ExampleVerdict.matchedDeclaration.requiresGrant === true,
+      'Context7 Docs MCP Capability Request example requires grant',
+      JSON.stringify(context7ExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://context7.com/docs/installation',
+      'https://context7.com/modelcontextprotocol/docs',
+      'https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server',
+    ]) {
+      assert(
+        context7CapabilityRequestExample.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
+        `Context7 Docs MCP Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(context7CapabilityRequestExample.observations, null, 2),
+      );
+    }
+    assert(
+      JSON.stringify(context7CapabilityRequestExample.observations).includes('Apple Passwords item Context7') &&
+        JSON.stringify(context7CapabilityRequestExample.observations).includes('CONTEXT7_API_KEY=set') &&
+        JSON.stringify(context7CapabilityRequestExample.observations).includes('[REDACTED]'),
+      'Context7 Docs MCP Capability Request example records redacted credential state',
+      JSON.stringify(context7CapabilityRequestExample.observations, null, 2),
+    );
+
+    const gitMcpCapabilityRequestExampleContent = fs.readFileSync(gitMcpCapabilityRequestExamplePath, 'utf8');
+    assertNoContext7SecretLeak('Git MCP Capability Request example', gitMcpCapabilityRequestExampleContent);
+    const gitMcpCapabilityRequestExample = JSON.parse(gitMcpCapabilityRequestExampleContent);
+    const gitMcpExampleVerdict = verifyCapabilityRequest(gitMcpCapabilityRequestExample);
+    assert(gitMcpExampleVerdict.ok === true, 'Git MCP Capability Request example verifies', JSON.stringify(gitMcpExampleVerdict, null, 2));
+    assert(
+      gitMcpExampleVerdict.request.id === 'host.mcp.git.local',
+      'Git MCP Capability Request example persists local Git MCP capability',
+      JSON.stringify(gitMcpExampleVerdict, null, 2),
+    );
+    assert(
+      gitMcpExampleVerdict.matchedDeclaration.requiresGrant === true,
+      'Git MCP Capability Request example requires grant',
+      JSON.stringify(gitMcpExampleVerdict, null, 2),
+    );
+    for (const write of ['target-repo/git-index', 'target-repo/git-commit', 'target-repo/git-branch']) {
+      assert(
+        gitMcpExampleVerdict.matchedDeclaration.writes.includes(write),
+        `Git MCP Capability Request example declares ${write}`,
+        JSON.stringify(gitMcpExampleVerdict, null, 2),
+      );
+    }
+    for (const sourceUrl of [
+      'https://context7.com/modelcontextprotocol/docs',
+      'https://context7.com/modelcontextprotocol/servers',
+      'https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server',
+    ]) {
+      assert(
+        gitMcpCapabilityRequestExample.observations.some((observation) => observation.details?.sourceUrl === sourceUrl),
+        `Git MCP Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(gitMcpCapabilityRequestExample.observations, null, 2),
+      );
+    }
+    assert(
+      JSON.stringify(gitMcpCapabilityRequestExample.observations).includes('git_add') &&
+        JSON.stringify(gitMcpCapabilityRequestExample.observations).includes('git_commit') &&
+        JSON.stringify(gitMcpCapabilityRequestExample.observations).includes('git_create_branch') &&
+        JSON.stringify(gitMcpCapabilityRequestExample.observations).includes('GitHub connector') &&
+        JSON.stringify(gitMcpCapabilityRequestExample.observations).includes('localGitCliFallback'),
+      'Git MCP Capability Request example documents write tool gating and GitHub separation',
+      JSON.stringify(gitMcpCapabilityRequestExample.observations, null, 2),
+    );
+
+    const dockerMcpCapabilityRequestExampleContent = fs.readFileSync(dockerMcpCapabilityRequestExamplePath, 'utf8');
+    assertNoDockerContext7SecretLeak('Docker MCP Toolkit Capability Request example', dockerMcpCapabilityRequestExampleContent);
+    assertNoDockerContext7SecretLeak('Docker MCP Toolkit planning doc', dockerMcpContext7Planning);
+    const dockerMcpCapabilityRequestExample = JSON.parse(dockerMcpCapabilityRequestExampleContent);
+    const dockerMcpExampleVerdict = verifyCapabilityRequest(dockerMcpCapabilityRequestExample);
+    assert(
+      dockerMcpExampleVerdict.ok === true,
+      'Docker MCP Toolkit Capability Request example verifies',
+      JSON.stringify(dockerMcpExampleVerdict, null, 2),
+    );
+    assert(
+      dockerMcpExampleVerdict.request.id === 'host.mcp.docker.toolkit',
+      'Docker MCP Toolkit Capability Request example persists toolkit capability',
+      JSON.stringify(dockerMcpExampleVerdict, null, 2),
+    );
+    assert(
+      dockerMcpExampleVerdict.matchedDeclaration.writes.length === 0,
+      'Docker MCP Toolkit Capability Request example declares no writes',
+      JSON.stringify(dockerMcpExampleVerdict, null, 2),
+    );
+    assert(
+      dockerMcpExampleVerdict.matchedDeclaration.requiresGrant === true,
+      'Docker MCP Toolkit Capability Request example requires grant',
+      JSON.stringify(dockerMcpExampleVerdict, null, 2),
+    );
+    assert(
+      dockerMcpExampleVerdict.matchedDeclaration.outputs.includes('docker-mcp-operator-evidence.json'),
+      'Docker MCP Toolkit Capability Request example records operator evidence output',
+      JSON.stringify(dockerMcpExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/',
+      'https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/',
+      'https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/',
+      'https://hub.docker.com/mcp/server/context7',
+      'https://github.com/upstash/context7',
+      'https://github.com/upstash/context7/blob/master/docs/agentic-tools/ai-sdk/getting-started.mdx',
+      'https://github.com/upstash/context7/blob/master/docs/integrations/mastra.mdx',
+    ]) {
+      assert(
+        dockerMcpCapabilityRequestExample.observations.some((observation) => JSON.stringify(observation.details || {}).includes(sourceUrl)),
+        `Docker MCP Toolkit Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(dockerMcpCapabilityRequestExample.observations, null, 2),
+      );
+    }
+    assert(
+      JSON.stringify(dockerMcpCapabilityRequestExample.observations).includes('secretRef: Context7') &&
+        JSON.stringify(dockerMcpCapabilityRequestExample.observations).includes('<CONTEXT7_API_KEY>') &&
+        JSON.stringify(dockerMcpCapabilityRequestExample.observations).includes('<redacted>') &&
+        JSON.stringify(dockerMcpCapabilityRequestExample.observations).includes(
+          'No live Docker, Context7, Apple Passwords, network, or MCP access',
+        ),
+      'Docker MCP Toolkit Capability Request example records secret-safe advisory boundaries',
+      JSON.stringify(dockerMcpCapabilityRequestExample.observations, null, 2),
+    );
+
+    const postgresqlMcpCapabilityRequestExampleContent = fs.readFileSync(postgresqlMcpCapabilityRequestExamplePath, 'utf8');
+    assertNoPostgresqlSecretLeak('PostgreSQL MCP Capability Request example', postgresqlMcpCapabilityRequestExampleContent);
+    const postgresqlMcpCapabilityRequestExample = JSON.parse(postgresqlMcpCapabilityRequestExampleContent);
+    const postgresqlMcpExampleVerdict = verifyCapabilityRequest(postgresqlMcpCapabilityRequestExample);
+    assert(
+      postgresqlMcpExampleVerdict.ok === true,
+      'PostgreSQL MCP Capability Request example verifies',
+      JSON.stringify(postgresqlMcpExampleVerdict, null, 2),
+    );
+    assert(
+      postgresqlMcpExampleVerdict.request.id === 'host.mcp.postgresql.readonly',
+      'PostgreSQL MCP Capability Request example persists readonly capability',
+      JSON.stringify(postgresqlMcpExampleVerdict, null, 2),
+    );
+    assert(
+      postgresqlMcpExampleVerdict.matchedDeclaration.provider === 'modelcontextprotocol/server-postgres',
+      'PostgreSQL MCP Capability Request example records reference provider',
+      JSON.stringify(postgresqlMcpExampleVerdict, null, 2),
+    );
+    assert(
+      postgresqlMcpExampleVerdict.matchedDeclaration.writes.length === 0,
+      'PostgreSQL MCP Capability Request example declares no writes',
+      JSON.stringify(postgresqlMcpExampleVerdict, null, 2),
+    );
+    assert(
+      postgresqlMcpExampleVerdict.matchedDeclaration.outputs.includes('postgres-mcp-operator-evidence.json'),
+      'PostgreSQL MCP Capability Request example records operator evidence output',
+      JSON.stringify(postgresqlMcpExampleVerdict, null, 2),
+    );
+    for (const sourceUrl of [
+      'https://github.com/modelcontextprotocol/servers',
+      'https://hub.docker.com/mcp/server/postgres/overview',
+      'https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/',
+      'https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/',
+      'https://www.npmjs.com/package/%40modelcontextprotocol/server-postgres',
+    ]) {
+      assert(
+        postgresqlMcpCapabilityRequestExample.observations.some((observation) =>
+          JSON.stringify(observation.details || {}).includes(sourceUrl),
+        ),
+        `PostgreSQL MCP Capability Request example cites ${sourceUrl}`,
+        JSON.stringify(postgresqlMcpCapabilityRequestExample.observations, null, 2),
+      );
+    }
+    assert(
+      JSON.stringify(postgresqlMcpCapabilityRequestExample.observations).includes('query') &&
+        JSON.stringify(postgresqlMcpCapabilityRequestExample.observations).includes('read-only transaction') &&
+        JSON.stringify(postgresqlMcpCapabilityRequestExample.observations).includes('archived/deprecated') &&
+        JSON.stringify(postgresqlMcpCapabilityRequestExample.observations).includes('POSTGRES_URL=set|unset') &&
+        JSON.stringify(postgresqlMcpCapabilityRequestExample.observations).includes(
+          'No live PostgreSQL, Docker, MCP, network, Codex config, _bmad/custom, or Workspace Session artifacts',
+        ),
+      'PostgreSQL MCP Capability Request example records readonly advisory boundaries',
+      JSON.stringify(postgresqlMcpCapabilityRequestExample.observations, null, 2),
     );
 
     const graphifyCapabilityRequestExample = JSON.parse(fs.readFileSync(graphifyCapabilityRequestExamplePath, 'utf8'));
@@ -2236,6 +3407,8 @@ function runTests() {
     }
 
     const customizeSkill = fs.readFileSync(customizeSkillPath, 'utf8');
+    assertNoContext7SecretLeak('bmad-customize source skill', customizeSkill);
+    assertNoPostgresqlSecretLeak('bmad-customize source skill', customizeSkill);
     for (const text of [
       'Capability Verification Authoring',
       'capability-request.template.json',
@@ -2270,9 +3443,38 @@ function runTests() {
       'tokens, secrets, client IDs, or local OAuth setup as verifier proof',
       'indirect prompt injection',
       'human review before any',
+      'host.mcp.context7.docs',
+      'capability-request.context7-docs.example.json',
+      'Apple Passwords item `Context7`',
+      'CONTEXT7_API_KEY',
+      '<CONTEXT7_API_KEY>',
+      '<redacted>',
+      'host.mcp.git.local',
+      'capability-request.git-mcp-local.example.json',
+      'mcp-server-git',
+      'GitHub connector or GitHub MCP',
+      'host.mcp.docker.toolkit',
+      'docker-mcp-context7-planning.md',
+      'capability-request.docker-mcp-toolkit.example.json',
+      'Docker MCP Toolkit',
+      'Docker MCP Gateway',
+      'secretRef: Context7',
+      '--api-key',
+      'process args can leak',
+      'host.mcp.postgresql.readonly',
+      'capability-request.postgresql-mcp-readonly.example.json',
+      'postgresql-mcp-capability-planning.md',
+      'modelcontextprotocol/server-postgres',
+      'POSTGRES_URL=set|unset',
+      'read-only is not safe',
     ]) {
       assert(customizeSkill.includes(text), `bmad-customize source skill includes ${text}`, customizeSkill);
     }
+    assert(
+      /local `git` CLI remains fallback/i.test(customizeSkill),
+      'bmad-customize source skill documents local git CLI fallback',
+      customizeSkill,
+    );
     for (const text of [
       'Capability Evidence Gate Closeout',
       '_bmad/custom/*.toml',
@@ -2284,6 +3486,8 @@ function runTests() {
     }
 
     const workspaceSkill = fs.readFileSync(workspaceSkillPath, 'utf8');
+    assertNoContext7SecretLeak('bmad-workspace source skill', workspaceSkill);
+    assertNoPostgresqlSecretLeak('bmad-workspace source skill', workspaceSkill);
     for (const text of [
       'Capability Evidence Gate Closeout',
       'TDD red-green provenance',
@@ -2299,9 +3503,28 @@ function runTests() {
       'Codex Google Calendar connector',
       'Calendar API enablement',
       'indirect prompt injection',
+      'host.mcp.context7.docs',
+      'capability-request.context7-docs.example.json',
+      'Apple Passwords item `Context7`',
+      'CONTEXT7_API_KEY=set',
+      'host.mcp.git.local',
+      'capability-request.git-mcp-local.example.json',
+      'mcp-server-git',
+      'GitHub connector or GitHub MCP',
+      'host.mcp.postgresql.readonly',
+      'capability-request.postgresql-mcp-readonly.example.json',
+      'postgresql-mcp-capability-planning.md',
+      'modelcontextprotocol/server-postgres',
+      'POSTGRES_URL=set',
+      'Read-only',
     ]) {
       assert(workspaceSkill.includes(text), `bmad-workspace source skill includes evidence-gate closeout ${text}`, workspaceSkill);
     }
+    assert(
+      /local `git` CLI remains fallback/i.test(workspaceSkill),
+      'bmad-workspace source skill documents local git CLI fallback',
+      workspaceSkill,
+    );
 
     const selfImproveSkill = fs.readFileSync(selfImproveSkillPath, 'utf8');
     for (const text of ['Capability Verifier Boundary', 'declared-contract compatibility', 'Evidence Gate']) {
@@ -2648,6 +3871,159 @@ function runTests() {
   }
 
   {
+    const verdict = verifyCapabilityRequest(validContext7DocsCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Context7 Docs MCP declaration', JSON.stringify(verdict, null, 2));
+    assert(verdict.request.id === 'host.mcp.context7.docs', 'Context7 verifier echoes exact id', JSON.stringify(verdict, null, 2));
+    assert(verdict.matchedDeclaration.provider === 'context7', 'Context7 verifier records provider', JSON.stringify(verdict, null, 2));
+    assert(verdict.matchedDeclaration.writes.length === 0, 'Context7 verifier records no writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Context7 verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validGitMcpCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Git MCP local declaration', JSON.stringify(verdict, null, 2));
+    assert(verdict.request.id === 'host.mcp.git.local', 'Git MCP verifier echoes exact id', JSON.stringify(verdict, null, 2));
+    assert(verdict.matchedDeclaration.provider === 'mcp-server-git', 'Git MCP verifier records provider', JSON.stringify(verdict, null, 2));
+    for (const write of ['target-repo/git-index', 'target-repo/git-commit', 'target-repo/git-branch']) {
+      assert(verdict.matchedDeclaration.writes.includes(write), `Git MCP verifier records ${write}`, JSON.stringify(verdict, null, 2));
+    }
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Git MCP verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validDockerMcpToolkitCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Docker MCP Toolkit declaration', JSON.stringify(verdict, null, 2));
+    assert(verdict.request.id === 'host.mcp.docker.toolkit', 'Docker MCP verifier echoes exact id', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.provider === 'docker-mcp-toolkit',
+      'Docker MCP verifier records provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.matchedDeclaration.writes.length === 0, 'Docker MCP verifier records no writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.outputs.includes('docker-mcp-operator-evidence.json'),
+      'Docker MCP verifier records operator evidence output',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Docker MCP verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts PostgreSQL MCP readonly declaration', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.request.id === 'host.mcp.postgresql.readonly',
+      'PostgreSQL MCP verifier echoes exact id',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.provider === 'modelcontextprotocol/server-postgres',
+      'PostgreSQL MCP verifier records reference provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.interface === 'readonly-postgresql-mcp',
+      'PostgreSQL MCP verifier records BMAD readonly interface',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(verdict.matchedDeclaration.writes.length === 0, 'PostgreSQL MCP verifier records no writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.matchedDeclaration.forbiddenWrites.includes('external/postgresql/database'),
+      'PostgreSQL MCP verifier records database mutation forbidden write',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.outputs.includes('postgres-mcp-operator-evidence.json'),
+      'PostgreSQL MCP verifier records operator evidence output',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'PostgreSQL MCP verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest({ request: { id: 'host.mcp.postgresql' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong PostgreSQL MCP id');
+    assert(
+      verdict.errors.some((error) => error.code === 'CAPABILITY_NOT_DECLARED'),
+      'PostgreSQL MCP wrong id fails exact matching',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest({ request: { provider: 'docker-mcp-toolkit' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong PostgreSQL MCP provider');
+    assert(
+      verdict.errors.some((error) => error.code === 'PROVIDER_MISMATCH'),
+      'PostgreSQL MCP wrong provider fails provider constraint',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest({ request: { interface: 'mcp:tools' } }));
+    assert(verdict.ok === false, 'capability verifier rejects wrong PostgreSQL MCP interface');
+    assert(
+      verdict.errors.some((error) => error.code === 'INTERFACE_MISMATCH'),
+      'PostgreSQL MCP wrong interface fails interface constraint',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(
+      validPostgresqlMcpReadonlyCapabilityRequest({ request: { writes: ['external/postgresql/database'] } }),
+    );
+    assert(verdict.ok === false, 'capability verifier rejects PostgreSQL MCP writes');
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'PostgreSQL MCP non-empty writes fail write subset check',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const declaration = { ...postgresqlMcpReadonlyCapabilityDeclaration(), outputs: [] };
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest({ capabilities: [declaration] }));
+    assert(verdict.ok === false, 'capability verifier rejects PostgreSQL MCP declaration missing output');
+    assert(
+      verdict.errors.some((error) => error.code === 'REQUEST_INVALID'),
+      'PostgreSQL MCP missing output fails declaration validation',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const declaration = {
+      ...postgresqlMcpReadonlyCapabilityDeclaration(),
+      forbiddenWrites: ['workspace-base', 'target-repo', 'scheduler', 'daemon', 'live-adapter', 'secret-store'],
+    };
+    const verdict = verifyCapabilityRequest(validPostgresqlMcpReadonlyCapabilityRequest({ capabilities: [declaration] }));
+    assert(verdict.ok === false, 'capability verifier rejects PostgreSQL MCP declaration missing database forbidden write');
+    assert(
+      verdict.errors.some((error) => error.code === 'REQUEST_INVALID'),
+      'PostgreSQL MCP missing forbidden write fails declaration validation',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
     const verdict = verifyCapabilityRequest(validGoogleCalendarCapabilityRequest({ request: { id: 'host.google-calendar.local' } }));
     assert(verdict.ok === false, 'capability verifier rejects invalid Google Calendar capability id', JSON.stringify(verdict, null, 2));
     assert(
@@ -2682,6 +4058,50 @@ function runTests() {
     assert(
       verdict.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
       'appsscript write rejection names WRITE_FORBIDDEN',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validGitMcpCapabilityRequest({ request: { writes: ['target-repo/push'] } }));
+    assert(verdict.ok === false, 'capability verifier rejects Git MCP push writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'Git MCP push write rejection names WRITE_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
+      'Git MCP push write rejection names WRITE_FORBIDDEN',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validDockerMcpToolkitCapabilityRequest({ request: { sessionType: 'base-improvement' } }));
+    assert(
+      verdict.ok === false,
+      'capability verifier rejects Docker MCP capability in base-improvement session',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'SESSION_NOT_ALLOWED'),
+      'Docker MCP base-improvement denial names SESSION_NOT_ALLOWED',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validDockerMcpToolkitCapabilityRequest({ request: { writes: ['target-repo'] } }));
+    assert(verdict.ok === false, 'capability verifier rejects Docker MCP target repo writes', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_NOT_DECLARED'),
+      'Docker MCP target repo write rejection names WRITE_NOT_DECLARED',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.errors.some((error) => error.code === 'WRITE_FORBIDDEN'),
+      'Docker MCP target repo write rejection names WRITE_FORBIDDEN',
       JSON.stringify(verdict, null, 2),
     );
   }
@@ -2732,6 +4152,85 @@ function runTests() {
   }
 
   {
+    for (const field of [
+      'liveContext7Config',
+      'context7ApiKey',
+      'applePasswordsState',
+      'liveGitMcpRuntimeState',
+      'localDirtyState',
+      'gitHubConnectorState',
+    ]) {
+      const verdict = verifyCapabilityRequest(validContext7DocsCapabilityRequest({ request: { [field]: true } }));
+      assert(verdict.ok === false, `capability verifier rejects Context7 ambient proof field ${field}`, JSON.stringify(verdict, null, 2));
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
+        `${field} Context7 rejection names REQUEST_INVALID and request path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of [
+      'liveDockerMcpGateway',
+      'dockerMcpCatalogState',
+      'context7ApiKey',
+      'applePasswordsState',
+      'dockerSecretState',
+      'networkAccess',
+      'mcpAccess',
+    ]) {
+      const verdict = verifyCapabilityRequest(validDockerMcpToolkitCapabilityRequest({ request: { [field]: true } }));
+      assert(verdict.ok === false, `capability verifier rejects Docker MCP ambient proof field ${field}`, JSON.stringify(verdict, null, 2));
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
+        `${field} Docker MCP rejection names REQUEST_INVALID and request path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of ['liveContext7Config', 'applePasswordsState', 'liveGitMcpRuntimeState', 'gitHubConnectorState']) {
+      const verdict = verifyCapabilityRequest(
+        validGitMcpCapabilityRequest({
+          capabilities: [{ ...gitMcpCapabilityDeclaration(), [field]: true }],
+        }),
+      );
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Git MCP ambient declaration field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.capabilities[0].${field}`),
+        `${field} Git MCP declaration rejection names REQUEST_INVALID and declaration path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of ['liveDockerMcpGateway', 'dockerMcpCatalogState', 'applePasswordsState', 'dockerSecretState']) {
+      const verdict = verifyCapabilityRequest(
+        validDockerMcpToolkitCapabilityRequest({
+          capabilities: [{ ...dockerMcpToolkitCapabilityDeclaration(), [field]: true }],
+        }),
+      );
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Docker MCP ambient declaration field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.capabilities[0].${field}`),
+        `${field} Docker MCP declaration rejection names REQUEST_INVALID and declaration path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
     const contractsSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'contracts.js'), 'utf8');
     const verifierSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'capability-verifier.js'), 'utf8');
     for (const forbidden of [
@@ -2747,6 +4246,15 @@ function runTests() {
       'agent-browser',
       'browser-use',
       'computer-use',
+      'CONTEXT7_API_KEY',
+      'Apple Passwords',
+      'ctx7_test_placeholder_DO_NOT_USE',
+      'host.mcp.docker.toolkit',
+      'docker-mcp-toolkit',
+      'Docker MCP',
+      'docker mcp',
+      'mcp/context7',
+      'secretRef',
     ]) {
       assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
       assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);

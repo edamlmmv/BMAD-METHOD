@@ -44,10 +44,26 @@ Use these capabilities only when the instantiated goal needs them:
 - `capability:ubiquitous-language` `ubiquitous-language`
 - `capability:grill-me` `grill-me`
 
+Capability Improvement Toolkit templates are planning aids only. They do not
+grant runtime authority, install tools, mutate MCP config, perform static
+analysis, or create implementation scope without an explicit user goal. Use
+them only after resolving an explicit direct goal, readable workflow.goal_ref, or non-empty workflow.scope.
+
+Available Capability Improvement Toolkit templates:
+- `docs/workspace/templates/architecture-drift-review.template.md`
+- `docs/workspace/templates/tool-leverage-review.template.md`
+- `docs/workspace/templates/highest-leverage-official-mcp-addition.template.md`
+
+Available Capability Improvement Toolkit skills:
+- `skill:bmad-architecture-drift-review`
+- `skill:bmad-tool-leverage-review`
+- `skill:bmad-highest-leverage-official-mcp-addition`
+
 Required policy:
 - Read `docs/workspace/bmad-loop-automation-policy.md`.
 - Resolve direct operator goal first; else readable workflow.goal_ref; else workflow.scope; else stop with the BMAD loop refusal message.
 - Do not let Party Mode silently create a goal.
+- Run `skill:bmad-party-mode` to reach Party Mode consensus before plan finalization. Record accept/change/block consensus in the plan evidence.
 - Capture base SHA, resolved self-improve instance fields, and baseline policy hash before edits.
 - Read effective automation schedule/config, explicit operator parameters, and latest checkpoint.
 - Acquire `{output_folder}/self-improvement/automation.lock`; stale lock needs checkpointed failure evidence before continuation.
@@ -57,7 +73,7 @@ Required policy:
 - If the scan fails, abort before preservation, branch creation, branch switch, install, refresh, generation, or file edits.
 - If the scan passes, preserve non-ignored dirty state with local commit `chore: preserve pre-automation worktree state`.
 - Create or switch to the fresh branch matching `codex/self-improve-*`.
-- Run `skill:bmad-party-mode` before writing any plan.
+- Run `skill:bmad-party-mode` before writing any plan, using Capability Improvement Toolkit templates when relevant.
 - Write a decision-complete plan with acceptance criteria and TDD slices.
 - Run `skill:bmad-party-mode` again before implementation.
 - Implement with TDD, one vertical slice at a time.

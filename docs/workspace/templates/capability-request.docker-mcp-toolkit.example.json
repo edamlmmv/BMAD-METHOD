@@ -1,0 +1,144 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.docker.toolkit",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "docker-mcp-toolkit",
+    "interface": "docker-mcp-gateway-profile",
+    "writes": [],
+    "outputs": ["docker-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.docker.toolkit",
+      "group": "host.mcp",
+      "provider": "docker-mcp-toolkit",
+      "interface": "docker-mcp-gateway-profile",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": false,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": ["workspace-base", "target-repo", "scheduler", "daemon", "live-adapter", "secret-store"],
+      "outputs": ["docker-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "DOCKER_MCP_CONTEXT7_SOURCE_REGISTER",
+      "message": "Docker MCP Toolkit, Docker MCP Catalog, Docker Hub Context7 MCP server, and Context7 docs were reviewed for advisory authoring context only.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "sources": [
+          {
+            "source_id": "docker_mcp_toolkit_docs",
+            "title": "Docker MCP Toolkit",
+            "sourceUrl": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/",
+            "publisher": "Docker Docs",
+            "used_for": ["Docker MCP Toolkit vocabulary", "Docker MCP Gateway profile context"],
+            "do_not_use_for": ["Workspace verifier input", "runtime proof", "secret proof"]
+          },
+          {
+            "source_id": "docker_mcp_cli_docs",
+            "title": "Docker MCP Toolkit CLI",
+            "sourceUrl": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/",
+            "publisher": "Docker Docs",
+            "used_for": ["docker mcp secret set", "Docker Desktop credential store", "Docker MCP Gateway command vocabulary"],
+            "do_not_use_for": ["Workspace verifier input", "key retrieval", "local availability guarantee"]
+          },
+          {
+            "source_id": "docker_mcp_catalog_docs",
+            "title": "Docker MCP Catalog",
+            "sourceUrl": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/",
+            "publisher": "Docker Docs",
+            "used_for": ["Docker MCP Catalog source boundary", "packaged MCP server vocabulary"],
+            "do_not_use_for": ["Context7 credential proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "docker_hub_context7_mcp_server",
+            "title": "Docker Hub Context7 MCP server",
+            "sourceUrl": "https://hub.docker.com/mcp/server/context7",
+            "publisher": "Docker Hub",
+            "used_for": ["Context7 MCP server package identity"],
+            "do_not_use_for": ["runtime proof", "API key proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "context7_mcp_readme",
+            "title": "Context7 MCP package README",
+            "sourceUrl": "https://github.com/upstash/context7",
+            "publisher": "Upstash Context7",
+            "used_for": ["CONTEXT7_API_KEY", "--api-key", "Context7 MCP server auth options"],
+            "do_not_use_for": ["key storage", "Workspace verifier input"]
+          },
+          {
+            "source_id": "context7_ai_sdk_docs",
+            "title": "Context7 AI SDK Getting Started",
+            "sourceUrl": "https://github.com/upstash/context7/blob/master/docs/agentic-tools/ai-sdk/getting-started.mdx",
+            "publisher": "Upstash Context7",
+            "used_for": ["header usage shape"],
+            "do_not_use_for": ["key storage", "Workspace verifier input"]
+          },
+          {
+            "source_id": "context7_mastra_docs",
+            "title": "Context7 Mastra integration",
+            "sourceUrl": "https://github.com/upstash/context7/blob/master/docs/integrations/mastra.mdx",
+            "publisher": "Upstash Context7",
+            "used_for": ["header usage shape"],
+            "do_not_use_for": ["key storage", "Workspace verifier input"]
+          }
+        ]
+      }
+    },
+    {
+      "code": "DOCKER_MCP_TOOLKIT_CONTRACT_DRAFT",
+      "message": "Docker MCP Toolkit declaration metadata is advisory context; unsupported fields stay out of capabilities[].",
+      "details": {
+        "candidateId": "host.mcp.docker.toolkit",
+        "supportState": "experimental",
+        "provider": "docker-mcp-toolkit",
+        "interface": "docker-mcp-gateway-profile",
+        "output": "docker-mcp-operator-evidence.json",
+        "boundary": "declaration-only; live Docker MCP Gateway, Docker MCP Catalog, Docker secrets, Apple Passwords, Context7 MCP output, network state, and local MCP config are not verifier input and not Workspace authority"
+      }
+    },
+    {
+      "code": "DOCKER_MCP_CONTEXT7_SECRET_PRIORITY",
+      "message": "Context7 key handling is runtime-only and user-owned; use secret-safe references and placeholders only.",
+      "details": {
+        "priority": [
+          "Docker MCP secret / secretRef",
+          "CONTEXT7_API_KEY from secret manager",
+          "--api-key as last-resort manual path because process args can leak"
+        ],
+        "secretRef": "secretRef: Context7",
+        "applePasswordsEntry": "Apple Passwords entry named `Context7`",
+        "allowedPlaceholders": ["<CONTEXT7_API_KEY>", "<redacted>"],
+        "forbiddenStorage": [
+          "repo MCP config",
+          "screenshots",
+          "transcripts",
+          "shell history",
+          "logs",
+          "tests",
+          "fixtures",
+          "result",
+          "closeout",
+          "docs"
+        ]
+      }
+    },
+    {
+      "code": "DOCKER_MCP_CONTEXT7_TEST_BOUNDARY",
+      "message": "No live Docker, Context7, Apple Passwords, network, or MCP access is used by this fixture.",
+      "details": {
+        "verifierInput": "self-contained Capability Request JSON only",
+        "registryAndCustomDocs": "advisory only",
+        "noLiveAccess": "No live Docker, Context7, Apple Passwords, network, or MCP access",
+        "noEnvFiles": "No .env key material",
+        "noSyntheticSecret": "No synthetic high-entropy placeholder"
+      }
+    }
+  ]
+}

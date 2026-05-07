@@ -1,0 +1,15 @@
+[workflow]
+goal_ref = "_bmad-output/self-improvement/current-goal.md"
+
+activation_steps_prepend = [
+  "If a valid direct operator goal, readable non-empty workflow.goal_ref, or non-empty workflow.scope exists, run skill:bmad-party-mode to refine the instantiated Self-Improve goal before planning.",
+  "Do not use Party Mode to create a Self-Improve goal from an empty, missing, or unreadable goal_ref."
+]
+
+persistent_facts = [
+  "For Self-Improve, _bmad-output/self-improvement/current-goal.md is the default goal file when no direct operator goal is supplied.",
+  "An empty, missing, or unreadable _bmad-output/self-improvement/current-goal.md is missing goal input, not permission to infer a goal.",
+  "Party Mode may refine an instantiated Self-Improve goal but must not silently create one.",
+  "Goal discovery via Party Mode requires explicit operator invocation outside Self-Improve activation; after confirmation, write the chosen goal to _bmad-output/self-improvement/current-goal.md and rerun Self-Improve.",
+  "Tool leverage review: During Self-Improve planning and closeout, capture recurring missed tool use or missing tooling as improvement candidates, while preserving the option to proceed manually with reason when scope is local and low risk."
+]

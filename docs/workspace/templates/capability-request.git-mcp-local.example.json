@@ -1,0 +1,78 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.git.local",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "mcp-server-git",
+    "interface": "local-git-mcp",
+    "writes": ["target-repo/git-index", "target-repo/git-commit", "target-repo/git-branch"],
+    "outputs": ["git-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.git.local",
+      "group": "host.mcp",
+      "provider": "mcp-server-git",
+      "interface": "local-git-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": ["target-repo/git-index", "target-repo/git-commit", "target-repo/git-branch"],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo/push",
+        "target-repo/fetch",
+        "target-repo/reset",
+        "target-repo/clean",
+        "target-repo/restore",
+        "target-repo/merge",
+        "scheduler",
+        "daemon",
+        "live-adapter"
+      ],
+      "outputs": ["git-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_MCP_DOCS_INDEX",
+      "message": "Context7 may provide documentation context for MCP and Git MCP planning only; it does not perform Git operations.",
+      "details": {
+        "sourceId": "context7_modelcontextprotocol_docs",
+        "sourceUrl": "https://context7.com/modelcontextprotocol/docs",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "CONTEXT7_MCP_SERVERS_GIT_DOCS",
+      "message": "Context7 MCP server docs describe mcp-server-git status, diff, add, commit, and branch tools.",
+      "details": {
+        "sourceId": "context7_modelcontextprotocol_servers",
+        "sourceUrl": "https://context7.com/modelcontextprotocol/servers",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "OPENAI_CODEX_MCP_CONFIG_DOCS",
+      "message": "Codex MCP configuration docs describe server configuration as host context only.",
+      "details": {
+        "sourceId": "openai_codex_mcp_docs",
+        "sourceUrl": "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "GIT_MCP_WRITE_TOOL_BOUNDARY",
+      "message": "Git MCP write-capable tools such as git_add, git_commit, and git_create_branch are grant-gated manual operator actions; GitHub connector or MCP support is separate from local Git MCP.",
+      "details": {
+        "grantRequired": true,
+        "manualReviewRequired": true,
+        "localGitCliFallback": "git CLI remains fallback and exact pre-push authority",
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.postgresql.readonly",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "modelcontextprotocol/server-postgres",
+    "interface": "readonly-postgresql-mcp",
+    "writes": [],
+    "outputs": ["postgres-mcp-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.postgresql.readonly",
+      "group": "host.mcp",
+      "provider": "modelcontextprotocol/server-postgres",
+      "interface": "readonly-postgresql-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": false,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "external/postgresql/database",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store"
+      ],
+      "outputs": ["postgres-mcp-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "POSTGRESQL_MCP_SOURCE_REGISTER",
+      "message": "PostgreSQL MCP source references were reviewed for advisory authoring context only.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "sources": [
+          {
+            "source_id": "modelcontextprotocol_servers",
+            "title": "Model Context Protocol servers",
+            "sourceUrl": "https://github.com/modelcontextprotocol/servers",
+            "publisher": "Model Context Protocol",
+            "used_for": ["reference package lineage", "archived/deprecated status"],
+            "do_not_use_for": ["Workspace verifier input", "runtime proof", "security endorsement"]
+          },
+          {
+            "source_id": "docker_hub_postgres_mcp",
+            "title": "Docker Hub PostgreSQL MCP server",
+            "sourceUrl": "https://hub.docker.com/mcp/server/postgres/overview",
+            "publisher": "Docker Hub",
+            "used_for": ["PostgreSQL MCP package identity", "operator setup vocabulary"],
+            "do_not_use_for": ["runtime proof", "secret proof", "local availability guarantee"]
+          },
+          {
+            "source_id": "docker_mcp_cli_docs",
+            "title": "Docker MCP Toolkit CLI",
+            "sourceUrl": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/",
+            "publisher": "Docker Docs",
+            "used_for": ["Docker MCP command vocabulary", "secret state vocabulary"],
+            "do_not_use_for": ["Workspace verifier input", "credential proof", "local availability guarantee"]
+          },
+          {
+            "source_id": "docker_mcp_catalog_docs",
+            "title": "Docker MCP Catalog",
+            "sourceUrl": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/",
+            "publisher": "Docker Docs",
+            "used_for": ["catalog source boundary", "packaged MCP server vocabulary"],
+            "do_not_use_for": ["PostgreSQL MCP configuration proof", "Workspace verifier input"]
+          },
+          {
+            "source_id": "npm_server_postgres",
+            "title": "@modelcontextprotocol/server-postgres",
+            "sourceUrl": "https://www.npmjs.com/package/%40modelcontextprotocol/server-postgres",
+            "publisher": "npm",
+            "used_for": ["reference provider metadata", "package identity"],
+            "do_not_use_for": ["runtime proof", "version guarantee", "endorsement"]
+          }
+        ]
+      }
+    },
+    {
+      "code": "POSTGRESQL_MCP_CONTRACT_DRAFT",
+      "message": "PostgreSQL MCP declaration metadata is advisory context; unsupported fields stay out of capabilities[].",
+      "details": {
+        "candidateId": "host.mcp.postgresql.readonly",
+        "supportState": "experimental",
+        "provider": "modelcontextprotocol/server-postgres",
+        "interface": "readonly-postgresql-mcp",
+        "output": "postgres-mcp-operator-evidence.json",
+        "expectedTools": ["query"],
+        "accessMode": "read-only transaction",
+        "upstreamState": "archived/deprecated reference metadata, not endorsement",
+        "boundary": "declaration-only; live PostgreSQL state, Docker MCP runtime state, MCP tool output, network access, Codex config, local MCP config, _bmad/custom, Workspace Session artifacts, and query results are not verifier input and not Workspace authority"
+      }
+    },
+    {
+      "code": "POSTGRESQL_MCP_SECRET_AND_SCOPE_BOUNDARY",
+      "message": "PostgreSQL MCP evidence is runtime-only and operator-owned; record state and scope, never secret values.",
+      "details": {
+        "secretEvidence": "POSTGRES_URL=set|unset",
+        "requiredScopeEvidence": ["allowed schemas", "allowed tables", "denied writes", "why DB evidence is needed"],
+        "deniedWrites": ["INSERT", "UPDATE", "DELETE", "DDL", "bulk copy", "administrative writes"],
+        "readSafety": "Read-only is not safe; it prevents mutation but can expose sensitive rows.",
+        "leastPrivilege": "Use least-privilege database roles and narrow allowed schemas/tables before citing database evidence.",
+        "forbiddenStorage": [
+          "raw connection string",
+          "password",
+          "secret value",
+          "local MCP config secret",
+          "shell history",
+          "logs",
+          "transcripts",
+          "screenshots",
+          "query results"
+        ]
+      }
+    },
+    {
+      "code": "POSTGRESQL_MCP_TEST_BOUNDARY",
+      "message": "No live PostgreSQL, Docker, MCP, network, Codex config, _bmad/custom, or Workspace Session artifacts are used by this fixture.",
+      "details": {
+        "verifierInput": "self-contained Capability Request JSON only",
+        "registryAndCustomDocs": "advisory only",
+        "noLiveAccess": "No live PostgreSQL, Docker, MCP, network, Codex config, _bmad/custom, or Workspace Session artifacts",
+        "noCredentialValues": "Record POSTGRES_URL=set|unset only"
+      }
+    }
+  ]
+}

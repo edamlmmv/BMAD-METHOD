@@ -16,6 +16,9 @@ validators, docs, and checkpoints.
 Self-Improve is thin repo-owned loop instance. Its self-improve-specific
 templates act as `WorkflowBundle` assets, while unresolved `LoopRunConfig`
 fields inherit from `bmad-loop` through `loop_skill = "bmad-loop"`.
+Self-Improve does not define a separate engine or new authority layer.
+Runtime safety, checkpoint behavior, quality gates, and continuation rules
+remain inherited from `bmad-loop`.
 
 Self-Improve has no built-in improvement goal. A run starts only when the
 operator supplies a direct goal, a readable `workflow.goal_ref`, or a non-empty
@@ -128,6 +131,18 @@ the instantiated goal needs them:
   skills, docs, prompts, module help, and code-facing names.
 - `capability:grill-me` `grill-me` runs an opt-in or checkpoint-only challenge
   round; record objections plus decisions changed or deferred.
+
+## Readiness And Customize Routing
+
+Self-Improve uses the generic `bmad-loop` routing matrix. `bmad-customize` may
+author sparse `[workflow]` overrides for exposed Self-Improve fields only; it
+does not grant runtime authority, verifier authority, or safety bypass. If a
+BMAD repository improvement is actually moving BMM PRD/UX/Architecture/Epics/
+Stories toward Phase 4 implementation, route to
+`bmad-check-implementation-readiness` as the BMM Phase 3 to Phase 4 planning
+gate before implementation. Do not run Implementation Readiness for every
+Self-Improve loop.
+Readiness trigger: BMM Phase 3 to Phase 4 planning gate. Do not run Implementation Readiness for every Self-Improve loop.
 
 ## Workspace Graph Evidence
 

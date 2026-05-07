@@ -48,7 +48,14 @@ function makeFixture() {
     'docs/workspace/templates/bmad-loop-checkpoint.example.md',
     'docs/workspace/templates/workflow-bundle.template.md',
     'docs/workspace/templates/loop-party-mode-gate.template.md',
+    'docs/workspace/templates/architecture-drift-review.template.md',
+    'docs/workspace/templates/tool-leverage-review.template.md',
+    'docs/workspace/templates/highest-leverage-official-mcp-addition.template.md',
+    'src/core-skills/bmad-architecture-drift-review/SKILL.md',
+    'src/core-skills/bmad-tool-leverage-review/SKILL.md',
+    'src/core-skills/bmad-highest-leverage-official-mcp-addition/SKILL.md',
     'src/core-skills/module-help.csv',
+    'src/core-skills/bmad-workspace/SKILL.md',
     'package.json',
   ]) {
     copyFile(root, relativePath);
@@ -185,6 +192,40 @@ function testOverrideCannotInventUnsupportedWorkflowField() {
   assertInvalid(root, 'unsupported workflow field: loop_queue');
 }
 
+function testLoopDocsRejectAutomaticReadiness() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'docs/workspace/bmad-loop.md',
+    'Run `bmad-loop`; no automatic Implementation Readiness',
+    'Run `bmad-check-implementation-readiness` for every loop',
+  );
+  assertInvalid(root, 'LOOP_READINESS_TRIGGER');
+}
+
+function testWorkspaceCannotOwnReadinessAuthority() {
+  const root = makeFixture();
+  replaceInFile(
+    root,
+    'src/core-skills/bmad-workspace/SKILL.md',
+    'BMAD remains the source of truth',
+    'Workspace decides implementation readiness',
+  );
+  assertInvalid(root, 'LOOP_WORKSPACE_AUTHORITY');
+}
+
+function testLoopRequiresCapabilityImprovementToolkitSkills() {
+  const root = makeFixture();
+  fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'));
+  assertInvalid(root, 'bmad-architecture-drift-review');
+}
+
+function testLoopRequiresCapabilityImprovementToolkitPromptRouting() {
+  const root = makeFixture();
+  replaceInFile(root, 'docs/workspace/templates/bmad-loop-codex-prompt.md', 'skill:bmad-tool-leverage-review', 'skill:bmad-tool-review');
+  assertInvalid(root, 'skill:bmad-tool-leverage-review');
+}
+
 function run() {
   const tests = [
     testCurrentRepoValidates,
@@ -197,6 +238,10 @@ function run() {
     testCheckpointExampleRequiresEvidenceBlock,
     testCliUsesInvariantPrefix,
     testOverrideCannotInventUnsupportedWorkflowField,
+    testLoopDocsRejectAutomaticReadiness,
+    testWorkspaceCannotOwnReadinessAuthority,
+    testLoopRequiresCapabilityImprovementToolkitSkills,
+    testLoopRequiresCapabilityImprovementToolkitPromptRouting,
   ];
   for (const test of tests) {
     test();

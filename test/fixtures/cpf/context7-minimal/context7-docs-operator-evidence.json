@@ -1,0 +1,19 @@
+{
+  "kind": "context7-docs-operator-evidence",
+  "schemaVersion": 1,
+  "observer": "Codex operator",
+  "timestamp": "2026-05-07T00:00:00.000Z",
+  "mcpServer": "context7",
+  "context7Configured": false,
+  "credentialSource": "Apple Passwords item Context7",
+  "credentialEvidence": "CONTEXT7_API_KEY=set",
+  "credentialValue": "[REDACTED]",
+  "sourceUrls": [
+    "https://context7.com/docs/installation",
+    "https://context7.com/modelcontextprotocol/docs"
+  ],
+  "querySummary": "Context7 Docs MCP reviewed as advisory docs evidence only.",
+  "artifactRefs": [],
+  "pass": true,
+  "boundary": "Context7 docs evidence is not verifier input, not grant authority, not runtime authority, and not Workspace authority; record CONTEXT7_API_KEY=set or unset only, never the API key value."
+}

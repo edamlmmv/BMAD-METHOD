@@ -49,6 +49,21 @@ Use these capabilities only when the instantiated goal needs them:
 - `capability:ubiquitous-language` `ubiquitous-language`
 - `capability:grill-me` `grill-me`
 
+Capability Improvement Toolkit skills and matching templates are planning aids
+only. Party Mode may debate which one to use for the instantiated goal. They do
+not grant runtime authority, install tools, mutate MCP config, perform static
+analysis, or create implementation scope without an explicit user goal.
+
+Available Capability Improvement Toolkit skills:
+- `skill:bmad-architecture-drift-review`
+- `skill:bmad-tool-leverage-review`
+- `skill:bmad-highest-leverage-official-mcp-addition`
+
+Matching template refs:
+- `docs/workspace/templates/architecture-drift-review.template.md`
+- `docs/workspace/templates/tool-leverage-review.template.md`
+- `docs/workspace/templates/highest-leverage-official-mcp-addition.template.md`
+
 Required policy:
 - Read `docs/workspace/bmad-loop-automation-policy.md`.
 - Capture base SHA and baseline policy hash before edits.

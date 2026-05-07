@@ -51,6 +51,32 @@ continuation contract.
    `workflow.activation_steps_append` as context only. These fields never bypass
    policy or gates.
 
+## Routing And Authority Matrix
+
+Use `bmad-help` when intent, phase, or tool choice is unclear. Help owns routing
+by phase/intent/catalog; it does not own workflow execution.
+
+| Tool | Owns | Does Not Own |
+| --- | --- | --- |
+| `bmad-help` | routing by phase/intent/catalog | workflow execution |
+| `bmad-workspace` | session setup, packets, evidence, result/review/closeout ledger | runtime authority, readiness gate, override authority |
+| `bmad-loop` | checkpointed automation, branch safety, quality gate, commits, resume contract | BMM artifact readiness judgment, customize authoring |
+| `bmad-self-improve` | thin BMAD repo instance of `bmad-loop` | separate engine or new authority layer |
+| `bmad-customize` | sparse `[workflow]` overrides for exposed fields | verifier authority, grants, runtime bypass, safety bypass |
+| `bmad-check-implementation-readiness` | BMM Phase 3 to Phase 4 planning gate | every loop run, Workspace setup, generic automation |
+
+Use this trigger matrix before planning:
+
+| Condition | Route |
+| --- | --- |
+| User asks "which BMAD?" or phase unclear | Start `bmad-help` |
+| BMM PRD/UX/Architecture/Epics/Stories move toward Phase 4 implementation | Run `bmad-check-implementation-readiness` |
+| Material scope change creates new implementation commitment | Run `bmad-check-implementation-readiness` again |
+| Generic bounded automation goal exists | Run `bmad-loop`; no automatic Implementation Readiness |
+| BMAD repo improvement goal exists | Run `bmad-self-improve`; inherits `bmad-loop` |
+| Need goal_ref/scope/facts/hooks/templates/defaults | Run `bmad-customize`; override only |
+| Need session packet, evidence, review, closeout, archive | Run `bmad-workspace` |
+
 ## Loop Platform v1
 
 `bmad-loop` is runtime contract only.

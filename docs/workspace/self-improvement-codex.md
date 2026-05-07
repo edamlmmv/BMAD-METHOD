@@ -15,6 +15,9 @@ In loop platform v1, Self-Improve is thin repo-owned loop instance. Its
 self-improvement docs and templates act as `WorkflowBundle` assets, while its
 resolved `LoopRunConfig` inherits from `bmad-loop` and resolves unspecified
 fields from that generic loop contract.
+Self-Improve does not define a separate engine or new authority layer. Runtime
+safety, checkpoint behavior, quality gates, and continuation rules remain
+inherited from `bmad-loop`.
 
 Read [BMAD Loop Automation Policy](./bmad-loop-automation-policy.md) before
 running or editing this workflow. Self-Improvement Automation Policy is the
@@ -92,6 +95,14 @@ quality gates, install/refresh evidence, validators, or checkpoint requirements.
 
 Other `LoopRunConfig` fields inherit from `bmad-loop` unless Self-Improve
 intentionally overrides them later.
+
+Use the generic `bmad-loop` routing matrix before planning. If a BMAD repository
+improvement moves BMM PRD/UX/Architecture/Epics/Stories toward Phase 4
+implementation, route to `bmad-check-implementation-readiness` as the BMM Phase
+3 to Phase 4 planning gate before implementation. Do not run Implementation
+Readiness for every Self-Improve loop. `bmad-customize` remains override-only
+and never grants runtime authority, verifier authority, or safety bypass.
+Readiness trigger: BMM Phase 3 to Phase 4 planning gate. Do not run Implementation Readiness for every Self-Improve loop.
 
 ## Capability Verifier Boundary
 

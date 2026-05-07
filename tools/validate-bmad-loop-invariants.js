@@ -60,9 +60,37 @@ const LOOP_FILES = {
     label: 'loop party mode gate template',
     relativePath: path.join('docs', 'workspace', 'templates', 'loop-party-mode-gate.template.md'),
   },
+  architectureDriftReviewTemplate: {
+    label: 'architecture drift review template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'architecture-drift-review.template.md'),
+  },
+  toolLeverageReviewTemplate: {
+    label: 'tool leverage review template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'tool-leverage-review.template.md'),
+  },
+  highestLeverageOfficialMcpAdditionTemplate: {
+    label: 'highest-leverage official MCP addition template',
+    relativePath: path.join('docs', 'workspace', 'templates', 'highest-leverage-official-mcp-addition.template.md'),
+  },
+  architectureDriftReviewSkill: {
+    label: 'architecture drift review skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-architecture-drift-review', 'SKILL.md'),
+  },
+  toolLeverageReviewSkill: {
+    label: 'tool leverage review skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-tool-leverage-review', 'SKILL.md'),
+  },
+  highestLeverageOfficialMcpAdditionSkill: {
+    label: 'highest-leverage official MCP addition skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-highest-leverage-official-mcp-addition', 'SKILL.md'),
+  },
   moduleHelp: {
     label: 'module-help.csv',
     relativePath: path.join('src', 'core-skills', 'module-help.csv'),
+  },
+  workspaceSkill: {
+    label: 'bmad-workspace skill',
+    relativePath: path.join('src', 'core-skills', 'bmad-workspace', 'SKILL.md'),
   },
   packageJson: {
     label: 'package.json',
@@ -176,6 +204,53 @@ const REQUIRED_STATE_TERMS = [
   'Local commit',
   'Checkpoint',
   'Complete, blocked, or continuation-ready',
+];
+
+const AUTHORITY_MATRIX_TERMS = [
+  'routing by phase/intent/catalog',
+  'workflow execution',
+  'session setup, packets, evidence, result/review/closeout ledger',
+  'runtime authority, readiness gate, override authority',
+  'checkpointed automation, branch safety, quality gate, commits, resume contract',
+  'BMM artifact readiness judgment, customize authoring',
+  'thin BMAD repo instance of `bmad-loop`',
+  'separate engine or new authority layer',
+  'sparse `[workflow]` overrides for exposed fields',
+  'verifier authority, grants, runtime bypass, safety bypass',
+  'BMM Phase 3 to Phase 4 planning gate',
+  'every loop run, Workspace setup, generic automation',
+];
+
+const TRIGGER_MATRIX_TERMS = [
+  'User asks "which BMAD?" or phase unclear',
+  'BMM PRD/UX/Architecture/Epics/Stories move toward Phase 4 implementation',
+  'Material scope change creates new implementation commitment',
+  'Generic bounded automation goal exists',
+  'Run `bmad-loop`; no automatic Implementation Readiness',
+  'BMAD repo improvement goal exists',
+  'Run `bmad-self-improve`; inherits `bmad-loop`',
+  'Need goal_ref/scope/facts/hooks/templates/defaults',
+  'Run `bmad-customize`; override only',
+  'Need session packet, evidence, review, closeout, archive',
+  'Run `bmad-workspace`',
+];
+
+const LOOP_READINESS_FORBIDDEN_TERMS = [
+  'run `bmad-check-implementation-readiness` for every loop',
+  'IR every loop',
+  'Implementation Readiness every loop',
+  'automatic Implementation Readiness for every loop',
+];
+
+const WORKSPACE_AUTHORITY_FORBIDDEN_TERMS = [
+  'Workspace decides implementation readiness',
+  'Workspace satisfies implementation readiness',
+  'Workspace grants override authority',
+  'Workspace owns override authority',
+  'Workspace covers `bmad-check-implementation-readiness`',
+  'Workspace covers bmad-check-implementation-readiness',
+  'Workspace covers `bmad-customize`',
+  'Workspace covers bmad-customize',
 ];
 
 function parseArgs(argv) {
@@ -433,6 +508,8 @@ function validateBmadLoopInvariants(options = {}) {
     errors,
     files.skill.relativePath,
   );
+  requireTerms(contents.skill, AUTHORITY_MATRIX_TERMS, 'bmad-loop skill authority matrix', errors, files.skill.relativePath);
+  requireTerms(contents.skill, TRIGGER_MATRIX_TERMS, 'bmad-loop skill trigger matrix', errors, files.skill.relativePath);
   requireTerms(contents.customize, REQUIRED_CUSTOMIZE_TERMS, 'bmad-loop customize surface', errors, files.customize.relativePath);
   requireTerms(
     contents.guide,
@@ -441,6 +518,8 @@ function validateBmadLoopInvariants(options = {}) {
     errors,
     files.guide.relativePath,
   );
+  requireTerms(contents.guide, AUTHORITY_MATRIX_TERMS, 'BMAD loop runbook authority matrix', errors, files.guide.relativePath);
+  requireTerms(contents.guide, TRIGGER_MATRIX_TERMS, 'BMAD loop runbook trigger matrix', errors, files.guide.relativePath);
   requireTerms(
     contents.prompt,
     [
@@ -452,6 +531,13 @@ function validateBmadLoopInvariants(options = {}) {
       'checkpoint_template',
       'Goal source:',
       'quality_command: npm ci && npm run quality',
+      'Capability Improvement Toolkit',
+      'skill:bmad-architecture-drift-review',
+      'skill:bmad-tool-leverage-review',
+      'skill:bmad-highest-leverage-official-mcp-addition',
+      'architecture-drift-review.template.md',
+      'tool-leverage-review.template.md',
+      'highest-leverage-official-mcp-addition.template.md',
     ],
     'BMAD loop prompt',
     errors,
@@ -494,17 +580,116 @@ function validateBmadLoopInvariants(options = {}) {
   );
   requireTerms(
     contents.partyGateTemplate,
-    ['Goal:', 'Success metric:', 'Chosen run mode:', 'Recommended BMAD route:', 'Deferred questions:'],
+    [
+      'Goal:',
+      'Success metric:',
+      'Chosen run mode:',
+      'Recommended BMAD route:',
+      'Capability Improvement Toolkit skills/templates considered:',
+      'Skill/template decisions:',
+      'Deferred questions:',
+    ],
     'loop party mode gate template',
     errors,
     files.partyGateTemplate.relativePath,
   );
   requireTerms(
+    contents.architectureDriftReviewTemplate,
+    [
+      'Capability Improvement Toolkit',
+      'Architecture Drift Review',
+      'intended architecture docs',
+      'drift finding',
+      'does not perform static analysis',
+    ],
+    'architecture drift review template',
+    errors,
+    files.architectureDriftReviewTemplate.relativePath,
+  );
+  requireTerms(
+    contents.toolLeverageReviewTemplate,
+    ['Capability Improvement Toolkit', 'Tool Leverage Review', 'use / skip / enhance', 'OpenAI developer docs MCP'],
+    'tool leverage review template',
+    errors,
+    files.toolLeverageReviewTemplate.relativePath,
+  );
+  requireTerms(
+    contents.highestLeverageOfficialMcpAdditionTemplate,
+    ['Capability Improvement Toolkit', 'highest-leverage-official-mcp-addition', 'official MCP', 'approve / reject / defer'],
+    'highest-leverage official MCP addition template',
+    errors,
+    files.highestLeverageOfficialMcpAdditionTemplate.relativePath,
+  );
+  requireTerms(
+    contents.architectureDriftReviewSkill,
+    [
+      'name: bmad-architecture-drift-review',
+      'Architecture Drift Review',
+      'Capability Improvement Toolkit',
+      'intended architecture docs',
+      'drift finding',
+      'does not perform static analysis',
+    ],
+    'architecture drift review skill',
+    errors,
+    files.architectureDriftReviewSkill.relativePath,
+  );
+  requireTerms(
+    contents.toolLeverageReviewSkill,
+    [
+      'name: bmad-tool-leverage-review',
+      'Tool Leverage Review',
+      'Capability Improvement Toolkit',
+      'use / skip / enhance',
+      'OpenAI developer docs MCP',
+    ],
+    'tool leverage review skill',
+    errors,
+    files.toolLeverageReviewSkill.relativePath,
+  );
+  requireTerms(
+    contents.highestLeverageOfficialMcpAdditionSkill,
+    [
+      'name: bmad-highest-leverage-official-mcp-addition',
+      'highest-leverage-official-mcp-addition',
+      'Capability Improvement Toolkit',
+      'official MCP',
+      'approve / reject / defer',
+    ],
+    'highest-leverage official MCP addition skill',
+    errors,
+    files.highestLeverageOfficialMcpAdditionSkill.relativePath,
+  );
+  requireTerms(
     contents.moduleHelp,
-    ['Core,bmad-loop,', 'BMAD Loop,BL', 'WorkflowBundle'],
+    [
+      'Core,bmad-loop,',
+      'BMAD Loop,BL',
+      'WorkflowBundle',
+      'does not run Implementation Readiness by default',
+      'Core,bmad-architecture-drift-review,',
+      'Core,bmad-tool-leverage-review,',
+      'Core,bmad-highest-leverage-official-mcp-addition,',
+    ],
     'module-help.csv',
     errors,
     files.moduleHelp.relativePath,
+  );
+  requireNoTerms(
+    `${contents.skill}\n${contents.guide}`,
+    LOOP_READINESS_FORBIDDEN_TERMS,
+    'bmad-loop readiness trigger docs',
+    errors,
+    files.skill.relativePath,
+    'LOOP_READINESS_TRIGGER',
+  );
+  requireNoTerms(
+    contents.workspaceSkill,
+    WORKSPACE_AUTHORITY_FORBIDDEN_TERMS,
+    'bmad-workspace skill',
+    errors,
+    files.workspaceSkill.relativePath,
+    'LOOP_WORKSPACE_AUTHORITY',
   );
   validateCheckpointExample(contents.checkpointExample, 'BMAD loop checkpoint example', files.checkpointExample.relativePath, errors);
   validatePackageScripts(contents.packageJson, files.packageJson.relativePath, errors);
