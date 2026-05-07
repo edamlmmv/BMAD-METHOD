@@ -9,9 +9,9 @@ This archive replaces the scattered per-release BMAD planning files that previou
 
 ## Compilation Scope
 
-- Source artifacts compiled: 67
-- Release groups compiled: 21
-- Compact entries compiled: 4
+- Source artifacts compiled: 68
+- Release groups compiled: 22
+- Compact entries compiled: 5
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -522,6 +522,31 @@ This archive replaces the scattered per-release BMAD planning files that previou
 - Acceptance anchors: command-registry-parity, path-containment-guard, destructive-refusal-before-mutation, read-only-mutation-proof, golden-lifecycle-contracts, forbidden-surface-guard, operator-doc-labels, clean-install-smoke, package-manager-policy, full-quality-green
 - Traceability markers: Evidence, Test Target
 
+### V24
+
+- Compiled artifacts: Party Mode Consensus Plan, Implementation Readiness Assessment, Capability Evidence, Graphify Evidence, TOML Review, Validation Evidence
+- Party Mode Consensus Plan: BMAD agents aligned on an assessment-only plan for Workspace, Graphify, TOML, and capability readiness, with explicit authority boundaries and no default code or TOML mutation
+- Implementation Readiness Assessment: The readiness verdict is `ready with gaps`; Workspace docs, capability verifier fixtures, checked-in Graphify evidence, and existing TOML overrides are sufficient for assessment, while UX scope and pre-push quality remain explicit gaps
+- Capability Evidence: Codex manual executor and Graphify repo-intake Capability Request examples verify with `ok: true`, under the declared-contract-only verifier boundary
+- Graphify Evidence: Checked-in `graph/*.graph.json` files and `npm run validate:graphify-manifests` support advisory relationship evidence without treating live Graphify, MCP, watch, hooks, cache, or regeneration as authority
+- TOML Review: Existing `_bmad/custom` overrides already carry Workspace, Graphify, browser-affordance, and verifier-boundary reminders; no new TOML is required unless a future exposed `customize.toml` field and red test justify it
+- Validation Evidence: `npm run validate:graphify-manifests`, `npm run validate:bmad-planning-capabilities`, `npm run validate:skills`, and `npm run test:workspace` pass; two LOW skill-validator findings are accepted as non-blocking for this assessment
+- Overview: V24 records a readiness assessment for BMAD-METHOD's Workspace capability path without expanding the platform. It confirms primary Workspace docs remain authoritative, Graphify is advisory static evidence, Capability Requests are verifier input, and TOML is durable behavior customization only where exposed.
+- Goals:
+  - Produce a concrete `ready with gaps` readiness verdict for Workspace, Graphify, TOML, and capability use.
+  - Keep source authority ordered: current Workspace docs first, planning artifacts second, exposed TOML overrides as behavior guidance, static Graphify graphs as advisory context, and self-contained Capability Request JSON as verifier input.
+  - Preserve existing Workspace no-hidden-execution boundaries.
+  - Record validation evidence and LOW finding disposition.
+  - Avoid schema, CLI, verifier, scheduler, watcher, replay, restore, merge, promotion, live-adapter, code, or TOML mutation.
+- Non-goals:
+  - No new Workspace command.
+  - No code or TOML change.
+  - No live Graphify or MCP authority.
+  - No UX readiness claim without a UX artifact or explicit out-of-scope decision.
+  - No push-readiness claim until `npm ci && npm run quality` passes on exact `HEAD`.
+- Acceptance anchors: readiness-verdict-ready-with-gaps, authority-order-preserved, capability-fixtures-ok, graphify-static-evidence-valid, toml-no-mutation-needed, low-findings-disposition, workspace-validation-green, pre-push-quality-deferred
+- Traceability markers: Evidence, Validation, Readiness Gap
+
 ## Old Artifact Removal
 
-The individual per-release history files were removed after this archive was generated. V23 was compiled directly into this archive, and no standalone per-release BMAD history files remain. Future history additions should prefer a compact compiled entry unless a detailed artifact is explicitly needed for review.
+The individual per-release history files were removed after this archive was generated. V23 and later compact entries are compiled directly into this archive, and no standalone per-release BMAD history files remain. Future history additions should prefer a compact compiled entry unless a detailed artifact is explicitly needed for review.

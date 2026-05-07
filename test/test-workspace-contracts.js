@@ -1693,9 +1693,9 @@ function runTests() {
       assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
     }
 
-    assert(historyArchive.includes('Source artifacts compiled: 67'), 'history archive records source artifact count');
-    assert(historyArchive.includes('Release groups compiled: 21'), 'history archive records release group count');
-    assert(historyArchive.includes('Compact entries compiled: 4'), 'history archive records compact entry count');
+    assert(historyArchive.includes('Source artifacts compiled: 68'), 'history archive records source artifact count');
+    assert(historyArchive.includes('Release groups compiled: 22'), 'history archive records release group count');
+    assert(historyArchive.includes('Compact entries compiled: 5'), 'history archive records compact entry count');
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
@@ -1706,6 +1706,8 @@ function runTests() {
     assert(historyArchive.includes('Current archive manifest contract language'), 'history records archive manifest cleanup plan');
     assert(historyArchive.includes('Prompt Builder removal'), 'history records prompt builder removal plan');
     assert(historyArchive.includes(`${'V'}23 hardens Workspace for review and merge`), 'history records release hardening plan');
+    assert(historyArchive.includes(`${'V'}24 records a readiness assessment`), 'history records readiness assessment plan');
+    assert(historyArchive.includes('readiness-verdict-ready-with-gaps'), 'history records readiness assessment anchors');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
