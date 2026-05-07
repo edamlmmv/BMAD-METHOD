@@ -10,7 +10,7 @@ Template id: `capability-refactor-plan`
 Capability Improvement Toolkit skill for planning safe best-practice refactors
 around plugin or capability implementation patterns. This skill is
 planning-only; it produces a refactor plan, evidence map, risk register, test
-strategy, rollback notes, and non-goals.
+strategy, recommended follow-up route, rollback notes, and non-goals.
 
 It has no runtime authority. It makes no live tool calls, does not edit files,
 does not run commands, does not commit, does not deploy, does not install
@@ -40,7 +40,11 @@ does not grant Workspace, verifier, MCP, Forge, or plugin authority.
 5. Require a public behavior test first for any recommended implementation.
 6. Identify the smallest green change that would satisfy the first test.
 7. Record refactor after green notes only after the test path is clear.
-8. Keep examples such as Outlook, Google Calendar, Docker, Git, PostgreSQL,
+8. Recommend one follow-up route without invoking it. Allowed routes are
+   `bmad-capability-pack-forge`, `bmad-self-improve`, `bmad-workspace`,
+   `bmad-check-implementation-readiness`, `bmad-agent-dev`, `bmad-customize`,
+   or `none`.
+9. Keep examples such as Outlook, Google Calendar, Docker, Git, PostgreSQL,
    Context7, Codex, and TOML as examples only; keep the plan capability-neutral.
 
 ## Output
@@ -88,6 +92,13 @@ does not grant Workspace, verifier, MCP, Forge, or plugin authority.
 - User approval needed before implementation:
 - Deferred live/runtime setup:
 
+### Recommended Follow-Up
+
+- Route:
+- Why:
+- Manual next step:
+- Evidence still needed:
+
 ### Open Questions
 
 - 
@@ -96,5 +107,4 @@ does not grant Workspace, verifier, MCP, Forge, or plugin authority.
 
 - Recommendation: approve / revise / block
 - Required evidence before implementation:
-- Workspace or Self-Improve route:
 - Deferred follow-up:

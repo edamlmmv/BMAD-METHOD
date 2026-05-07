@@ -233,6 +233,22 @@ function testCapabilityRefactorPlanDiscoveryAndBoundary() {
   for (const required of ['planning-only', 'local evidence refs', 'no live tool calls', 'does not edit files']) {
     assert(skill.includes(required), `capability refactor plan skill declares ${required}`);
   }
+  for (const required of [
+    'Recommended Follow-Up',
+    'Route:',
+    'Why:',
+    'Manual next step:',
+    'Evidence still needed:',
+    'bmad-capability-pack-forge',
+    'bmad-self-improve',
+    'bmad-workspace',
+    'bmad-check-implementation-readiness',
+    'bmad-agent-dev',
+    'bmad-customize',
+    'none',
+  ]) {
+    assert(skill.includes(required), `capability refactor plan skill declares ${required}`);
+  }
 }
 
 function testLoopRequiresCapabilityImprovementToolkitSkills() {

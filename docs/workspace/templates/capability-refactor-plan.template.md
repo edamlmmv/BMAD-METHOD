@@ -11,9 +11,7 @@ tags:
 
 # Capability Best-Practice Refactor Plan
 
-Capability Improvement Toolkit planning-only. Inputs: target,
-Capability Pack Forge refs, local evidence refs, repo/outcome/constraints/
-non-goals/best-practice/AC. Bound: no live tool calls; does not edit files/run/
-commit/deploy/approve/grant. Plan: objective/evidence/risks/gaps,
-public behavior test first, smallest green change, refactor after green,
-checks/rollback/questions. Dec: approve / revise / block.
+Capability Improvement Toolkit planning-only. Capability Pack Forge and local evidence refs. Bound: no live tool calls; does not edit files. Plan: public behavior test first, smallest green change, refactor after green. Recommended Follow-Up:
+bmad-capability-pack-forge/bmad-self-improve/bmad-workspace/
+bmad-check-implementation-readiness/bmad-agent-dev/bmad-customize/none. Dec:
+approve / revise / block.
