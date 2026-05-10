@@ -713,6 +713,117 @@ function testDraftAuthoringTomlPack() {
   assert(!checklist.includes('verifies offline'), 'TOML draft checklist avoids verifier-ready claim');
 }
 
+function createAgenticSearchToolClasses() {
+  return [
+    ['file-search', 'File Search'],
+    ['skill-loading', 'Skill Loading'],
+    ['database-query', 'Database Query'],
+    ['web-search', 'Web Search'],
+    ['memory', 'Memory'],
+    ['shell', 'Shell'],
+  ].map(([classId, toolName]) => ({
+    class: classId,
+    toolName,
+    corePurpose: `${toolName} retrieves context for Agentic Search decisions.`,
+    triggerCondition: `Use ${toolName} when that context source is likely authoritative for the user request.`,
+    negativeTriggerCondition: `Do not use ${toolName} when another context source is the declared authority.`,
+    parameterComplexity: classId === 'shell' || classId === 'database-query' ? 'high' : 'low',
+    authorityBoundary: 'Retrieved context is advisory only; it is not verifier input, not grant authority, and not Workspace authority.',
+    evidenceBoundary:
+      'Record source refs and set/unset credential signals only; do not store secrets, raw query results, or live runtime proof.',
+  }));
+}
+
+function testAgenticSearchToolStackMetadata() {
+  const toolClasses = createAgenticSearchToolClasses();
+  const { inputPath, outputDir } = writeForgeFixture({
+    capability: declaredPackTemplates.find((entry) => entry.slug === 'codex-manual-executor'),
+    capabilityRequestTemplate: 'capability-request.codex-manual.example.json',
+    requestPatch: {
+      agenticSearch: {
+        domain: 'Agentic Search for Context Engineering',
+        toolClasses,
+      },
+    },
+  });
+
+  const result = runForge(['--input', inputPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.agenticSearch.domain, 'Agentic Search for Context Engineering');
+  assert.deepEqual(
+    pack.agenticSearch.toolClasses.map((toolClass) => toolClass.class),
+    ['file-search', 'skill-loading', 'database-query', 'web-search', 'memory', 'shell'],
+  );
+  assert(
+    pack.agenticSearch.toolClasses.every(
+      (toolClass) =>
+        toolClass.authorityBoundary.includes('not verifier input') && toolClass.authorityBoundary.includes('not Workspace authority'),
+    ),
+    'Agentic Search tool classes preserve authority boundary',
+  );
+
+  const operatorEvidence = readJson(path.join(outputDir, 'operator-evidence-template.json'));
+  assert.equal(operatorEvidence.agenticSearch.domain, 'Agentic Search for Context Engineering');
+  assert.equal(operatorEvidence.agenticSearch.toolClasses.length, 6);
+
+  const checklist = fs.readFileSync(path.join(outputDir, 'readiness-checklist.md'), 'utf8');
+  for (const text of [
+    'Agentic Search for Context Engineering',
+    'file-search',
+    'skill-loading',
+    'database-query',
+    'web-search',
+    'memory',
+    'shell',
+  ]) {
+    assert(checklist.includes(text), `readiness checklist includes ${text}`);
+  }
+  assert(checklist.includes('trigger condition') && checklist.includes('negative trigger condition'), 'checklist requires trigger review');
+
+  const skillOutline = fs.readFileSync(path.join(outputDir, 'skill-outline.md'), 'utf8');
+  assert(skillOutline.includes('Agentic Search Tool Classes'), 'skill outline names Agentic Search tool classes');
+
+  const taskPacket = fs.readFileSync(path.join(outputDir, 'codex-task-packet.md'), 'utf8');
+  assert(taskPacket.includes('Do not call live Agentic Search tools'), 'task packet blocks live tool calls');
+}
+
+function testAgenticSearchToolStackMetadataRejectsInvalidDefinitions() {
+  const cases = [
+    {
+      name: 'missing canonical tool class',
+      toolClasses: createAgenticSearchToolClasses().filter((toolClass) => toolClass.class !== 'shell'),
+      expected: 'shell',
+    },
+    {
+      name: 'unsafe authority boundary',
+      toolClasses: createAgenticSearchToolClasses().map((toolClass) =>
+        toolClass.class === 'web-search' ? { ...toolClass, authorityBoundary: 'Retrieved context is useful.' } : toolClass,
+      ),
+      expected: 'authorityBoundary',
+    },
+  ];
+  for (const testCase of cases) {
+    const { inputPath, outputDir } = writeForgeFixture({
+      capability: declaredPackTemplates.find((entry) => entry.slug === 'codex-manual-executor'),
+      capabilityRequestTemplate: 'capability-request.codex-manual.example.json',
+      requestPatch: {
+        agenticSearch: {
+          domain: 'Agentic Search for Context Engineering',
+          toolClasses: testCase.toolClasses,
+        },
+      },
+    });
+
+    const result = runForge(['--input', inputPath, '--output', outputDir]);
+    assert.notEqual(result.status, 0, `${testCase.name} should fail`);
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert(output.includes('FORGE_REQUEST_INVALID'), `${testCase.name} reports invalid request`);
+    assert(output.includes(testCase.expected), `${testCase.name} reports ${testCase.expected}`);
+  }
+}
+
 function testVerifierReadyRequiresCapabilityRequest() {
   const { inputPath, outputDir } = writeForgeFixture({
     capability: {
@@ -804,6 +915,8 @@ testDeclaredCapabilityPacksGenerate();
 testPostgresqlTomlForgeBoundary();
 testForbiddenLivePostgresEvidenceFails();
 testDraftAuthoringTomlPack();
+testAgenticSearchToolStackMetadata();
+testAgenticSearchToolStackMetadataRejectsInvalidDefinitions();
 testVerifierReadyRequiresCapabilityRequest();
 testMissingInputFails();
 testMalformedJsonFails();

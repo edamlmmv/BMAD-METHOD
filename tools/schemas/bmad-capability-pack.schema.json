@@ -164,6 +164,66 @@
         }
       }
     },
+    "agenticSearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "toolClasses"],
+      "properties": {
+        "domain": {
+          "const": "Agentic Search for Context Engineering"
+        },
+        "toolClasses": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "class",
+              "toolName",
+              "corePurpose",
+              "triggerCondition",
+              "negativeTriggerCondition",
+              "parameterComplexity",
+              "authorityBoundary",
+              "evidenceBoundary"
+            ],
+            "properties": {
+              "class": {
+                "enum": ["file-search", "skill-loading", "database-query", "web-search", "memory", "shell"]
+              },
+              "toolName": {
+                "type": "string",
+                "minLength": 1
+              },
+              "corePurpose": {
+                "type": "string",
+                "minLength": 1
+              },
+              "triggerCondition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "negativeTriggerCondition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "parameterComplexity": {
+                "enum": ["low", "medium", "high"]
+              },
+              "authorityBoundary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidenceBoundary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
     "humanReview": {
       "type": "object",
       "additionalProperties": false,

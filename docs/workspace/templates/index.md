@@ -12,6 +12,7 @@ description: Index of BMAD Workspace templates
 - [bmad-loop-checkpoint.template.md](./bmad-loop-checkpoint.template.md)
 - [bmad-loop-codex-prompt.md](./bmad-loop-codex-prompt.md)
 - [bmad-loop-codex-resume-prompt.md](./bmad-loop-codex-resume-prompt.md)
+- [bmad-route-planning-prompt.md](./bmad-route-planning-prompt.md)
 - [bmad-work-packet.template.json](./bmad-work-packet.template.json)
 - [architecture-drift-review-prompt.template.md](./architecture-drift-review-prompt.template.md)
 - [capability-refactor-plan-prompt.template.md](./capability-refactor-plan-prompt.template.md) - capability/refactor-plan/prompt/best-practice/tdd/forge

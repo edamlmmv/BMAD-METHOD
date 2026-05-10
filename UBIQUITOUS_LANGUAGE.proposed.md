@@ -56,6 +56,20 @@ performed and proven inside those boundaries.
 | **CI Parity** | tooling | Local checks matching the repository quality workflow closely enough to predict CI behavior. | Local command list mapped to workflow checks. | CI optimism |
 | **Deterministic Command** | tooling | A command whose inputs, target checkout, and expected diagnostics can be repeated by a reviewer. | Command string, cwd, exit code, and stable output. | Magic command |
 
+## Agentic search
+
+| Term | Scope | Definition | Evidence Required | Aliases to avoid |
+| --- | --- | --- | --- | --- |
+| **Agentic Search** | search | Search behavior where the agent decides whether context is needed, which context source to inspect, which search tool to call, what parameters to send, and whether results are sufficient. | Tool call record, query or command, inspected result, and stop or retry decision. | Automatic retrieval, simple lookup |
+| **Context Source** | search | Any place relevant information may live, including local files, skills, databases, web pages, memory, scratchpads, APIs, or CLI-accessible systems. | Named source, access path, and authority boundary. | Database when broader sources are possible |
+| **Search Tool** | search | A callable tool the agent uses to retrieve, inspect, filter, aggregate, or validate information from a context source. | Tool name, description, parameters, and response. | Retriever, magic tool |
+| **Retrieved Context** | search | Information returned by a search tool and considered for inclusion in the agent or LLM context window. | Tool response excerpt, relevance note, and source reference. | Data, truth |
+| **Context Curation** | search | Selecting, filtering, transforming, compressing, or discarding retrieved context before it enters the context window. | Kept or discarded result note, summary, and reason. | Dumping results |
+| **Trigger Condition** | search | The condition that tells the agent when a search tool should be used for a request. | Tool description, rule, example, or acceptance criterion. | When to use it |
+| **Negative Trigger Condition** | search | The condition that tells the agent when a search tool should not be used, especially when another context source is authoritative. | Tool description, rule, example, or acceptance criterion. | Caveat, exception |
+| **Parameter Complexity** | search | The difficulty of producing valid search inputs, from simple natural-language strings to full query languages or shell commands. | Parameter schema, examples, validator, or error response. | The model is bad at tools |
+| **Zero-result Ambiguity** | search | The case where empty search results may mean either no answer exists or the search failed through bad source choice, syntax, filters, or indexing. | Empty result plus retry, alternate tool, or validation note. | No answer |
+
 ## Codex and agent capability
 
 | Term | Scope | Definition | Evidence Required | Aliases to avoid |
@@ -91,6 +105,9 @@ performed and proven inside those boundaries.
 - Config authority is one peer domain. It protects ownership and precedence, but
   it does not replace delivery, coding, tooling, TDD, agent, or validation
   vocabulary.
+- Agentic Search context tools may inform a Codex Executor, but retrieved
+  context does not become verifier input or Workspace authority without a
+  declared BMAD artifact, contract, test, or quality gate.
 - SESSION_NOT_FOUND means workspace session lookup failed; do not infer repo state from it. Re-establish state from git status, files, and test output.
 
 ## Example dialogue
@@ -132,6 +149,10 @@ performed and proven inside those boundaries.
   **Tool Affordances** unless a BMAD artifact grants authority.
 - "quality" can mean `npm run quality`, a review judgment, or CI status. Use
   **npm Quality** for the repo script and **Quality Gate** for the handoff gate.
+- "search" can mean exact file search, semantic search, web lookup, database
+  query, memory retrieval, skill loading, or shell inspection. Use
+  **Agentic Search** only when the agent chooses the source, tool, parameters,
+  and sufficiency decision.
 - "validation" can mean a deterministic command or a reviewer opinion. Use
   **Deterministic Validation** and record **Validation Evidence**.
 - "install" can mean dependency install, generated skill install, or user-scope
@@ -194,4 +215,3 @@ accepts this proposal. New terms below are candidates, not canonical language.
 - Every candidate row above cites a graph node id and source path or URL.
 - Generated graph JSON should be regenerated from manifests and runbook, not hand-edited.
 - Static call graph edges are best-effort; unresolved dynamic calls are intentionally omitted.
-

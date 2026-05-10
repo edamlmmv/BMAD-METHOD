@@ -9,6 +9,11 @@ Use this prompt when starting a new Codex chat that should operate with BMAD
 Workspace awareness. Replace the skill root, project root, and task placeholders
 before running it.
 
+For route-first planning, start from
+[BMAD Route Planning Prompt](./bmad-route-planning-prompt.md). Use this
+fresh-chat prompt when Workspace guardrails and evidence-led execution context
+are already the right frame.
+
 ```md
 [$caveman]({skill-root}/caveman/SKILL.md)
 [$bmad-help]({skill-root}/bmad-help/SKILL.md)
@@ -52,8 +57,10 @@ Start:
 2. Read relevant Workspace docs, starting with `docs/workspace/index.md`,
    `operator-guide.md`, `command-contract.md`, `session-lifecycle.md`,
    `current-state.md`, and `guardrails.md`.
-3. Choose the smallest useful BMAD skill chain for the task.
-4. Output the chosen BMAD route, Workspace boundary assumptions, evidence plan,
+3. Use `docs/workspace/templates/bmad-route-planning-prompt.md` when phase,
+   route, readiness, or Codex control mode is uncertain.
+4. Choose the smallest useful BMAD skill chain for the task.
+5. Output the chosen BMAD route, Workspace boundary assumptions, evidence plan,
    and work plan before implementation.
 
 Route options:

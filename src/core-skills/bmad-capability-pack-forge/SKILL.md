@@ -66,6 +66,11 @@ All compiler commands require `.capability-forge/forge.toml` with
   PostgreSQL as a capability domain.
 - Optional `draftAuthoring: "toml"` when the generated pack should explicitly
   mark TOML as a human authoring draft surface.
+- Optional `agenticSearch` metadata for `Agentic Search for Context
+  Engineering`. It must describe `file-search`, `skill-loading`,
+  `database-query`, `web-search`, `memory`, and `shell` with tool purpose,
+  trigger condition, negative trigger condition, parameter complexity, authority
+  boundary, and evidence boundary.
 
 `context7EvidenceRef` is a deprecated compatibility alias that normalizes into
 `evidenceRefs[]`. Context7 is an evidence source, not a Forge requirement.
@@ -85,6 +90,11 @@ Generated artifacts:
 
 The Codex task packet is an instruction draft only. The customization draft is
 inactive until routed through `skill:bmad-customize`.
+
+When `agenticSearch` is present, Forge includes the context tool taxonomy in
+`capability-pack.json`, `operator-evidence-template.json`,
+`skill-outline.md`, `readiness-checklist.md`, and `codex-task-packet.md`. This
+is planning guidance only; it does not call live Agentic Search tools.
 
 When `draftAuthoring: "toml"` is present, generated TOML is still an authoring
 artifact routed through `bmad-customize`, not verifier authority. When
@@ -165,6 +175,8 @@ Forge must not:
   handoff packets
 - promote unapproved drafts, unsafe targets, symlink targets, path traversal, or
   dirty worktrees without an explicit tested override path
+- call live file search, skill-loading, database, web, memory, or shell tools to
+  satisfy generated Agentic Search metadata
 
 Allowed PostgreSQL credential signal is only `POSTGRES_URL=set|unset`. Reject
 raw `POSTGRES_URL`, `DATABASE_URL`, `PGPASSWORD`, `postgres://` /

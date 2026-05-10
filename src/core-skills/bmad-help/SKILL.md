@@ -50,6 +50,12 @@ using these prompt skill names: `bmad-architecture-drift-review-prompt`,
 `bmad-capability-refactor-plan-prompt`, and
 `bmad-code-optimization-refactor-plan-prompt`.
 
+When the user asks for a reusable future-prompt scaffold that first chooses
+BMAD phase, route, evidence, readiness, Party Mode voices, and Codex `/goal` or
+Plan Mode use, point them to
+`docs/workspace/templates/bmad-route-planning-prompt.md` before proposing a new
+BMAD skill.
+
 Use this when the user asks whether tool use is enough, whether tools are being
 underused, or whether a task needs tool enhancements, route first through
 `bmad-tool-leverage-review-prompt` and return its Tool-Leverage Decision Record

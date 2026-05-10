@@ -66,6 +66,88 @@
       "repairHint": "Refresh official Codex app-server references and keep any Workspace use framed as manual evidence recording only."
     },
     {
+      "profileId": "agentic-search.context-tool-stack",
+      "capabilityId": "executor.codex.manual",
+      "toolName": "Agentic Search Tool Stack",
+      "supportState": "proposed",
+      "trustBoundary": "Agentic Search tool taxonomy can guide a Codex operator choosing file search, skill loading, database query/search, web search, memory, or shell context sources, but retrieved context, local tool availability, Codex config, app-server state, and tool output are not verifier input and not Workspace authority.",
+      "toolClasses": [
+        {
+          "class": "file-search",
+          "toolName": "File Search",
+          "contextSource": "Local File System",
+          "corePurpose": "Find repo files, docs, source code, and artifacts through exact or structured local search.",
+          "triggerCondition": "Use when the user request depends on source-specific local files, BMAD artifacts, or repository text.",
+          "negativeTriggerCondition": "Do not use when the authoritative source is live web, persistent memory, or a database-only record.",
+          "parameterComplexity": "low",
+          "authorityBoundary": "Retrieved file context is advisory only; not verifier input and not Workspace authority."
+        },
+        {
+          "class": "skill-loading",
+          "toolName": "Skill Loading",
+          "contextSource": "Agent Skills",
+          "corePurpose": "Load task-specific instructions, examples, and constraints only when the task calls for that skill.",
+          "triggerCondition": "Use when a named skill or complex tool workflow requires detailed procedure beyond the initial prompt.",
+          "negativeTriggerCondition": "Do not load unrelated skills or keep obsolete skill bodies active after the task path changes.",
+          "parameterComplexity": "low",
+          "authorityBoundary": "Loaded skill context is advisory procedure; not verifier input and not Workspace authority."
+        },
+        {
+          "class": "database-query",
+          "toolName": "Database Query/Search",
+          "contextSource": "Database",
+          "corePurpose": "Retrieve, filter, or aggregate structured records from a declared database context source.",
+          "triggerCondition": "Use when source-specific records, metadata filters, counts, groups, or validation searches belong in the database.",
+          "negativeTriggerCondition": "Do not use for deterministic BMAD tests unless a self-contained fixture or declared capability request permits it.",
+          "parameterComplexity": "high",
+          "authorityBoundary": "Database results and query errors are advisory operator context; not verifier input and not Workspace authority."
+        },
+        {
+          "class": "web-search",
+          "toolName": "Web Search",
+          "contextSource": "Web",
+          "corePurpose": "Retrieve current or external online information when local artifacts are not the authoritative source.",
+          "triggerCondition": "Use when freshness, public documentation, external facts, or online source attribution is required.",
+          "negativeTriggerCondition": "Do not use web search for internal BMAD artifacts, local repo facts, or database records that should come from their own source.",
+          "parameterComplexity": "medium",
+          "authorityBoundary": "Web results and citations are advisory evidence context; not verifier input and not Workspace authority."
+        },
+        {
+          "class": "memory",
+          "toolName": "Memory",
+          "contextSource": "Long-term Memory",
+          "corePurpose": "Retrieve persistent user or project continuity facts when prior interaction context may matter.",
+          "triggerCondition": "Use when continuity, preferences, or prior decisions are relevant and not fully present in current artifacts.",
+          "negativeTriggerCondition": "Do not use memory as authority over repo files, BMAD artifacts, deterministic tests, or current user instructions.",
+          "parameterComplexity": "medium",
+          "authorityBoundary": "Memory is continuity context only; not verifier input and not Workspace authority."
+        },
+        {
+          "class": "shell",
+          "toolName": "Shell",
+          "contextSource": "CLI-accessible Source",
+          "corePurpose": "Inspect local files, run deterministic commands, call CLIs, and gather repeatable command evidence.",
+          "triggerCondition": "Use when the task needs repo inspection, tests, validators, file search, or CLI-accessible context.",
+          "negativeTriggerCondition": "Do not run unsafe mutation, hidden execution, secret exposure, live services, or broad environment changes without explicit scope.",
+          "parameterComplexity": "high",
+          "authorityBoundary": "Shell command output is operator evidence only; not verifier input and not Workspace authority."
+        }
+      ],
+      "evidenceRefs": [
+        "https://developers.openai.com/codex/config-reference#configtoml",
+        "https://developers.openai.com/codex/app-server#api-overview",
+        "https://developers.openai.com/codex/memories#configuration",
+        "UBIQUITOUS_LANGUAGE.md",
+        "docs/workspace/agentic-search-context-engineering.md",
+        "docs/workspace/capability-pack-forge.md",
+        "tools/capability-pack-forge.js",
+        "tools/validate-ubiquitous-language.js",
+        "test/test-capability-pack-forge.js",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Keep Agentic Search glossary, planning doc, Forge metadata, registry profile, and tests aligned before claiming tool-stack readiness."
+    },
+    {
       "profileId": "codex.browser.playwright-cli",
       "capabilityId": "executor.codex.manual",
       "toolName": "Playwright CLI",

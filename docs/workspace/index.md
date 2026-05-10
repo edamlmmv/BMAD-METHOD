@@ -64,6 +64,12 @@ Use [Fresh-Chat Workspace Prompt](./templates/fresh-chat-prompt.md) to start a
 new Codex chat with Workspace guardrails, BMAD skill routing, and evidence
 expectations already stated.
 
+Use [BMAD Route Planning Prompt](./templates/bmad-route-planning-prompt.md) to
+start route-first Codex planning that must identify current BMAD phase, next
+BMAD route, evidence, success criteria, non-goals, readiness blockers,
+implementation-readiness fit, Party Mode voices, and Codex `/goal` or Plan Mode
+use before implementation.
+
 Use [Workspace Runbook](./templates/workspace-runbook.md) to record manual
 operator decisions, evidence refs, review manifest refs, closeout, and archive
 verification for a real engagement.

@@ -323,6 +323,53 @@ function testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary() {
   }
 }
 
+function testRoutePlanningPromptTemplateDiscoveryAndBoundary() {
+  const templatePath = path.join(repoRoot, 'docs/workspace/templates/bmad-route-planning-prompt.md');
+  assert(fs.existsSync(templatePath), 'route planning prompt template exists');
+  const template = fs.readFileSync(templatePath, 'utf8');
+  for (const required of [
+    '/goal [STATE THE OUTCOME. Include done condition.]',
+    'Use `bmad-help` first',
+    'current BMAD phase',
+    'next required BMAD route',
+    'evidence to gather',
+    'success criteria',
+    'non-goals',
+    'readiness blockers',
+    'whether implementation-readiness can run now',
+    'whether Codex Plan Mode, `/goal`, or direct execution fits',
+    'whether Party Mode consensus is needed',
+    'Do not treat stale chat memory as source truth',
+    'Use existing BMAD routes before proposing new BMADs',
+    'Use `bmad-loop` for bounded autonomous work',
+    'Use `bmad-self-improve` only for BMAD repo improvements',
+    'Use `bmad-check-implementation-readiness` only for BMM Phase 3->4',
+    'No hidden execution',
+    'participants, votes, decision, required changes, deferred decisions, blockers, next action',
+    'Copy-ready continuation prompt',
+  ]) {
+    assert(template.includes(required), `route planning prompt template declares ${required}`);
+  }
+
+  const freshChat = fs.readFileSync(path.join(repoRoot, 'docs/workspace/templates/fresh-chat-prompt.md'), 'utf8');
+  assert(freshChat.includes('bmad-route-planning-prompt.md'), 'fresh-chat prompt links route planning prompt template');
+
+  const templateIndex = fs.readFileSync(path.join(repoRoot, 'docs/workspace/templates/index.md'), 'utf8');
+  assert(templateIndex.includes('bmad-route-planning-prompt.md'), 'template index exposes route planning prompt template');
+
+  const workspaceIndex = fs.readFileSync(path.join(repoRoot, 'docs/workspace/index.md'), 'utf8');
+  assert(workspaceIndex.includes('BMAD Route Planning Prompt'), 'workspace docs index exposes route planning prompt template');
+
+  const moduleHelp = fs.readFileSync(path.join(repoRoot, 'src/core-skills/module-help.csv'), 'utf8');
+  assert(moduleHelp.includes('bmad-route-planning-prompt.md'), 'BMAD Help catalog wording points to route planning prompt template');
+
+  const helpSkill = fs.readFileSync(path.join(repoRoot, 'src/core-skills/bmad-help/SKILL.md'), 'utf8');
+  assert(
+    helpSkill.includes('docs/workspace/templates/bmad-route-planning-prompt.md'),
+    'BMAD Help skill points to route planning prompt template',
+  );
+}
+
 function testLoopRequiresCapabilityImprovementToolkitSkills() {
   const root = makeFixture();
   fs.unlinkSync(path.join(root, 'src', 'core-skills', 'bmad-architecture-drift-review-prompt', 'SKILL.md'));
@@ -403,6 +450,7 @@ function run() {
     testCapabilityRefactorPlanDiscoveryAndBoundary,
     testCapabilityImprovementToolkitPromptNamesAreExplicit,
     testCodeOptimizationRefactorPlanPromptDiscoveryAndBoundary,
+    testRoutePlanningPromptTemplateDiscoveryAndBoundary,
     testLoopRequiresCapabilityImprovementToolkitSkills,
     testLoopRequiresCapabilityRefactorPlanToolkit,
     testLoopRequiresCapabilityImprovementToolkitPromptRouting,

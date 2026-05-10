@@ -3077,6 +3077,7 @@ function runTests() {
       'graphify.query.static-graph-navigation',
       'graphify.mcp.static-graph-tools',
       'graphify.hooks.watch-regeneration',
+      'agentic-search.context-tool-stack',
     ]);
     const forbiddenProfileAuthorityFields = new Set([
       'allowedInNormalSession',
@@ -3153,6 +3154,48 @@ function runTests() {
       'capability profile registry inventories Desktop Commander MCP profiles',
     );
     assert((profilesByToolName.get('PostgreSQL MCP') || 0) >= 1, 'capability profile registry inventories PostgreSQL MCP profiles');
+    assert(
+      (profilesByToolName.get('Agentic Search Tool Stack') || 0) >= 1,
+      'capability profile registry inventories Agentic Search tool stack profile',
+    );
+    const agenticSearchProfile = profilesById.get('agentic-search.context-tool-stack');
+    assert(
+      agenticSearchProfile?.capabilityId === 'executor.codex.manual',
+      'Agentic Search profile maps to manual Codex executor capability',
+      JSON.stringify(agenticSearchProfile),
+    );
+    assert(
+      agenticSearchProfile?.trustBoundary.includes('not verifier input') &&
+        agenticSearchProfile.trustBoundary.includes('not Workspace authority'),
+      'Agentic Search profile keeps context tools advisory',
+      JSON.stringify(agenticSearchProfile),
+    );
+    assert(Array.isArray(agenticSearchProfile?.toolClasses), 'Agentic Search profile declares toolClasses');
+    assert(
+      JSON.stringify(agenticSearchProfile.toolClasses.map((toolClass) => toolClass.class)) ===
+        JSON.stringify(['file-search', 'skill-loading', 'database-query', 'web-search', 'memory', 'shell']),
+      'Agentic Search profile declares required tool classes in canonical order',
+      JSON.stringify(agenticSearchProfile.toolClasses),
+    );
+    for (const toolClass of agenticSearchProfile.toolClasses) {
+      for (const field of [
+        'class',
+        'toolName',
+        'contextSource',
+        'corePurpose',
+        'triggerCondition',
+        'negativeTriggerCondition',
+        'parameterComplexity',
+        'authorityBoundary',
+      ]) {
+        assert(field in toolClass, `Agentic Search tool class ${toolClass.class} includes ${field}`, JSON.stringify(toolClass));
+      }
+      assert(
+        toolClass.authorityBoundary.includes('not verifier input') && toolClass.authorityBoundary.includes('not Workspace authority'),
+        `Agentic Search tool class ${toolClass.class} preserves authority boundary`,
+        JSON.stringify(toolClass),
+      );
+    }
     const browserAffordanceProfiles = [
       ['codex.browser.playwright-cli', 'Playwright CLI', 'stale', 'unavailable alpha dependency'],
       ['codex.browser.agent-browser-cli', 'Agent Browser CLI', 'proposed', 'not detected on PATH'],

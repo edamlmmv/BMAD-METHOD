@@ -16,6 +16,7 @@ const REQUIRED_SECTIONS = Object.freeze([
   'Coding workflow',
   'TDD workflow',
   'Tooling workflow',
+  'Agentic search',
   'Codex and agent capability',
   'Evidence gates',
   'Relationships',
@@ -50,6 +51,15 @@ const REQUIRED_TERMS = Object.freeze([
   'Skill Validation',
   'CI Parity',
   'Deterministic Command',
+  'Agentic Search',
+  'Context Source',
+  'Search Tool',
+  'Retrieved Context',
+  'Context Curation',
+  'Trigger Condition',
+  'Negative Trigger Condition',
+  'Parameter Complexity',
+  'Zero-result Ambiguity',
   'Codex Executor',
   'Agent Capability',
   'Tool Affordance',
@@ -65,7 +75,7 @@ const REQUIRED_TERMS = Object.freeze([
   'Session Identity',
 ]);
 
-const REQUIRED_SCOPES = Object.freeze(['delivery', 'config', 'coding', 'tdd', 'tooling', 'agent', 'validation']);
+const REQUIRED_SCOPES = Object.freeze(['delivery', 'config', 'coding', 'tdd', 'tooling', 'search', 'agent', 'validation']);
 
 const REQUIRED_SESSION_NOT_FOUND_GUIDANCE =
   'SESSION_NOT_FOUND means workspace session lookup failed; do not infer repo state from it. Re-establish state from git status, files, and test output.';

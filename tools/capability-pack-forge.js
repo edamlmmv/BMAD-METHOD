@@ -48,6 +48,10 @@ const PACK_MODES = Object.freeze(['verifier-ready', 'draft-authoring']);
 const SOURCE_TYPES = Object.freeze(['context7', 'local_docs', 'manual_contract', 'repo_template', 'other']);
 const CAPABILITY_DOMAINS = Object.freeze(['postgresql']);
 const DRAFT_AUTHORING_MODES = Object.freeze(['toml']);
+const AGENTIC_SEARCH_DOMAIN = 'Agentic Search for Context Engineering';
+const AGENTIC_SEARCH_TOOL_CLASSES = Object.freeze(['file-search', 'skill-loading', 'database-query', 'web-search', 'memory', 'shell']);
+const PARAMETER_COMPLEXITY_LEVELS = Object.freeze(['low', 'medium', 'high']);
+const REQUIRED_AGENTIC_SEARCH_BOUNDARY_PHRASES = Object.freeze(['not verifier input', 'not Workspace authority']);
 function parseArgs(argv) {
   const args = {};
   for (let index = 2; index < argv.length; index++) {
@@ -198,6 +202,9 @@ function validateForgeRequest(request) {
   if ('draftAuthoring' in request && !DRAFT_AUTHORING_MODES.includes(request.draftAuthoring)) {
     throw forgeError('FORGE_REQUEST_INVALID', '$.draftAuthoring must be toml when present');
   }
+  if ('agenticSearch' in request) {
+    validateAgenticSearch(request.agenticSearch, '$.agenticSearch');
+  }
   if (packMode === 'verifier-ready') {
     requireLocalRefString(request.capabilityRequestRef, '$.capabilityRequestRef');
   } else if ('capabilityRequestRef' in request) {
@@ -313,6 +320,7 @@ function createCapabilityPack({ request, inputs, packMode }) {
       id: criterion.id,
       statement: criterion.statement,
     })),
+    ...(request.agenticSearch ? { agenticSearch: validateAgenticSearch(request.agenticSearch, '$.agenticSearch') } : {}),
     humanReview: {
       required: true,
       nextSteps: [
@@ -380,6 +388,9 @@ function validateCapabilityPack(pack) {
   if (!Array.isArray(pack.acceptanceCriteria) || pack.acceptanceCriteria.length === 0) {
     throw forgeError('FORGE_PACK_INVALID', '$.acceptanceCriteria must be non-empty');
   }
+  if ('agenticSearch' in pack) {
+    validateAgenticSearch(pack.agenticSearch, '$.agenticSearch');
+  }
   if (pack.humanReview?.required !== true) {
     throw forgeError('FORGE_PACK_INVALID', '$.humanReview.required must be true');
   }
@@ -405,6 +416,7 @@ function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
     packMode,
     ...(request.capabilityDomain ? { capabilityDomain: request.capabilityDomain } : {}),
     ...(request.draftAuthoring ? { draftAuthoring: request.draftAuthoring } : {}),
+    ...(request.agenticSearch ? { agenticSearch: createAgenticSearchEvidenceTemplate(request.agenticSearch) } : {}),
     observer: 'Codex operator',
     evidenceRefs: evidenceRefs.map((ref) => ({
       id: ref.id,
@@ -423,6 +435,148 @@ function createOperatorEvidenceTemplate(request, evidenceRefs, packMode) {
   };
 }
 
+function validateAgenticSearch(agenticSearch, label) {
+  if (!isObject(agenticSearch)) {
+    throw forgeError('FORGE_REQUEST_INVALID', `${label} must be an object`);
+  }
+  requireExact(agenticSearch.domain, AGENTIC_SEARCH_DOMAIN, `${label}.domain`);
+  if (!Array.isArray(agenticSearch.toolClasses) || agenticSearch.toolClasses.length === 0) {
+    throw forgeError('FORGE_REQUEST_INVALID', `${label}.toolClasses must be a non-empty array`);
+  }
+  const seenClasses = new Set();
+  const toolClasses = agenticSearch.toolClasses.map((toolClass, index) => {
+    const toolClassLabel = `${label}.toolClasses[${index}]`;
+    if (!isObject(toolClass)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `${toolClassLabel} must be an object`);
+    }
+    for (const field of [
+      'class',
+      'toolName',
+      'corePurpose',
+      'triggerCondition',
+      'negativeTriggerCondition',
+      'parameterComplexity',
+      'authorityBoundary',
+      'evidenceBoundary',
+    ]) {
+      requireNonEmptyString(toolClass[field], `${toolClassLabel}.${field}`);
+    }
+    if (!AGENTIC_SEARCH_TOOL_CLASSES.includes(toolClass.class)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `${toolClassLabel}.class must be one of ${AGENTIC_SEARCH_TOOL_CLASSES.join(', ')}`);
+    }
+    if (seenClasses.has(toolClass.class)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `${toolClassLabel}.class must be unique`);
+    }
+    seenClasses.add(toolClass.class);
+    if (!PARAMETER_COMPLEXITY_LEVELS.includes(toolClass.parameterComplexity)) {
+      throw forgeError(
+        'FORGE_REQUEST_INVALID',
+        `${toolClassLabel}.parameterComplexity must be one of ${PARAMETER_COMPLEXITY_LEVELS.join(', ')}`,
+      );
+    }
+    assertAgenticSearchBoundary(toolClass.authorityBoundary, `${toolClassLabel}.authorityBoundary`);
+    return {
+      class: toolClass.class,
+      toolName: toolClass.toolName,
+      corePurpose: toolClass.corePurpose,
+      triggerCondition: toolClass.triggerCondition,
+      negativeTriggerCondition: toolClass.negativeTriggerCondition,
+      parameterComplexity: toolClass.parameterComplexity,
+      authorityBoundary: toolClass.authorityBoundary,
+      evidenceBoundary: toolClass.evidenceBoundary,
+    };
+  });
+
+  for (const toolClass of AGENTIC_SEARCH_TOOL_CLASSES) {
+    if (!seenClasses.has(toolClass)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `${label}.toolClasses must include ${toolClass}`);
+    }
+  }
+
+  return {
+    domain: agenticSearch.domain,
+    toolClasses,
+  };
+}
+
+function assertAgenticSearchBoundary(value, label) {
+  for (const phrase of REQUIRED_AGENTIC_SEARCH_BOUNDARY_PHRASES) {
+    if (!value.includes(phrase)) {
+      throw forgeError('FORGE_REQUEST_INVALID', `${label} must include "${phrase}"`);
+    }
+  }
+}
+
+function createAgenticSearchEvidenceTemplate(agenticSearch) {
+  const normalized = validateAgenticSearch(agenticSearch, '$.agenticSearch');
+  return {
+    domain: normalized.domain,
+    boundary: 'Agentic Search evidence is advisory planning context only; not verifier input and not Workspace authority.',
+    toolClasses: normalized.toolClasses.map((toolClass) => ({
+      class: toolClass.class,
+      toolName: toolClass.toolName,
+      triggerCondition: toolClass.triggerCondition,
+      negativeTriggerCondition: toolClass.negativeTriggerCondition,
+      parameterComplexity: toolClass.parameterComplexity,
+      authorityBoundary: toolClass.authorityBoundary,
+      evidenceBoundary: toolClass.evidenceBoundary,
+      observed: false,
+      notes: '',
+    })),
+  };
+}
+
+function createAgenticSearchSkillSection(agenticSearch) {
+  if (!agenticSearch) {
+    return [];
+  }
+  const normalized = validateAgenticSearch(agenticSearch, '$.agenticSearch');
+  return [
+    '## Agentic Search Tool Classes',
+    '',
+    `Domain: ${normalized.domain}`,
+    '',
+    ...normalized.toolClasses.flatMap((toolClass) => [
+      `- ${toolClass.class} (${toolClass.toolName}): ${toolClass.corePurpose}`,
+      `  - Trigger condition: ${toolClass.triggerCondition}`,
+      `  - Negative trigger condition: ${toolClass.negativeTriggerCondition}`,
+      `  - Parameter complexity: ${toolClass.parameterComplexity}`,
+      `  - Authority boundary: ${toolClass.authorityBoundary}`,
+      `  - Evidence boundary: ${toolClass.evidenceBoundary}`,
+    ]),
+    '',
+  ];
+}
+
+function createAgenticSearchReadinessSection(agenticSearch) {
+  if (!agenticSearch) {
+    return [];
+  }
+  const normalized = validateAgenticSearch(agenticSearch, '$.agenticSearch');
+  return [
+    `- [ ] Agentic Search domain is ${normalized.domain}.`,
+    ...normalized.toolClasses.map(
+      (toolClass) =>
+        `- [ ] ${toolClass.class} declares tool purpose, trigger condition, negative trigger condition, parameter complexity, authority boundary, and evidence boundary.`,
+    ),
+  ];
+}
+
+function createAgenticSearchTaskPacketSection(agenticSearch) {
+  if (!agenticSearch) {
+    return [];
+  }
+  const normalized = validateAgenticSearch(agenticSearch, '$.agenticSearch');
+  return [
+    '## Agentic Search Tool Classes',
+    '',
+    ...normalized.toolClasses.map(
+      (toolClass) => `- ${toolClass.class}: ${toolClass.toolName}; use only as described evidence context, not live Forge execution.`,
+    ),
+    '',
+  ];
+}
+
 function createCustomizationDraft(request) {
   const target = request.targetCustomizationSurface || 'bmad-agent-dev';
   const facts = [
@@ -435,6 +589,11 @@ function createCustomizationDraft(request) {
   if (request.capabilityDomain === 'postgresql') {
     facts.push(
       'PostgreSQL capability packs use local evidence refs only; record POSTGRES_URL=set|unset and never connection strings/query results.',
+    );
+  }
+  if (request.agenticSearch) {
+    facts.push(
+      'Agentic Search tool-stack metadata is planning guidance only; live file, skill, database, web, memory, and shell tools remain outside Forge execution.',
     );
   }
   return [
@@ -471,6 +630,7 @@ function createSkillOutline(request) {
     '',
     ...request.acceptanceCriteria.map((criterion) => `- ${criterion.id}: ${criterion.statement}`),
     '',
+    ...createAgenticSearchSkillSection(request.agenticSearch),
   ].join('\n');
 }
 
@@ -486,6 +646,7 @@ function createReadinessChecklist(request, packMode) {
   if (request.draftAuthoring === 'toml') {
     boundaryLines.push('- [ ] TOML authoring remains generated draft text; Forge does not parse TOML input in v1.');
   }
+  const agenticSearchLines = createAgenticSearchReadinessSection(request.agenticSearch);
   return [
     `# ${request.capability.displayName} Readiness Checklist`,
     '',
@@ -495,6 +656,7 @@ function createReadinessChecklist(request, packMode) {
     '- [ ] No raw secrets, query results, or runtime credentials are stored.',
     '- [ ] Customization draft is routed through `bmad-customize` before use.',
     '- [ ] Codex task packet is reviewed as an instruction draft only.',
+    ...agenticSearchLines,
     '- [ ] Targeted tests pass.',
     '- [ ] `npm ci && npm run quality` runs on exact `HEAD` before push readiness.',
     '',
@@ -519,6 +681,9 @@ function createCodexTaskPacket(request) {
   if (request.draftAuthoring === 'toml') {
     guardrails.push('- Treat TOML as generated authoring draft only; do not add TOML parser or TOML input mode in v1.');
   }
+  if (request.agenticSearch) {
+    guardrails.push('- Do not call live Agentic Search tools; use local evidence refs and deterministic validators only.');
+  }
   return [
     `# ${request.capability.displayName} Codex Task Packet`,
     '',
@@ -532,6 +697,7 @@ function createCodexTaskPacket(request) {
     '',
     ...guardrails,
     '',
+    ...createAgenticSearchTaskPacketSection(request.agenticSearch),
     '## First Failing Behavior Test',
     '',
     '`node test/test-capability-pack-forge.js` must fail before Forge exists and pass after implementation.',

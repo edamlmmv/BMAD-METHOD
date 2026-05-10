@@ -56,6 +56,15 @@ Optional request fields are `capabilityDomain: "postgresql"` and
 results, live schema/sample rows, Docker/MCP state, and network proof are
 rejected.
 
+Forge requests may also include optional `agenticSearch` metadata for
+`Agentic Search for Context Engineering`. This metadata describes the six
+canonical context tool classes: `file-search`, `skill-loading`,
+`database-query`, `web-search`, `memory`, and `shell`. Each class must declare
+tool purpose, trigger condition, negative trigger condition, parameter
+complexity, authority boundary, and evidence boundary. Every authority boundary
+must state that the tool output is not verifier input and not Workspace
+authority.
+
 ## Outputs
 
 Forge writes:
@@ -72,6 +81,11 @@ Forge writes:
 `capability-pack.json` uses `kind: "bmad-capability-pack"` and
 `schemaVersion: 1`. That identity is not a grant, install manifest, execution
 permission, verifier proof, or runtime authority.
+
+When `agenticSearch` is present, Forge echoes the taxonomy into
+`capability-pack.json`, `operator-evidence-template.json`,
+`skill-outline.md`, `readiness-checklist.md`, and `codex-task-packet.md`.
+Generated Agentic Search sections are planning guidance only.
 
 ## Review Path
 
@@ -92,6 +106,11 @@ Passwords, keychain, or network. Forge must not store raw secrets, raw query
 results, connection strings, or API keys. The optional v2 compiler path below is
 the only Forge path that may use live PostgreSQL, and it may do so only through
 the configured direct `pg` adapter as compiler state.
+
+Agentic Search metadata does not loosen that boundary. The v1 JSON path must
+not call live file search, skill-loading, database, web, memory, or shell tools
+to satisfy generated Agentic Search sections; it records local evidence refs and
+deterministic validation expectations only.
 
 Forge does not alter `bmad workspace`, `verify-capability`, Workspace
 Capability Contract matching, Grant Guard, Evidence Gate behavior, or
