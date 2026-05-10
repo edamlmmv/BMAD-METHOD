@@ -153,7 +153,8 @@ async function createDraft({ config, store, options }) {
         ],
         evidence_refs: graph.evidenceRefs
           .filter((evidenceRef) => evidenceRef.capability_id === capability.capability_id)
-          .map((evidenceRef) => evidenceRef.ref),
+          .map((evidenceRef) => evidenceRef.ref)
+          .filter((evidenceRef, index, refs) => refs.indexOf(evidenceRef) === index),
       })),
       evidenceRefs: graph.evidenceRefs,
       pack: {

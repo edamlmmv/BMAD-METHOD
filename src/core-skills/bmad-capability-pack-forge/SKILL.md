@@ -93,18 +93,22 @@ domain only, never Forge infrastructure.
 
 In the compiler path, PostgreSQL is state store only: evidence, provenance,
 review events, artifacts, migration records, and promotion records. The
-reviewable `pack-draft.toml` is generated from that state and must be
-reconciled/validated before export or promotion. If `pack-draft.toml`
-references stale evidence, `validate`, `export-bmad`, and `promote` fail until
-the operator re-runs `ingest` and regenerates the draft. PostgreSQL MCP remains
-advisory/operator evidence only; Forge infrastructure uses direct `pg` code.
+reviewable `pack-draft.toml` is generated from that state and must be matched
+against database-backed compiler state before export or promotion. If
+`pack-draft.toml` references stale evidence, `validate`, `export-bmad`, and
+`promote` fail until the operator re-runs `ingest` and regenerates the draft.
+PostgreSQL MCP remains advisory/operator evidence only; Forge infrastructure
+uses direct `pg` code.
+Exported BMAD review packets are handoff artifacts; TOML/PostgreSQL advisory
+notes remain opt-in and must not be treated as verifier input, runtime
+authority, or approval.
 
 ## Compiler Authority Matrix
 
 | Surface                       | Authority                                                                                                                                       |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | v1 JSON                       | Canonical Forge input/output authority. The `--input` / `--output` command does not require v2 compiler state.                                  |
-| v2 `pack-draft.toml`          | Byte-stable review contract only. It is not product truth until validated and explicitly promoted.                                              |
+| v2 `pack-draft.toml`          | Byte-stable review contract only. It is never verifier, export, promotion, or product truth authority.                                          |
 | direct `pg` PostgreSQL        | Compiler state for evidence, provenance, review events, artifacts, migrations, and promotion records.                                           |
 | PostgreSQL MCP                | Advisory/operator evidence only. It is not runtime infrastructure, compiler input authority, verifier authority, or promotion authority.        |
 | Workspace `verify-capability` | Declared-contract check only. Forge v2 must not change verifier semantics.                                                                      |
@@ -120,11 +124,12 @@ advisory/operator evidence only; Forge infrastructure uses direct `pg` code.
 - `search`: read compiler evidence state for operator review; search results
   are not authority.
 - `draft`: render deterministic `pack-draft.toml` from non-stale evidence.
-- `validate`: parse and reconcile `pack-draft.toml` before report write.
+- `validate`: parse `pack-draft.toml` and match it against database-backed
+  compiler state before report write.
 - `export-bmad`: validate first, then emit BMAD handoff artifacts only.
 - `promote`: require `--approved`, acquire the promotion lock, prepare the row,
-  copy through a temp directory, atomically rename, then finalize or report a
-  recovery code.
+  stage artifacts outside every configured runtime root, publish with atomic
+  no-replace behavior, then finalize or report a recovery code.
 
 Recovery codes:
 
@@ -133,22 +138,24 @@ Recovery codes:
 - `FORGE_PROMOTE_CONFLICT`: inspect target state and retry only after the
   conflict is resolved.
 - `FORGE_PROMOTE_RECONCILE_REQUIRED`: inspect target artifacts before retrying.
-- `FORGE_PROMOTE_COPY_FAILED`: temp copy or rename failed; Forge removes the
-  temp directory, leaves no authoritative target, and marks promotion `failed`.
+- `FORGE_PROMOTE_COPY_FAILED`: staging copy or publish failed; Forge removes
+  the temp directory, leaves no authoritative target, and marks promotion
+  `failed`.
 
 ## Boundaries
 
 Forge must not:
 
-- call live Context7, MCP, Docker, PostgreSQL, Git, Codex app-server, Apple
-  Passwords, keychain, or network
+- call live Context7, MCP, Docker, Git, Codex app-server, Apple Passwords,
+  keychain, or network
 - add or change `bmad workspace` commands
 - change `bmad workspace verify-capability`
 - read `_bmad/custom` as authority
 - install skills
 - configure MCP
 - run Graphify
-- query databases
+- query databases except the configured Forge v2 PostgreSQL compiler state
+  through direct `pg`
 - launch Docker
 - start or configure Desktop Commander MCP or run shell commands
 - execute Codex task packets

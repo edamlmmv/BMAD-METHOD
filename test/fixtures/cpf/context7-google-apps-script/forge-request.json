@@ -1,0 +1,36 @@
+{
+  "kind": "bmad-capability-pack-forge-request",
+  "schemaVersion": 1,
+  "packMode": "verifier-ready",
+  "capability": {
+    "id": "host.mcp.context7.google-apps-script.docs",
+    "displayName": "Google Apps Script Context7 Docs",
+    "summary": "Draft a BMAD capability pack for Google Apps Script docs evidence through Context7."
+  },
+  "capabilityRequestRef": "capability-request.json",
+  "targetCustomizationSurface": "bmad-agent-dev",
+  "primaryEvidenceRef": "apps-script-context7-docs",
+  "evidenceRefs": [
+    {
+      "id": "apps-script-context7-docs",
+      "kind": "context7-google-apps-script-operator-evidence",
+      "path": "context7-google-apps-script-operator-evidence.json",
+      "role": "advisory-docs",
+      "sourceType": "context7"
+    }
+  ],
+  "acceptanceCriteria": [
+    {
+      "id": "AC-CPF-GAS-001",
+      "statement": "Forge emits deterministic Google Apps Script Context7 Docs capability-pack draft artifacts from local evidence."
+    },
+    {
+      "id": "AC-CPF-GAS-002",
+      "statement": "Generated capability request verifies offline without live Context7, MCP config, network, or Apps Script runtime access."
+    },
+    {
+      "id": "AC-CPF-GAS-003",
+      "statement": "Generated artifacts preserve apps-script-guide, apps-script-reference, and apps-script-samples source mappings."
+    }
+  ]
+}

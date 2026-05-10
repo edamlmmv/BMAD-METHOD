@@ -12,6 +12,7 @@ const crypto = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const { validateCapabilityContract, validateWorkPacket, verifyCapabilityRequest } = require('../tools/workspace/contracts');
+const { verifyCapabilityInput } = require('../tools/workspace/capability-verifier');
 const { createCapabilityContract } = require('../tools/workspace/capability-contract');
 const { createEvidenceGateFailure, evaluateEvidenceGates } = require('../tools/workspace/evidence-gates');
 const { validateCloseoutArtifact } = require('../tools/workspace/closeout');
@@ -65,6 +66,47 @@ function assert(condition, testName, errorMessage = '') {
     }
     failed++;
   }
+}
+
+function parseCsvLine(line) {
+  const cells = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"') {
+      if (quoted && line[index + 1] === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (char === ',' && !quoted) {
+      cells.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current);
+  return cells;
+}
+
+function readModuleHelpRows(filePath) {
+  const [headerLine, ...rows] = fs.readFileSync(filePath, 'utf8').trim().split(/\r?\n/);
+  const headers = parseCsvLine(headerLine);
+  return rows
+    .filter((line) => line.trim())
+    .map((line) => {
+      const cells = parseCsvLine(line);
+      return Object.fromEntries(headers.map((header, index) => [header, cells[index] || '']));
+    });
+}
+
+function findModuleHelpRow(rows, skill, action = '') {
+  return rows.find((row) => row.skill === skill && row.action === action);
 }
 
 function section(title) {
@@ -328,6 +370,12 @@ function context7DocsCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
 }
 
+function context7WebglFundamentalsCapabilityDeclaration() {
+  return createCapabilityContract(repoRoot).capabilities.find(
+    (capability) => capability.id === 'host.mcp.context7.webgl-fundamentals.docs',
+  );
+}
+
 function gitMcpCapabilityDeclaration() {
   return createCapabilityContract(repoRoot).capabilities.find((capability) => capability.id === 'host.mcp.git.local');
 }
@@ -421,6 +469,35 @@ function validContext7DocsCapabilityRequest(overrides = {}) {
     schemaVersion: 1,
     request,
     capabilities: overrides.capabilities || [context7DocsCapabilityDeclaration()],
+  };
+  if (overrides.observations) {
+    capabilityRequest.observations = overrides.observations;
+  }
+  if (overrides.extraFields) {
+    Object.assign(capabilityRequest, overrides.extraFields);
+  }
+  return capabilityRequest;
+}
+
+function validContext7WebglFundamentalsCapabilityRequest(overrides = {}) {
+  const request = {
+    id: 'host.mcp.context7.webgl-fundamentals.docs',
+    sessionType: 'normal',
+    group: 'host.mcp',
+    provider: 'context7',
+    interface: 'remote-docs-mcp',
+    writes: [],
+    outputs: ['context7-webgl-fundamentals-operator-evidence.json'],
+  };
+  if (overrides.request) {
+    Object.assign(request, overrides.request);
+  }
+
+  const capabilityRequest = {
+    kind: 'bmad-workspace-capability-request',
+    schemaVersion: 1,
+    request,
+    capabilities: overrides.capabilities || [context7WebglFundamentalsCapabilityDeclaration()],
   };
   if (overrides.observations) {
     capabilityRequest.observations = overrides.observations;
@@ -721,6 +798,44 @@ function listFiles(root, options = {}) {
   }
 
   return files;
+}
+
+function fingerprintTree(root) {
+  return listFiles(root)
+    .map((filePath) => `${path.relative(root, filePath).split(path.sep).join('/')}:${sha256File(filePath)}`)
+    .sort()
+    .join('\n');
+}
+
+function writeTextFile(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+}
+
+function writeJsonFile(filePath, value) {
+  writeTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function extractWorkspaceCommandBranch(source, commandName) {
+  const startNeedle = `if (workspaceCommand === '${commandName}') {`;
+  const start = source.indexOf(startNeedle);
+  if (start === -1) {
+    return '';
+  }
+
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '{') {
+      depth += 1;
+    } else if (character === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start, index + 1);
+      }
+    }
+  }
+  return '';
 }
 
 function findSyntheticHighEntropyLiterals(text) {
@@ -1537,6 +1652,15 @@ function runTests() {
     const calendarCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.google-calendar.remote');
     const gitCapability = contract.capabilities.find((capability) => capability.id === 'repo.git.worktree-review');
     const context7Capability = contract.capabilities.find((capability) => capability.id === 'host.mcp.context7.docs');
+    const context7AppsScriptCapability = contract.capabilities.find(
+      (capability) => capability.id === 'host.mcp.context7.google-apps-script.docs',
+    );
+    const context7WebglFundamentalsCapability = contract.capabilities.find(
+      (capability) => capability.id === 'host.mcp.context7.webgl-fundamentals.docs',
+    );
+    const context7Webgl2FundamentalsCapability = contract.capabilities.find(
+      (capability) => capability.id === 'host.mcp.context7.webgl2-fundamentals.docs',
+    );
     const gitMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.git.local');
     const dockerMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.docker.toolkit');
     const zshShellMcpCapability = contract.capabilities.find((capability) => capability.id === 'host.mcp.shell.zsh');
@@ -1595,6 +1719,120 @@ function runTests() {
       'Context7 capability records docs evidence output',
       JSON.stringify(context7Capability),
     );
+    assert(
+      JSON.stringify(context7Capability) ===
+        JSON.stringify({
+          id: 'host.mcp.context7.docs',
+          group: 'host.mcp',
+          provider: 'context7',
+          interface: 'remote-docs-mcp',
+          allowedInNormalSession: true,
+          allowedInBaseImprovement: true,
+          requiresGrant: true,
+          writes: [],
+          forbiddenWrites: ['workspace-base', 'target-repo', 'scheduler', 'daemon', 'live-adapter', 'secret-store'],
+          outputs: ['context7-docs-operator-evidence.json'],
+          upstreamGapProofRequired: false,
+        }),
+      'generic Context7 capability remains unchanged',
+      JSON.stringify(context7Capability),
+    );
+    assert(Boolean(context7AppsScriptCapability), 'Context7 Google Apps Script docs capability is declared');
+    assert(
+      context7AppsScriptCapability?.group === 'host.mcp',
+      'Context7 Apps Script capability uses host.mcp group',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      context7AppsScriptCapability?.provider === 'context7',
+      'Context7 Apps Script capability records provider',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      context7AppsScriptCapability?.interface === 'remote-docs-mcp',
+      'Context7 Apps Script capability records remote docs interface',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      context7AppsScriptCapability?.requiresGrant === true,
+      'Context7 Apps Script capability requires grant',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      Array.isArray(context7AppsScriptCapability?.writes) && context7AppsScriptCapability.writes.length === 0,
+      'Context7 Apps Script capability declares no writes',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      JSON.stringify(context7AppsScriptCapability?.forbiddenWrites) ===
+        JSON.stringify([
+          'workspace-base',
+          'target-repo',
+          'scheduler',
+          'daemon',
+          'live-adapter',
+          'secret-store',
+          'apps-script-runtime',
+          'calendar-api-enablement',
+          'trigger-install',
+          'deployment',
+        ]),
+      'Context7 Apps Script capability records exact forbidden writes',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(
+      JSON.stringify(context7AppsScriptCapability?.outputs) === JSON.stringify(['context7-google-apps-script-operator-evidence.json']),
+      'Context7 Apps Script capability records scoped evidence output',
+      JSON.stringify(context7AppsScriptCapability),
+    );
+    assert(Boolean(context7WebglFundamentalsCapability), 'Context7 WebGL Fundamentals docs capability is declared');
+    assert(
+      context7WebglFundamentalsCapability?.group === 'host.mcp',
+      'Context7 WebGL Fundamentals capability uses host.mcp group',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      context7WebglFundamentalsCapability?.provider === 'context7',
+      'Context7 WebGL Fundamentals capability records provider',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      context7WebglFundamentalsCapability?.interface === 'remote-docs-mcp',
+      'Context7 WebGL Fundamentals capability records remote docs interface',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      context7WebglFundamentalsCapability?.requiresGrant === true,
+      'Context7 WebGL Fundamentals capability requires grant',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      Array.isArray(context7WebglFundamentalsCapability?.writes) && context7WebglFundamentalsCapability.writes.length === 0,
+      'Context7 WebGL Fundamentals capability declares no writes',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      JSON.stringify(context7WebglFundamentalsCapability?.forbiddenWrites) ===
+        JSON.stringify([
+          'workspace-base',
+          'target-repo',
+          'scheduler',
+          'daemon',
+          'live-adapter',
+          'secret-store',
+          'webgl-runtime',
+          'browser-gpu-state',
+        ]),
+      'Context7 WebGL Fundamentals capability records exact forbidden writes',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(
+      JSON.stringify(context7WebglFundamentalsCapability?.outputs) ===
+        JSON.stringify(['context7-webgl-fundamentals-operator-evidence.json']),
+      'Context7 WebGL Fundamentals capability records scoped evidence output',
+      JSON.stringify(context7WebglFundamentalsCapability),
+    );
+    assert(!context7Webgl2FundamentalsCapability, 'Context7 WebGL2 Fundamentals capability is not declared');
     assert(Boolean(gitMcpCapability), 'Git MCP local capability is declared');
     assert(gitMcpCapability.group === 'host.mcp', 'Git MCP capability uses host.mcp group', JSON.stringify(gitMcpCapability));
     assert(gitMcpCapability.provider === 'mcp-server-git', 'Git MCP capability records provider', JSON.stringify(gitMcpCapability));
@@ -1820,6 +2058,8 @@ function runTests() {
     const oldSkillName = ['bmad', 'workspace', 'di' + 'stro'].join('-');
     const oldSkillPath = path.join(__dirname, '..', 'src', 'core-skills', oldSkillName, 'SKILL.md');
     const moduleHelpPath = path.join(__dirname, '..', 'src', 'core-skills', 'module-help.csv');
+    const bmmModuleHelpPath = path.join(__dirname, '..', 'src', 'bmm-skills', 'module-help.csv');
+    const installedHelpPath = path.join(__dirname, '..', '_bmad', '_config', 'bmad-help.csv');
     assert(fs.existsSync(skillPath), 'repo owns bmad-workspace source skill');
     assert(!fs.existsSync(oldSkillPath), 'repo does not own old workspace source skill');
 
@@ -1861,12 +2101,67 @@ function runTests() {
     ]) {
       assert(skillContent.includes(text), `source skill documents ${text}`, skillContent);
     }
+    const normalizedSkillContent = skillContent.replaceAll(/\s+/g, ' ');
+    assert(
+      normalizedSkillContent.includes(
+        'records results, reviews, closeouts, archives, and evidence without executing Forge, Graphify, MCP, PostgreSQL, or Codex task packets',
+      ),
+      'source skill records Workspace ledger and archive artifacts without execution',
+      skillContent,
+    );
+    assert(
+      normalizedSkillContent.includes(
+        'Recorded command text, task packet prose, graph observations, MCP observations, and database observations are inert evidence only',
+      ),
+      'source skill records command and task packet text as inert evidence',
+      skillContent,
+    );
     const moduleHelp = fs.readFileSync(moduleHelpPath, 'utf8');
     assert(moduleHelp.includes('Core,bmad-workspace,'), 'module-help registers bmad-workspace skill');
     assert(moduleHelp.includes('Core,bmad-workspace,BMAD Workspace,WS,'), 'module-help registers WS menu code');
     assert(moduleHelp.includes('archive diff'), 'module-help documents archive diff');
     assert(moduleHelp.includes('Review Manifest'), 'module-help documents Review Manifest');
     assert(!moduleHelp.includes(oldSkillName), 'module-help omits old workspace skill');
+
+    const coreHelpRows = readModuleHelpRows(moduleHelpPath);
+    const bmmHelpRows = readModuleHelpRows(bmmModuleHelpPath);
+    const installedHelpRows = readModuleHelpRows(installedHelpPath);
+    const capabilityForgeRow = findModuleHelpRow(installedHelpRows, 'bmad-capability-pack-forge');
+    const workspaceRow = findModuleHelpRow(installedHelpRows, 'bmad-workspace');
+    const customizeRow = findModuleHelpRow(installedHelpRows, 'bmad-customize');
+    const epicsRow = findModuleHelpRow(bmmHelpRows, 'bmad-create-epics-and-stories');
+    const readinessRow = findModuleHelpRow(bmmHelpRows, 'bmad-check-implementation-readiness');
+    const sprintPlanningRow = findModuleHelpRow(bmmHelpRows, 'bmad-sprint-planning');
+    const installedSprintPlanningRow = findModuleHelpRow(installedHelpRows, 'bmad-sprint-planning');
+    assert(!!findModuleHelpRow(coreHelpRows, 'bmad-capability-pack-forge'), 'source help routes generation to capability pack forge');
+    assert(!!capabilityForgeRow, 'installed help routes generation to capability pack forge');
+    assert(
+      capabilityForgeRow?.description.includes('Capability Request JSON') && capabilityForgeRow?.description.includes('verifier authority'),
+      'capability pack forge route preserves verifier boundary',
+      JSON.stringify(capabilityForgeRow, null, 2),
+    );
+    assert(!!workspaceRow, 'installed help routes Workspace checks to bmad-workspace');
+    assert(skillContent.includes('bmad workspace verify-capability'), 'Workspace route documents verify-capability');
+    assert(!!customizeRow, 'installed help routes customization to bmad-customize');
+    assert(
+      customizeRow?.description.includes('never grants verifier authority'),
+      'customize route preserves verifier boundary',
+      JSON.stringify(customizeRow, null, 2),
+    );
+    assert(!!epicsRow, 'BMM help routes decomposition to bmad-create-epics-and-stories');
+    assert(epicsRow?.phase === '3-solutioning', 'decomposition route stays in solutioning phase', JSON.stringify(epicsRow, null, 2));
+    assert(!!readinessRow, 'BMM help routes implementation gate to readiness skill');
+    assert(readinessRow?.required === 'true', 'implementation readiness remains required', JSON.stringify(readinessRow, null, 2));
+    assert(
+      sprintPlanningRow?.['preceded-by'] === 'bmad-check-implementation-readiness',
+      'sprint sequencing starts after implementation readiness',
+      JSON.stringify(sprintPlanningRow, null, 2),
+    );
+    assert(
+      installedSprintPlanningRow?.['preceded-by'] === 'bmad-check-implementation-readiness',
+      'installed sprint sequencing starts after implementation readiness',
+      JSON.stringify(installedSprintPlanningRow, null, 2),
+    );
   }
 
   section('Workspace Current Contract');
@@ -1887,6 +2182,16 @@ function runTests() {
     const capabilityRequestTemplatePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.template.json');
     const codexCapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.codex-manual.example.json');
     const context7CapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.context7-docs.example.json');
+    const context7AppsScriptCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.context7-google-apps-script.example.json',
+    );
+    const context7WebglFundamentalsCapabilityRequestExamplePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'capability-request.context7-webgl-fundamentals.example.json',
+    );
     const gitMcpCapabilityRequestExamplePath = path.join(workspaceDocsRoot, 'templates', 'capability-request.git-mcp-local.example.json');
     const gitCapabilityRequestExamplePath = path.join(
       workspaceDocsRoot,
@@ -1924,15 +2229,39 @@ function runTests() {
       'capability-request.postgresql-mcp-readonly.example.json',
     );
     const codexEvidencePlanPath = path.join(workspaceDocsRoot, 'codex-executable-capability-evidence-plan.md');
-    const customizeCodexMcpPlanningPath = path.join(workspaceDocsRoot, 'customize-codex-mcp-planning.md');
-    const googleCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'google-calendar-capability-planning.md');
-    const outlookCalendarCapabilityPlanningPath = path.join(workspaceDocsRoot, 'outlook-calendar-capability-planning.md');
-    const dockerMcpContext7PlanningPath = path.join(workspaceDocsRoot, 'docker-mcp-context7-planning.md');
-    const zshShellMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'zsh-shell-mcp-capability-planning.md');
-    const postgresqlMcpCapabilityPlanningPath = path.join(workspaceDocsRoot, 'postgresql-mcp-capability-planning.md');
+    const mcpDocsRoot = path.join(workspaceDocsRoot, 'mcp');
+    const mcpIndexPath = path.join(mcpDocsRoot, 'index.md');
+    const mcpPlanningDocNames = [
+      'customize-codex-mcp-planning.md',
+      'context7-google-apps-script-planning.md',
+      'context7-webgl-fundamentals-planning.md',
+      'google-calendar-capability-planning.md',
+      'outlook-calendar-capability-planning.md',
+      'docker-mcp-context7-planning.md',
+      'zsh-shell-mcp-capability-planning.md',
+      'postgresql-mcp-capability-planning.md',
+    ];
+    const customizeCodexMcpPlanningPath = path.join(mcpDocsRoot, 'customize-codex-mcp-planning.md');
+    const context7GoogleAppsScriptPlanningPath = path.join(mcpDocsRoot, 'context7-google-apps-script-planning.md');
+    const context7WebglFundamentalsPlanningPath = path.join(mcpDocsRoot, 'context7-webgl-fundamentals-planning.md');
+    const googleCalendarCapabilityPlanningPath = path.join(mcpDocsRoot, 'google-calendar-capability-planning.md');
+    const outlookCalendarCapabilityPlanningPath = path.join(mcpDocsRoot, 'outlook-calendar-capability-planning.md');
+    const dockerMcpContext7PlanningPath = path.join(mcpDocsRoot, 'docker-mcp-context7-planning.md');
+    const zshShellMcpCapabilityPlanningPath = path.join(mcpDocsRoot, 'zsh-shell-mcp-capability-planning.md');
+    const postgresqlMcpCapabilityPlanningPath = path.join(mcpDocsRoot, 'postgresql-mcp-capability-planning.md');
     const codexExecutableEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'codex-executable-evidence.template.json');
     const browserAffordanceEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'browser-affordance-evidence.template.json');
     const context7DocsEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'context7-docs-operator-evidence.template.json');
+    const context7AppsScriptEvidenceTemplatePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'context7-google-apps-script-operator-evidence.template.json',
+    );
+    const context7WebglFundamentalsEvidenceTemplatePath = path.join(
+      workspaceDocsRoot,
+      'templates',
+      'context7-webgl-fundamentals-operator-evidence.template.json',
+    );
     const gitMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'git-mcp-operator-evidence.template.json');
     const zshShellMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'zsh-shell-mcp-operator-evidence.template.json');
     const postgresqlMcpEvidenceTemplatePath = path.join(workspaceDocsRoot, 'templates', 'postgres-mcp-operator-evidence.template.json');
@@ -1969,12 +2298,7 @@ function runTests() {
       'architecture.md',
       'prd.md',
       'capability-contract.md',
-      'customize-codex-mcp-planning.md',
-      'google-calendar-capability-planning.md',
-      'outlook-calendar-capability-planning.md',
-      'docker-mcp-context7-planning.md',
-      'zsh-shell-mcp-capability-planning.md',
-      'postgresql-mcp-capability-planning.md',
+      'mcp/index.md',
       'self-improvement-codex.md',
       'release-note-6.6.0.md',
     ]) {
@@ -1983,6 +2307,11 @@ function runTests() {
     assert(fs.existsSync(capabilityRequestTemplatePath), 'Capability Request template exists');
     assert(fs.existsSync(codexCapabilityRequestExamplePath), 'Codex Capability Request example exists');
     assert(fs.existsSync(context7CapabilityRequestExamplePath), 'Context7 Docs MCP Capability Request example exists');
+    assert(fs.existsSync(context7AppsScriptCapabilityRequestExamplePath), 'Context7 Google Apps Script Capability Request example exists');
+    assert(
+      fs.existsSync(context7WebglFundamentalsCapabilityRequestExamplePath),
+      'Context7 WebGL Fundamentals Capability Request example exists',
+    );
     assert(fs.existsSync(gitMcpCapabilityRequestExamplePath), 'Git MCP Capability Request example exists');
     assert(fs.existsSync(graphifyCapabilityRequestExamplePath), 'Graphify Capability Request example exists');
     assert(fs.existsSync(googleCalendarCapabilityRequestExamplePath), 'Google Calendar Capability Request example exists');
@@ -1991,15 +2320,23 @@ function runTests() {
     assert(fs.existsSync(zshShellMcpCapabilityRequestExamplePath), 'Zsh Shell MCP Capability Request example exists');
     assert(fs.existsSync(postgresqlMcpCapabilityRequestExamplePath), 'PostgreSQL MCP Capability Request example exists');
     assert(fs.existsSync(codexEvidencePlanPath), 'Codex executable capability evidence plan exists');
+    assert(fs.existsSync(mcpIndexPath), 'Workspace MCP planning index exists');
     assert(fs.existsSync(customizeCodexMcpPlanningPath), 'Customize Codex MCP planning doc exists');
+    assert(fs.existsSync(context7GoogleAppsScriptPlanningPath), 'Context7 Google Apps Script planning doc exists');
+    assert(fs.existsSync(context7WebglFundamentalsPlanningPath), 'Context7 WebGL Fundamentals planning doc exists');
     assert(fs.existsSync(googleCalendarCapabilityPlanningPath), 'Google Calendar capability planning doc exists');
     assert(fs.existsSync(outlookCalendarCapabilityPlanningPath), 'Outlook Calendar capability planning doc exists');
     assert(fs.existsSync(dockerMcpContext7PlanningPath), 'Docker MCP Toolkit and Context7 planning doc exists');
     assert(fs.existsSync(zshShellMcpCapabilityPlanningPath), 'Zsh Shell MCP capability planning doc exists');
     assert(fs.existsSync(postgresqlMcpCapabilityPlanningPath), 'PostgreSQL MCP capability planning doc exists');
+    for (const docName of mcpPlanningDocNames) {
+      assert(!fs.existsSync(path.join(workspaceDocsRoot, docName)), `MCP planning doc moved out of Workspace root: ${docName}`);
+    }
     assert(fs.existsSync(codexExecutableEvidenceTemplatePath), 'Codex executable evidence template exists');
     assert(fs.existsSync(browserAffordanceEvidenceTemplatePath), 'Browser affordance evidence template exists');
     assert(fs.existsSync(context7DocsEvidenceTemplatePath), 'Context7 Docs MCP evidence template exists');
+    assert(fs.existsSync(context7AppsScriptEvidenceTemplatePath), 'Context7 Google Apps Script evidence template exists');
+    assert(fs.existsSync(context7WebglFundamentalsEvidenceTemplatePath), 'Context7 WebGL Fundamentals evidence template exists');
     assert(fs.existsSync(gitMcpEvidenceTemplatePath), 'Git MCP evidence template exists');
     assert(fs.existsSync(zshShellMcpEvidenceTemplatePath), 'Zsh Shell MCP evidence template exists');
     assert(fs.existsSync(postgresqlMcpEvidenceTemplatePath), 'PostgreSQL MCP evidence template exists');
@@ -2036,16 +2373,14 @@ function runTests() {
       './architecture.md',
       './capability-contract.md',
       './capability-profile-registry.json',
-      './customize-codex-mcp-planning.md',
-      './google-calendar-capability-planning.md',
-      './outlook-calendar-capability-planning.md',
-      './docker-mcp-context7-planning.md',
-      './zsh-shell-mcp-capability-planning.md',
-      './postgresql-mcp-capability-planning.md',
+      './mcp/index.md',
       './release-note-6.6.0.md',
       './history/index.md',
     ]) {
       assert(index.includes(link), `workspace index links ${link}`, index);
+    }
+    for (const oldRootLink of mcpPlanningDocNames.map((docName) => `./${docName}`)) {
+      assert(!index.includes(oldRootLink), `workspace index omits old MCP root link ${oldRootLink}`, index);
     }
     assert(!/\.\/v\d+-/.test(index), 'workspace index keeps version docs out of current flow', index);
     assert(index.includes('not current operator guidance'), 'workspace index labels historical artifacts', index);
@@ -2053,6 +2388,16 @@ function runTests() {
     assert(
       index.includes('./templates/capability-request.context7-docs.example.json'),
       'workspace index links Context7 capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.context7-google-apps-script.example.json'),
+      'workspace index links Context7 Google Apps Script capability request example',
+      index,
+    );
+    assert(
+      index.includes('./templates/capability-request.context7-webgl-fundamentals.example.json'),
+      'workspace index links Context7 WebGL Fundamentals capability request example',
       index,
     );
     assert(
@@ -2141,7 +2486,7 @@ function runTests() {
       '.codex/config.toml',
       'AC-OPR-12',
       'Zsh Shell MCP readiness',
-      'zsh-shell-mcp-capability-planning.md',
+      'docs/workspace/mcp/zsh-shell-mcp-capability-planning.md',
       'capability-request.zsh-shell-mcp.example.json',
       'zsh-shell-mcp-operator-evidence.template.json',
       'Desktop Commander MCP',
@@ -2518,9 +2863,9 @@ function runTests() {
       assert(historyIndex.includes(text), `history index includes ${text}`, historyIndex);
     }
 
-    assert(historyArchive.includes('Source artifacts compiled: 69'), 'history archive records source artifact count');
-    assert(historyArchive.includes('Release groups compiled: 23'), 'history archive records release group count');
-    assert(historyArchive.includes('Compact entries compiled: 6'), 'history archive records compact entry count');
+    assert(historyArchive.includes('Source artifacts compiled: 70'), 'history archive records source artifact count');
+    assert(historyArchive.includes('Release groups compiled: 24'), 'history archive records release group count');
+    assert(historyArchive.includes('Compact entries compiled: 7'), 'history archive records compact entry count');
     assert(historyArchive.includes('Traceability markers'), 'history archive preserves traceability markers');
     assert(historyArchive.includes('Old Artifact Removal'), 'history archive records old artifact removal');
     assert(historyArchive.includes('Codex operator affordances'), 'history records Codex operator affordance plan');
@@ -2535,6 +2880,8 @@ function runTests() {
     assert(historyArchive.includes('readiness-verdict-ready-with-gaps'), 'history records readiness assessment anchors');
     assert(historyArchive.includes(`${'V'}25 turns the ${'V'}24`), 'history records operator readiness closure plan');
     assert(historyArchive.includes('v25-readiness-closure-candidate'), 'history records readiness closure candidate anchor');
+    assert(historyArchive.includes(`${'V'}26 delivers Capability Pack Forge Phase 4`), 'history records capability forge completion');
+    assert(historyArchive.includes('cpf-final-quality-green'), 'history records capability forge final quality anchor');
     for (const text of [
       'Codex operator affordances',
       '`/goal`',
@@ -2636,6 +2983,16 @@ function runTests() {
       'remote-docs-mcp',
       'context7-docs-operator-evidence.json',
       'capability-request.context7-docs.example.json',
+      'host.mcp.context7.google-apps-script.docs',
+      'context7-google-apps-script-operator-evidence.json',
+      'capability-request.context7-google-apps-script.example.json',
+      'host.mcp.context7.webgl-fundamentals.docs',
+      'context7-webgl-fundamentals-operator-evidence.json',
+      'capability-request.context7-webgl-fundamentals.example.json',
+      '/websites/webglfundamentals',
+      'https://webglfundamentals.org',
+      'https://webgl2fundamentals.org',
+      'no separate Context7 source',
       'Apple Passwords item `Context7`',
       'CONTEXT7_API_KEY',
       'host.mcp.git.local',
@@ -2707,6 +3064,8 @@ function runTests() {
       'codex.browser.browser-use-iab',
       'codex.desktop.computer-use-mcp',
       'context7.docs.git-mcp-reference',
+      'context7.docs.google-apps-script-reference',
+      'context7.docs.webgl-fundamentals-reference',
       'desktop-commander.zsh-shell-mcp',
       'docker-mcp.toolkit.gateway-profile',
       'git.cli.worktree-review',
@@ -2841,7 +3200,7 @@ function runTests() {
       JSON.stringify(outlookCalendarProfile),
     );
     assert(
-      outlookCalendarProfile?.evidenceRefs.includes('docs/workspace/outlook-calendar-capability-planning.md') &&
+      outlookCalendarProfile?.evidenceRefs.includes('docs/workspace/mcp/outlook-calendar-capability-planning.md') &&
         outlookCalendarProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json'),
       'Outlook Calendar profile cites planning doc and portable fixture',
       JSON.stringify(outlookCalendarProfile),
@@ -2865,6 +3224,58 @@ function runTests() {
       'Context7 profile repair hint preserves credential source name',
       JSON.stringify(context7Profile),
     );
+    const context7AppsScriptProfile = profilesById.get('context7.docs.google-apps-script-reference');
+    assert(
+      context7AppsScriptProfile?.capabilityId === 'host.mcp.context7.google-apps-script.docs',
+      'Context7 Apps Script profile maps to scoped Apps Script docs capability',
+      JSON.stringify(context7AppsScriptProfile),
+    );
+    assert(
+      context7AppsScriptProfile?.toolName === 'Context7 MCP',
+      'Context7 Apps Script profile names Context7 MCP',
+      JSON.stringify(context7AppsScriptProfile),
+    );
+    for (const text of [
+      '/websites/developers_google_apps-script',
+      '/websites/developers_google_apps-script_reference',
+      '/googleworkspace/apps-script-samples',
+      'context7-google-apps-script-operator-evidence.json',
+      'not verifier input',
+      'not Workspace authority',
+    ]) {
+      assert(
+        JSON.stringify(context7AppsScriptProfile || {}).includes(text),
+        `Context7 Apps Script profile includes ${text}`,
+        JSON.stringify(context7AppsScriptProfile),
+      );
+    }
+    const context7WebglFundamentalsProfile = profilesById.get('context7.docs.webgl-fundamentals-reference');
+    assert(
+      context7WebglFundamentalsProfile?.capabilityId === 'host.mcp.context7.webgl-fundamentals.docs',
+      'Context7 WebGL Fundamentals profile maps to scoped WebGL Fundamentals docs capability',
+      JSON.stringify(context7WebglFundamentalsProfile),
+    );
+    assert(
+      context7WebglFundamentalsProfile?.toolName === 'Context7 MCP',
+      'Context7 WebGL Fundamentals profile names Context7 MCP',
+      JSON.stringify(context7WebglFundamentalsProfile),
+    );
+    for (const text of [
+      '/websites/webglfundamentals',
+      'https://context7.com/websites/webglfundamentals',
+      'https://webglfundamentals.org',
+      'https://webgl2fundamentals.org',
+      'context7-webgl-fundamentals-operator-evidence.json',
+      'not verifier input',
+      'not Workspace authority',
+      'no separate Context7 source',
+    ]) {
+      assert(
+        JSON.stringify(context7WebglFundamentalsProfile || {}).includes(text),
+        `Context7 WebGL Fundamentals profile includes ${text}`,
+        JSON.stringify(context7WebglFundamentalsProfile),
+      );
+    }
     const gitMcpProfile = profilesById.get('git.mcp.local-repository-tools');
     assert(
       gitMcpProfile?.capabilityId === 'host.mcp.git.local',
@@ -2904,7 +3315,7 @@ function runTests() {
       JSON.stringify(dockerMcpProfile),
     );
     assert(
-      dockerMcpProfile?.evidenceRefs.includes('docs/workspace/docker-mcp-context7-planning.md') &&
+      dockerMcpProfile?.evidenceRefs.includes('docs/workspace/mcp/docker-mcp-context7-planning.md') &&
         dockerMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json'),
       'Docker MCP profile cites planning doc and portable fixture',
       JSON.stringify(dockerMcpProfile),
@@ -2934,7 +3345,7 @@ function runTests() {
       JSON.stringify(zshShellMcpProfile),
     );
     assert(
-      zshShellMcpProfile?.evidenceRefs.includes('docs/workspace/zsh-shell-mcp-capability-planning.md') &&
+      zshShellMcpProfile?.evidenceRefs.includes('docs/workspace/mcp/zsh-shell-mcp-capability-planning.md') &&
         zshShellMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.zsh-shell-mcp.example.json'),
       'Zsh Shell MCP profile cites planning doc and portable fixture',
       JSON.stringify(zshShellMcpProfile),
@@ -2963,7 +3374,7 @@ function runTests() {
       JSON.stringify(postgresqlMcpProfile),
     );
     assert(
-      postgresqlMcpProfile?.evidenceRefs.includes('docs/workspace/postgresql-mcp-capability-planning.md') &&
+      postgresqlMcpProfile?.evidenceRefs.includes('docs/workspace/mcp/postgresql-mcp-capability-planning.md') &&
         postgresqlMcpProfile.evidenceRefs.includes('docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json'),
       'PostgreSQL MCP profile cites planning doc and portable fixture',
       JSON.stringify(postgresqlMcpProfile),
@@ -3023,6 +3434,11 @@ function runTests() {
       templateIndex,
     );
     assert(
+      templateIndex.includes('capability-request.context7-webgl-fundamentals.example.json'),
+      'template index links Context7 WebGL Fundamentals capability request example',
+      templateIndex,
+    );
+    assert(
       templateIndex.includes('capability-request.git-mcp-local.example.json'),
       'template index links Git MCP capability request example',
       templateIndex,
@@ -3070,6 +3486,11 @@ function runTests() {
     assert(
       templateIndex.includes('context7-docs-operator-evidence.template.json'),
       'template index links Context7 docs evidence template',
+      templateIndex,
+    );
+    assert(
+      templateIndex.includes('context7-webgl-fundamentals-operator-evidence.template.json'),
+      'template index links Context7 WebGL Fundamentals evidence template',
       templateIndex,
     );
     assert(
@@ -3178,6 +3599,121 @@ function runTests() {
         context7DocsEvidenceTemplate.boundary.includes(boundary),
         `Context7 docs evidence template boundary includes ${boundary}`,
         JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+      );
+    }
+    for (const sourceUrl of [
+      'https://context7.com/websites/developers_google_apps-script',
+      'https://context7.com/websites/developers_google_apps-script_reference?contextType=info',
+      'https://context7.com/googleworkspace/apps-script-samples',
+    ]) {
+      assert(
+        context7DocsEvidenceTemplate.sourceUrls.includes(sourceUrl),
+        `Context7 docs evidence template includes Apps Script source ${sourceUrl}`,
+        JSON.stringify(context7DocsEvidenceTemplate, null, 2),
+      );
+    }
+    assert(
+      !context7DocsEvidenceTemplateContent.includes('host.mcp.context7.google-apps-script.docs') &&
+        !context7DocsEvidenceTemplateContent.includes('context7-google-apps-script-operator-evidence.json'),
+      'generic Context7 docs evidence template remains generic',
+      context7DocsEvidenceTemplateContent,
+    );
+
+    const context7AppsScriptEvidenceTemplateContent = fs.readFileSync(context7AppsScriptEvidenceTemplatePath, 'utf8');
+    assertNoContext7SecretLeak('Context7 Google Apps Script evidence template', context7AppsScriptEvidenceTemplateContent);
+    const context7AppsScriptEvidenceTemplate = JSON.parse(context7AppsScriptEvidenceTemplateContent);
+    assert(
+      context7AppsScriptEvidenceTemplate.kind === 'context7-google-apps-script-operator-evidence',
+      'Context7 Apps Script evidence template records scoped kind',
+      JSON.stringify(context7AppsScriptEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7AppsScriptEvidenceTemplate.capabilityId === 'host.mcp.context7.google-apps-script.docs',
+      'Context7 Apps Script evidence template records scoped capability id',
+      JSON.stringify(context7AppsScriptEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7AppsScriptEvidenceTemplate.credentialEvidence === 'CONTEXT7_API_KEY=set|unset' &&
+        context7AppsScriptEvidenceTemplate.credentialValue === '[REDACTED]',
+      'Context7 Apps Script evidence template redacts credential state',
+      JSON.stringify(context7AppsScriptEvidenceTemplate, null, 2),
+    );
+    for (const source of [
+      ['apps-script-guide', '/websites/developers_google_apps-script', 'https://context7.com/websites/developers_google_apps-script'],
+      [
+        'apps-script-reference',
+        '/websites/developers_google_apps-script_reference',
+        'https://context7.com/websites/developers_google_apps-script_reference?contextType=info',
+      ],
+      ['apps-script-samples', '/googleworkspace/apps-script-samples', 'https://context7.com/googleworkspace/apps-script-samples'],
+    ]) {
+      const [label, libraryId, sourceUrl] = source;
+      assert(
+        JSON.stringify(context7AppsScriptEvidenceTemplate).includes(label) &&
+          JSON.stringify(context7AppsScriptEvidenceTemplate).includes(libraryId) &&
+          JSON.stringify(context7AppsScriptEvidenceTemplate).includes(sourceUrl),
+        `Context7 Apps Script evidence template includes ${label}`,
+        JSON.stringify(context7AppsScriptEvidenceTemplate, null, 2),
+      );
+    }
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        context7AppsScriptEvidenceTemplate.boundary.includes(boundary),
+        `Context7 Apps Script evidence template boundary includes ${boundary}`,
+        JSON.stringify(context7AppsScriptEvidenceTemplate, null, 2),
+      );
+    }
+
+    const context7WebglFundamentalsEvidenceTemplateContent = fs.readFileSync(context7WebglFundamentalsEvidenceTemplatePath, 'utf8');
+    assertNoContext7SecretLeak('Context7 WebGL Fundamentals evidence template', context7WebglFundamentalsEvidenceTemplateContent);
+    const context7WebglFundamentalsEvidenceTemplate = JSON.parse(context7WebglFundamentalsEvidenceTemplateContent);
+    assert(
+      context7WebglFundamentalsEvidenceTemplate.kind === 'context7-webgl-fundamentals-operator-evidence',
+      'Context7 WebGL Fundamentals evidence template records scoped kind',
+      JSON.stringify(context7WebglFundamentalsEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7WebglFundamentalsEvidenceTemplate.capabilityId === 'host.mcp.context7.webgl-fundamentals.docs',
+      'Context7 WebGL Fundamentals evidence template records scoped capability id',
+      JSON.stringify(context7WebglFundamentalsEvidenceTemplate, null, 2),
+    );
+    assert(
+      context7WebglFundamentalsEvidenceTemplate.credentialEvidence === 'CONTEXT7_API_KEY=set|unset' &&
+        context7WebglFundamentalsEvidenceTemplate.credentialValue === '[REDACTED]',
+      'Context7 WebGL Fundamentals evidence template redacts credential state',
+      JSON.stringify(context7WebglFundamentalsEvidenceTemplate, null, 2),
+    );
+    for (const text of [
+      'webgl-fundamentals',
+      '/websites/webglfundamentals',
+      'https://context7.com/websites/webglfundamentals',
+      'https://webglfundamentals.org',
+      'https://webgl2fundamentals.org',
+      'no separate Context7 source',
+      'Trust Score 9.5',
+      '420,644 tokens',
+      '3,855 snippets',
+      '2026-05-07',
+      '2026-05-04',
+    ]) {
+      assert(
+        JSON.stringify(context7WebglFundamentalsEvidenceTemplate).includes(text),
+        `Context7 WebGL Fundamentals evidence template includes ${text}`,
+        JSON.stringify(context7WebglFundamentalsEvidenceTemplate, null, 2),
+      );
+    }
+    for (const forbiddenText of ['host.mcp.context7.webgl2-fundamentals.docs', '/websites/webgl2fundamentals']) {
+      assert(
+        !context7WebglFundamentalsEvidenceTemplateContent.includes(forbiddenText),
+        `Context7 WebGL Fundamentals evidence template omits ${forbiddenText}`,
+        context7WebglFundamentalsEvidenceTemplateContent,
+      );
+    }
+    for (const boundary of ['not verifier input', 'not grant authority', 'not runtime authority', 'not Workspace authority']) {
+      assert(
+        context7WebglFundamentalsEvidenceTemplate.boundary.includes(boundary),
+        `Context7 WebGL Fundamentals evidence template boundary includes ${boundary}`,
+        JSON.stringify(context7WebglFundamentalsEvidenceTemplate, null, 2),
       );
     }
 
@@ -3485,12 +4021,140 @@ function runTests() {
       );
     }
     assert(
+      context7CapabilityRequestExample.observations.some((observation) => observation.details?.capabilityId === 'host.mcp.context7.docs'),
+      'Context7 Docs MCP Capability Request example records scoped capability id',
+      JSON.stringify(context7CapabilityRequestExample.observations, null, 2),
+    );
+    assert(
+      !context7CapabilityRequestExampleContent.includes('mcp_servers.context7'),
+      'Context7 Docs MCP Capability Request example does not configure local Context7 MCP',
+      context7CapabilityRequestExampleContent,
+    );
+    assert(
       JSON.stringify(context7CapabilityRequestExample.observations).includes('Apple Passwords item Context7') &&
         JSON.stringify(context7CapabilityRequestExample.observations).includes('CONTEXT7_API_KEY=set') &&
         JSON.stringify(context7CapabilityRequestExample.observations).includes('[REDACTED]'),
       'Context7 Docs MCP Capability Request example records redacted credential state',
       JSON.stringify(context7CapabilityRequestExample.observations, null, 2),
     );
+
+    const context7AppsScriptCapabilityRequestExampleContent = fs.readFileSync(context7AppsScriptCapabilityRequestExamplePath, 'utf8');
+    assertNoContext7SecretLeak('Context7 Google Apps Script Capability Request example', context7AppsScriptCapabilityRequestExampleContent);
+    const context7AppsScriptCapabilityRequestExample = JSON.parse(context7AppsScriptCapabilityRequestExampleContent);
+    const context7AppsScriptExampleVerdict = verifyCapabilityRequest(context7AppsScriptCapabilityRequestExample);
+    assert(
+      context7AppsScriptExampleVerdict.ok === true,
+      'Context7 Google Apps Script Capability Request example verifies',
+      JSON.stringify(context7AppsScriptExampleVerdict, null, 2),
+    );
+    assert(
+      context7AppsScriptExampleVerdict.request.id === 'host.mcp.context7.google-apps-script.docs',
+      'Context7 Google Apps Script Capability Request example persists scoped capability',
+      JSON.stringify(context7AppsScriptExampleVerdict, null, 2),
+    );
+    assert(
+      context7AppsScriptExampleVerdict.matchedDeclaration.writes.length === 0,
+      'Context7 Google Apps Script Capability Request example declares no writes',
+      JSON.stringify(context7AppsScriptExampleVerdict, null, 2),
+    );
+    assert(
+      JSON.stringify(context7AppsScriptExampleVerdict.matchedDeclaration.outputs) ===
+        JSON.stringify(['context7-google-apps-script-operator-evidence.json']),
+      'Context7 Google Apps Script Capability Request example declares scoped output',
+      JSON.stringify(context7AppsScriptExampleVerdict, null, 2),
+    );
+    assert(
+      !context7AppsScriptCapabilityRequestExampleContent.includes('mcp_servers.context7'),
+      'Context7 Google Apps Script Capability Request example does not configure local Context7 MCP',
+      context7AppsScriptCapabilityRequestExampleContent,
+    );
+    for (const text of [
+      'CONTEXT7_APPS_SCRIPT_CAPABILITY',
+      'apps-script-guide',
+      'apps-script-reference',
+      'apps-script-samples',
+      '/websites/developers_google_apps-script',
+      '/websites/developers_google_apps-script_reference',
+      '/googleworkspace/apps-script-samples',
+      'host.mcp.context7.google-apps-script.docs',
+      'context7-google-apps-script-operator-evidence.json',
+      'apps-script-runtime',
+      'trigger-install',
+      'deployment',
+    ]) {
+      assert(
+        JSON.stringify(context7AppsScriptCapabilityRequestExample).includes(text),
+        `Context7 Google Apps Script Capability Request example records ${text}`,
+        JSON.stringify(context7AppsScriptCapabilityRequestExample, null, 2),
+      );
+    }
+
+    const context7WebglFundamentalsCapabilityRequestExampleContent = fs.readFileSync(
+      context7WebglFundamentalsCapabilityRequestExamplePath,
+      'utf8',
+    );
+    assertNoContext7SecretLeak(
+      'Context7 WebGL Fundamentals Capability Request example',
+      context7WebglFundamentalsCapabilityRequestExampleContent,
+    );
+    const context7WebglFundamentalsCapabilityRequestExample = JSON.parse(context7WebglFundamentalsCapabilityRequestExampleContent);
+    const context7WebglFundamentalsExampleVerdict = verifyCapabilityRequest(context7WebglFundamentalsCapabilityRequestExample);
+    assert(
+      context7WebglFundamentalsExampleVerdict.ok === true,
+      'Context7 WebGL Fundamentals Capability Request example verifies',
+      JSON.stringify(context7WebglFundamentalsExampleVerdict, null, 2),
+    );
+    assert(
+      context7WebglFundamentalsExampleVerdict.request.id === 'host.mcp.context7.webgl-fundamentals.docs',
+      'Context7 WebGL Fundamentals Capability Request example persists scoped capability',
+      JSON.stringify(context7WebglFundamentalsExampleVerdict, null, 2),
+    );
+    assert(
+      context7WebglFundamentalsExampleVerdict.matchedDeclaration.writes.length === 0,
+      'Context7 WebGL Fundamentals Capability Request example declares no writes',
+      JSON.stringify(context7WebglFundamentalsExampleVerdict, null, 2),
+    );
+    assert(
+      JSON.stringify(context7WebglFundamentalsExampleVerdict.matchedDeclaration.outputs) ===
+        JSON.stringify(['context7-webgl-fundamentals-operator-evidence.json']),
+      'Context7 WebGL Fundamentals Capability Request example declares scoped output',
+      JSON.stringify(context7WebglFundamentalsExampleVerdict, null, 2),
+    );
+    assert(
+      !context7WebglFundamentalsCapabilityRequestExampleContent.includes('mcp_servers.context7'),
+      'Context7 WebGL Fundamentals Capability Request example does not configure local Context7 MCP',
+      context7WebglFundamentalsCapabilityRequestExampleContent,
+    );
+    for (const text of [
+      'CONTEXT7_WEBGL_FUNDAMENTALS_CAPABILITY',
+      'CONTEXT7_WEBGL_FUNDAMENTALS_SOURCE_REGISTER',
+      'webgl-fundamentals',
+      '/websites/webglfundamentals',
+      'https://context7.com/websites/webglfundamentals',
+      'https://webglfundamentals.org',
+      'https://webgl2fundamentals.org',
+      'host.mcp.context7.webgl-fundamentals.docs',
+      'context7-webgl-fundamentals-operator-evidence.json',
+      'webgl-runtime',
+      'browser-gpu-state',
+      'Trust Score 9.5',
+      '420,644',
+      '3,855',
+      'no separate Context7 source',
+    ]) {
+      assert(
+        JSON.stringify(context7WebglFundamentalsCapabilityRequestExample).includes(text),
+        `Context7 WebGL Fundamentals Capability Request example records ${text}`,
+        JSON.stringify(context7WebglFundamentalsCapabilityRequestExample, null, 2),
+      );
+    }
+    for (const forbiddenText of ['host.mcp.context7.webgl2-fundamentals.docs', '/websites/webgl2fundamentals']) {
+      assert(
+        !context7WebglFundamentalsCapabilityRequestExampleContent.includes(forbiddenText),
+        `Context7 WebGL Fundamentals Capability Request example omits ${forbiddenText}`,
+        context7WebglFundamentalsCapabilityRequestExampleContent,
+      );
+    }
 
     const gitMcpCapabilityRequestExampleContent = fs.readFileSync(gitMcpCapabilityRequestExamplePath, 'utf8');
     assertNoContext7SecretLeak('Git MCP Capability Request example', gitMcpCapabilityRequestExampleContent);
@@ -3941,7 +4605,7 @@ function runTests() {
       'mcp-server-git',
       'GitHub connector or GitHub MCP',
       'host.mcp.docker.toolkit',
-      'docker-mcp-context7-planning.md',
+      'docs/workspace/mcp/docker-mcp-context7-planning.md',
       'capability-request.docker-mcp-toolkit.example.json',
       'Docker MCP Toolkit',
       'Docker MCP Gateway',
@@ -3950,13 +4614,13 @@ function runTests() {
       'process args can leak',
       'host.mcp.postgresql.readonly',
       'capability-request.postgresql-mcp-readonly.example.json',
-      'postgresql-mcp-capability-planning.md',
+      'docs/workspace/mcp/postgresql-mcp-capability-planning.md',
       'modelcontextprotocol/server-postgres',
       'POSTGRES_URL=set|unset',
       'read-only is not safe',
       'host.mcp.shell.zsh',
       'capability-request.zsh-shell-mcp.example.json',
-      'zsh-shell-mcp-capability-planning.md',
+      'docs/workspace/mcp/zsh-shell-mcp-capability-planning.md',
       'zsh-shell-mcp-operator-evidence.template.json',
       'Desktop Commander MCP',
       '1000+ GitHub',
@@ -3992,7 +4656,7 @@ function runTests() {
       'quality gate, not TDD provenance',
       'Workspace records evidence; it does not execute or authorize the closeout',
       'host.mcp.google-calendar.remote',
-      'google-calendar-capability-planning.md',
+      'docs/workspace/mcp/google-calendar-capability-planning.md',
       'Google Workspace docs MCP',
       'Codex Google Calendar connector',
       'Calendar API enablement',
@@ -4007,13 +4671,13 @@ function runTests() {
       'GitHub connector or GitHub MCP',
       'host.mcp.postgresql.readonly',
       'capability-request.postgresql-mcp-readonly.example.json',
-      'postgresql-mcp-capability-planning.md',
+      'docs/workspace/mcp/postgresql-mcp-capability-planning.md',
       'modelcontextprotocol/server-postgres',
       'POSTGRES_URL=set',
       'Read-only',
       'host.mcp.shell.zsh',
       'capability-request.zsh-shell-mcp.example.json',
-      'zsh-shell-mcp-capability-planning.md',
+      'docs/workspace/mcp/zsh-shell-mcp-capability-planning.md',
       'Desktop Commander MCP',
       '1000+ GitHub',
       '${p.profileId}',
@@ -4128,6 +4792,122 @@ function runTests() {
       JSON.stringify(verdict, null, 2),
     );
     assert(verdict.errors.length === 0, 'capability verifier success has no errors', JSON.stringify(verdict, null, 2));
+  }
+
+  {
+    const ambientSentinels = [
+      'BMAD_POISON_FORGE_TOML_SENTINEL',
+      'BMAD_POISON_PACK_DRAFT_SENTINEL',
+      'BMAD_POISON_POSTGRES_URL_SENTINEL',
+      'BMAD_POISON_GRAPHIFY_SENTINEL',
+      'BMAD_POISON_CUSTOM_SURFACE_SENTINEL',
+      'BMAD_POISON_CODEX_CONFIG_SENTINEL',
+      'BMAD_POISON_WORKSPACE_RUNTIME_SENTINEL',
+      'BMAD_POISON_MCP_SENTINEL',
+    ];
+    const cleanRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-capability-contract-clean-'));
+    const poisonedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bmad-capability-contract-poison-'));
+    const originalCwd = process.cwd();
+    const previousEnv = {
+      CAPABILITY_FORGE_DATABASE_URL: process.env.CAPABILITY_FORGE_DATABASE_URL,
+      POSTGRES_URL: process.env.POSTGRES_URL,
+      GRAPHIFY_LIVE_STATE: process.env.GRAPHIFY_LIVE_STATE,
+    };
+
+    function restoreEnv() {
+      for (const [key, value] of Object.entries(previousEnv)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    }
+
+    function writeVerifierInputWorkspace(root, poisoned) {
+      const inputPath = path.join(root, 'capability-request.json');
+      writeJsonFile(inputPath, validCapabilityRequest());
+      if (!poisoned) {
+        return inputPath;
+      }
+
+      writeTextFile(
+        path.join(root, '.capability-forge', 'forge.toml'),
+        ['workspace.write_mode = "runtime"', 'poison = "BMAD_POISON_FORGE_TOML_SENTINEL"', '[broken', ''].join('\n'),
+      );
+      writeTextFile(
+        path.join(root, '.capability-forge', 'drafts', 'pack-draft.toml'),
+        ['kind = "pack-draft"', 'poison = "BMAD_POISON_PACK_DRAFT_SENTINEL"', '[broken', ''].join('\n'),
+      );
+      writeTextFile(path.join(root, '.graphify', 'poison.graph.json'), '{"poison":"BMAD_POISON_GRAPHIFY_SENTINEL"; "valid": false}\n');
+      writeTextFile(
+        path.join(root, '_bmad', 'custom', 'bmad-workspace.toml'),
+        ['poison = "BMAD_POISON_CUSTOM_SURFACE_SENTINEL"', 'verify_capability = "must-not-read-custom"', '[broken', ''].join('\n'),
+      );
+      writeTextFile(
+        path.join(root, '.codex', 'config.toml'),
+        ['[features]', 'goals = true', 'poison = "BMAD_POISON_CODEX_CONFIG_SENTINEL"', '[broken', ''].join('\n'),
+      );
+      writeTextFile(
+        path.join(root, '_bmad-output', 'workspace-runtime', 'sessions', 'poison-session', 'instance.json'),
+        '{"poison":"BMAD_POISON_WORKSPACE_RUNTIME_SENTINEL","sessionType":"normal",\n',
+      );
+      writeTextFile(path.join(root, 'mcp', 'state.json'), '{"poison":"BMAD_POISON_MCP_SENTINEL","tool":"context7",\n');
+      return inputPath;
+    }
+
+    function normalizeVerdict(verdict) {
+      return JSON.stringify({
+        ok: verdict.ok,
+        kind: verdict.kind,
+        schemaVersion: verdict.schemaVersion,
+        request: verdict.request,
+        matchedDeclaration: verdict.matchedDeclaration,
+        errors: verdict.errors,
+        observations: verdict.observations,
+      });
+    }
+
+    try {
+      const cleanInputPath = writeVerifierInputWorkspace(cleanRoot, false);
+      const poisonedInputPath = writeVerifierInputWorkspace(poisonedRoot, true);
+
+      const beforeClean = fingerprintTree(cleanRoot);
+      process.chdir(cleanRoot);
+      const cleanVerdict = verifyCapabilityInput({ inputPath: cleanInputPath });
+      const afterClean = fingerprintTree(cleanRoot);
+      assert(cleanVerdict.ok === true, 'capability verifier clean input returns ok true', JSON.stringify(cleanVerdict, null, 2));
+      assert(
+        beforeClean === afterClean,
+        'capability verifier clean input makes no filesystem writes',
+        JSON.stringify(cleanVerdict, null, 2),
+      );
+
+      process.env.CAPABILITY_FORGE_DATABASE_URL = 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_POSTGRES_URL_SENTINEL';
+      process.env.POSTGRES_URL = 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_POSTGRES_URL_SENTINEL';
+      process.env.GRAPHIFY_LIVE_STATE = 'BMAD_POISON_GRAPHIFY_SENTINEL';
+
+      const beforePoisoned = fingerprintTree(poisonedRoot);
+      process.chdir(poisonedRoot);
+      const poisonedVerdict = verifyCapabilityInput({ inputPath: poisonedInputPath });
+      const afterPoisoned = fingerprintTree(poisonedRoot);
+      const poisonedText = JSON.stringify(poisonedVerdict, null, 2);
+      assert(poisonedVerdict.ok === true, 'capability verifier poisoned input returns ok true', poisonedText);
+      assert(
+        normalizeVerdict(poisonedVerdict) === normalizeVerdict(cleanVerdict),
+        'capability verifier poisoned input matches clean normalized verdict',
+        poisonedText,
+      );
+      assert(beforePoisoned === afterPoisoned, 'capability verifier poisoned input makes no filesystem writes', poisonedText);
+      for (const sentinel of ambientSentinels) {
+        assert(!poisonedText.includes(sentinel), `capability verifier poisoned input does not leak ${sentinel}`, poisonedText);
+      }
+    } finally {
+      process.chdir(originalCwd);
+      restoreEnv();
+      fs.rmSync(cleanRoot, { recursive: true, force: true });
+      fs.rmSync(poisonedRoot, { recursive: true, force: true });
+    }
   }
 
   {
@@ -4404,6 +5184,36 @@ function runTests() {
     assert(
       verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
       'Context7 verifier reports grant requirement',
+      JSON.stringify(verdict, null, 2),
+    );
+  }
+
+  {
+    const verdict = verifyCapabilityRequest(validContext7WebglFundamentalsCapabilityRequest());
+    assert(verdict.ok === true, 'capability verifier accepts Context7 WebGL Fundamentals declaration', JSON.stringify(verdict, null, 2));
+    assert(
+      verdict.request.id === 'host.mcp.context7.webgl-fundamentals.docs',
+      'Context7 WebGL Fundamentals verifier echoes exact id',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.provider === 'context7',
+      'Context7 WebGL Fundamentals verifier records provider',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.writes.length === 0,
+      'Context7 WebGL Fundamentals verifier records no writes',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.matchedDeclaration.outputs.includes('context7-webgl-fundamentals-operator-evidence.json'),
+      'Context7 WebGL Fundamentals verifier records operator evidence output',
+      JSON.stringify(verdict, null, 2),
+    );
+    assert(
+      verdict.observations.some((observation) => observation.code === 'CAPABILITY_REQUIRES_GRANT'),
+      'Context7 WebGL Fundamentals verifier reports grant requirement',
       JSON.stringify(verdict, null, 2),
     );
   }
@@ -4819,6 +5629,32 @@ function runTests() {
 
   {
     for (const field of [
+      'liveContext7Config',
+      'context7ApiKey',
+      'applePasswordsState',
+      'liveGitMcpRuntimeState',
+      'localDirtyState',
+      'gitHubConnectorState',
+      'liveNetworkProof',
+      'browserGpuState',
+      'webglRuntimeState',
+    ]) {
+      const verdict = verifyCapabilityRequest(validContext7WebglFundamentalsCapabilityRequest({ request: { [field]: true } }));
+      assert(
+        verdict.ok === false,
+        `capability verifier rejects Context7 WebGL Fundamentals ambient proof field ${field}`,
+        JSON.stringify(verdict, null, 2),
+      );
+      assert(
+        verdict.errors.some((error) => error.code === 'REQUEST_INVALID' && error.path === `$.request.${field}`),
+        `${field} Context7 WebGL Fundamentals rejection names REQUEST_INVALID and request path`,
+        JSON.stringify(verdict, null, 2),
+      );
+    }
+  }
+
+  {
+    for (const field of [
       'liveDockerMcpGateway',
       'dockerMcpCatalogState',
       'context7ApiKey',
@@ -4880,7 +5716,27 @@ function runTests() {
   {
     const contractsSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'contracts.js'), 'utf8');
     const verifierSource = fs.readFileSync(path.join(repoRoot, 'tools', 'workspace', 'capability-verifier.js'), 'utf8');
+    const workspaceCommandSource = fs.readFileSync(path.join(repoRoot, 'tools', 'installer', 'commands', 'workspace.js'), 'utf8');
+    const verifyCapabilityRouteSource = extractWorkspaceCommandBranch(workspaceCommandSource, 'verify-capability');
+    assert(
+      verifyCapabilityRouteSource.includes('inputPath: options.input'),
+      'workspace verify-capability route passes only explicit input path to verifier',
+      verifyCapabilityRouteSource,
+    );
+
     for (const forbidden of [
+      '.capability-forge',
+      'pack-draft',
+      'CAPABILITY_FORGE_DATABASE_URL',
+      'POSTGRES_URL',
+      'DATABASE_URL',
+      'PGHOST',
+      'PGPASSWORD',
+      'GRAPHIFY_LIVE_STATE',
+      '.graphify',
+      '_bmad-output/workspace-runtime',
+      'workspace-runtime',
+      'Workspace Session',
       '_bmad/custom',
       '~/.codex',
       '.codex/config',
@@ -4905,9 +5761,51 @@ function runTests() {
     ]) {
       assert(!contractsSource.includes(forbidden), `capability verifier does not depend on ${forbidden}`, contractsSource);
       assert(!verifierSource.includes(forbidden), `capability CLI wrapper does not depend on ${forbidden}`, verifierSource);
+      assert(
+        !verifyCapabilityRouteSource.includes(forbidden),
+        `workspace verify-capability route does not depend on ${forbidden}`,
+        verifyCapabilityRouteSource,
+      );
+    }
+    for (const forbiddenRouteReference of ['runtimeRoot', 'sessionId', 'process.cwd', 'process.env']) {
+      assert(
+        !verifyCapabilityRouteSource.includes(forbiddenRouteReference),
+        `workspace verify-capability route ignores ${forbiddenRouteReference}`,
+        verifyCapabilityRouteSource,
+      );
     }
     assert(!contractsSource.includes('commandEvidence'), 'capability verifier ignores commandEvidence', contractsSource);
     assert(!verifierSource.includes('commandEvidence'), 'capability CLI wrapper ignores commandEvidence', verifierSource);
+    assert(
+      !verifyCapabilityRouteSource.includes('commandEvidence'),
+      'workspace verify-capability route ignores commandEvidence',
+      verifierSource,
+    );
+    const inertWorkspaceCommandBranches = ['result', 'closeout', 'archive', 'evidence', 'review'];
+    const forbiddenExecutionReferences = [
+      'capability-forge',
+      'capability-pack-forge',
+      'graphify',
+      'mcp',
+      'postgres',
+      'codex',
+      'task-packet',
+      'child_process',
+      'spawn',
+      'execFile',
+      'execSync',
+    ];
+    for (const commandName of inertWorkspaceCommandBranches) {
+      const commandBranch = extractWorkspaceCommandBranch(workspaceCommandSource, commandName);
+      assert(commandBranch !== '', `workspace ${commandName} route has a command branch`, workspaceCommandSource);
+      for (const forbidden of forbiddenExecutionReferences) {
+        assert(
+          !commandBranch.toLowerCase().includes(forbidden),
+          `workspace ${commandName} route does not execute ${forbidden}`,
+          commandBranch,
+        );
+      }
+    }
   }
 
   section('Workspace Compiled History');

@@ -69,6 +69,11 @@ Workspace uses one active packet bundle per Workspace Session. Re-running
 `packets/executor-contract.json`. Read-only commands never regenerate packet
 artifacts.
 
+Workspace records results, reviews, closeouts, archives, and evidence without
+executing Forge, Graphify, MCP, PostgreSQL, or Codex task packets. Recorded
+command text, task packet prose, graph observations, MCP observations, and
+database observations are inert evidence only.
+
 ## Executor Contract
 
 New BMAD Work Packets record `executorContractRef:
@@ -183,6 +188,30 @@ expose only `CONTEXT7_API_KEY` in a local shell/session. Record
 value, keychain output, screenshots, logs, PR text, or issue text containing
 the secret.
 
+For Google Apps Script docs through Context7, use declared id
+`host.mcp.context7.google-apps-script.docs`,
+`docs/workspace/mcp/context7-google-apps-script-planning.md`, and
+`docs/workspace/templates/capability-request.context7-google-apps-script.example.json`.
+Keep guide, reference, and sample sources mapped to `apps-script-guide`,
+`apps-script-reference`, and `apps-script-samples`, but preserve the exact
+Context7 library IDs as source truth. Apps Script Context7 sources are docs
+evidence only; they do not prove local MCP configuration, Apps Script runtime
+state, trigger installation, deployment, target repo manifests, or verifier
+authority. Generic Context7 docs requests still route to
+`host.mcp.context7.docs`.
+
+For WebGL Fundamentals docs through Context7, use declared id
+`host.mcp.context7.webgl-fundamentals.docs`,
+`docs/workspace/mcp/context7-webgl-fundamentals-planning.md`, and
+`docs/workspace/templates/capability-request.context7-webgl-fundamentals.example.json`.
+Keep the source label `webgl-fundamentals` mapped to exact Context7 library ID
+`/websites/webglfundamentals`. WebGL2 is an upstream caveat and discovery route
+only; do not claim a separate Context7 WebGL2 source or WebGL2-specific coverage
+without retrieved evidence. WebGL Fundamentals Context7 sources are docs
+evidence only; they do not prove local MCP configuration, WebGL runtime state,
+browser GPU state, target repo state, or verifier authority. Generic Context7
+docs requests still route to `host.mcp.context7.docs`.
+
 Git local MCP uses declared id `host.mcp.git.local`. Treat `mcp-server-git` as
 optional local repository tools. Status, diff, log, and branch observations are
 manual evidence only; add, commit, and branch write tools are manual/grant-gated
@@ -193,7 +222,7 @@ authority, including `npm ci && npm run quality` on the exact checkout and
 
 Zsh Shell MCP uses declared id `host.mcp.shell.zsh`. Treat Desktop Commander
 MCP as optional, third-party, zsh-capable operator evidence only. Use
-`docs/workspace/zsh-shell-mcp-capability-planning.md`,
+`docs/workspace/mcp/zsh-shell-mcp-capability-planning.md`,
 `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
 `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
 Desktop Commander clears the explicit 1000+ GitHub star candidate gate but is
@@ -211,7 +240,7 @@ PostgreSQL MCP uses declared id `host.mcp.postgresql.readonly`. Treat
 `modelcontextprotocol/server-postgres` as archived/deprecated reference
 metadata for optional/operator-provided read-only database evidence, not
 endorsement or runtime proof. Use
-`docs/workspace/postgresql-mcp-capability-planning.md` and
+`docs/workspace/mcp/postgresql-mcp-capability-planning.md` and
 `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
 Record `POSTGRES_URL=set` or unset only, never the connection string value.
 Read-only evidence can expose sensitive rows, so require least-privilege scope,
@@ -221,7 +250,7 @@ PostgreSQL, Docker, MCP, network, Codex config, local MCP config,
 input.
 
 For Google Calendar remote MCP planning, use
-`docs/workspace/google-calendar-capability-planning.md` and
+`docs/workspace/mcp/google-calendar-capability-planning.md` and
 `docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
 The exact declared id is `host.mcp.google-calendar.remote`. Keep Calendar MCP,
 Google Workspace docs MCP, Calendar API, Codex Google Calendar connector,
@@ -233,7 +262,7 @@ indirect prompt injection as a security risk and require human review before
 Calendar-affecting actions.
 
 For Outlook Calendar remote MCP planning, use
-`docs/workspace/outlook-calendar-capability-planning.md` and
+`docs/workspace/mcp/outlook-calendar-capability-planning.md` and
 `docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`.
 The exact declared id is `host.mcp.outlook-calendar.remote`. Keep Outlook
 Calendar MCP, Microsoft Graph calendar APIs, Office.js Outlook add-in runtime,

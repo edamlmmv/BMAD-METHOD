@@ -12,7 +12,10 @@
     "https://context7.com/docs/installation",
     "https://context7.com/modelcontextprotocol/docs",
     "https://context7.com/modelcontextprotocol/servers",
-    "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server"
+    "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
+    "https://context7.com/websites/developers_google_apps-script",
+    "https://context7.com/websites/developers_google_apps-script_reference?contextType=info",
+    "https://context7.com/googleworkspace/apps-script-samples"
   ],
   "querySummary": "<docs query summary>",
   "artifactRefs": [],

@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { assertSecretSafeEvidence } = require('./capability-forge/evidence-boundary');
 const { verifyCapabilityRequest } = require('./workspace/contracts');
 
 const USAGE = 'Usage: node tools/capability-pack-forge.js --input <forge-request.json> --output <dir>';
@@ -47,17 +48,6 @@ const PACK_MODES = Object.freeze(['verifier-ready', 'draft-authoring']);
 const SOURCE_TYPES = Object.freeze(['context7', 'local_docs', 'manual_contract', 'repo_template', 'other']);
 const CAPABILITY_DOMAINS = Object.freeze(['postgresql']);
 const DRAFT_AUTHORING_MODES = Object.freeze(['toml']);
-const FORBIDDEN_LIVE_EVIDENCE_FIELDS = Object.freeze([
-  'queryResults',
-  'liveMcp',
-  'postgres_live',
-  'dockerRuntime',
-  'network',
-  'liveSchema',
-  'sampleRows',
-  'sampleRow',
-]);
-
 function parseArgs(argv) {
   const args = {};
   for (let index = 2; index < argv.length; index++) {
@@ -665,31 +655,7 @@ function parseJson(content, code, filePath) {
 }
 
 function assertNoSecrets(content, label) {
-  const allowed = content.replaceAll('ctx7_test_placeholder_DO_NOT_USE', '');
-  if (/ctx7_[A-Za-z0-9_-]{12,}/.test(allowed)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains Context7-key-like value`);
-  }
-  if (/\bsk-[A-Za-z0-9_-]{8,}/.test(content)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains API-key-like value`);
-  }
-  if (/postgres(?:ql)?:\/\/[^"'<\s)]+/i.test(content)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains PostgreSQL URL`);
-  }
-  if (/POSTGRES_URL\s*=\s*(?!set\b|unset\b)/.test(content)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains raw POSTGRES_URL value`);
-  }
-  if (/DATABASE_URL\s*=\s*(?!set\b|unset\b)/.test(content)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains raw DATABASE_URL value`);
-  }
-  if (/PGPASSWORD\s*=/.test(content)) {
-    throw forgeError('FORGE_SECRET_DETECTED', `${label} contains PGPASSWORD value`);
-  }
-  for (const field of FORBIDDEN_LIVE_EVIDENCE_FIELDS) {
-    const fieldPattern = new RegExp(String.raw`"${field}"\s*:`, 'i');
-    if (fieldPattern.test(content)) {
-      throw forgeError('FORGE_SECRET_DETECTED', `${label} contains forbidden live evidence field: ${field}`);
-    }
-  }
+  assertSecretSafeEvidence(content, label);
 }
 
 function sha256(content) {

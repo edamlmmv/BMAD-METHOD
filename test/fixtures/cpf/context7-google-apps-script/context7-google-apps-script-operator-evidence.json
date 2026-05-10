@@ -1,0 +1,36 @@
+{
+  "kind": "context7-google-apps-script-operator-evidence",
+  "schemaVersion": 1,
+  "capabilityId": "host.mcp.context7.google-apps-script.docs",
+  "observer": "Codex operator",
+  "timestamp": "2026-05-07T00:00:00.000Z",
+  "mcpServer": "context7",
+  "context7Configured": false,
+  "credentialSource": "Apple Passwords item Context7",
+  "credentialEvidence": "CONTEXT7_API_KEY=set|unset",
+  "credentialValue": "[REDACTED]",
+  "sourceRegister": [
+    {
+      "label": "apps-script-guide",
+      "libraryId": "/websites/developers_google_apps-script",
+      "sourceUrl": "https://context7.com/websites/developers_google_apps-script",
+      "coverage": "conceptual docs, product overview, setup and guide context"
+    },
+    {
+      "label": "apps-script-reference",
+      "libraryId": "/websites/developers_google_apps-script_reference",
+      "sourceUrl": "https://context7.com/websites/developers_google_apps-script_reference?contextType=info",
+      "coverage": "API signatures, service constraints, reference checks"
+    },
+    {
+      "label": "apps-script-samples",
+      "libraryId": "/googleworkspace/apps-script-samples",
+      "sourceUrl": "https://context7.com/googleworkspace/apps-script-samples",
+      "coverage": "implementation examples, sample project patterns, code pattern checks"
+    }
+  ],
+  "querySummary": "Google Apps Script guide, reference, and samples sources are local advisory docs evidence only.",
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Google Apps Script Context7 docs evidence is not verifier input, not grant authority, not runtime authority, and not Workspace authority."
+}

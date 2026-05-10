@@ -1,0 +1,36 @@
+{
+  "kind": "bmad-capability-pack-forge-request",
+  "schemaVersion": 1,
+  "packMode": "verifier-ready",
+  "capability": {
+    "id": "host.mcp.context7.webgl-fundamentals.docs",
+    "displayName": "Context7 WebGL Fundamentals Docs",
+    "summary": "Draft a BMAD capability pack for WebGL Fundamentals docs evidence through Context7."
+  },
+  "capabilityRequestRef": "capability-request.json",
+  "targetCustomizationSurface": "bmad-agent-dev",
+  "primaryEvidenceRef": "webgl-fundamentals-context7-docs",
+  "evidenceRefs": [
+    {
+      "id": "webgl-fundamentals-context7-docs",
+      "kind": "context7-webgl-fundamentals-operator-evidence",
+      "path": "context7-webgl-fundamentals-operator-evidence.json",
+      "role": "advisory-docs",
+      "sourceType": "context7"
+    }
+  ],
+  "acceptanceCriteria": [
+    {
+      "id": "AC-CPF-WEBGL-001",
+      "statement": "Forge emits deterministic Context7 WebGL Fundamentals Docs capability-pack draft artifacts from local evidence."
+    },
+    {
+      "id": "AC-CPF-WEBGL-002",
+      "statement": "Generated capability request verifies offline without live Context7, MCP config, network, WebGL runtime, or browser GPU state access."
+    },
+    {
+      "id": "AC-CPF-WEBGL-003",
+      "statement": "Generated artifacts preserve the /websites/webglfundamentals source mapping and the WebGL2 upstream caveat without declaring a separate WebGL2 Context7 capability."
+    }
+  ]
+}

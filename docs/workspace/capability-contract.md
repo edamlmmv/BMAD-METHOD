@@ -122,6 +122,10 @@ Git Worktree Review lives at
 `docs/workspace/templates/capability-request.git-worktree-review.example.json`.
 Context7 Docs MCP lives at
 `docs/workspace/templates/capability-request.context7-docs.example.json`.
+Google Apps Script Context7 docs lives at
+`docs/workspace/templates/capability-request.context7-google-apps-script.example.json`.
+WebGL Fundamentals Context7 docs lives at
+`docs/workspace/templates/capability-request.context7-webgl-fundamentals.example.json`.
 Git local MCP lives at
 `docs/workspace/templates/capability-request.git-mcp-local.example.json`.
 Docker MCP Toolkit lives at
@@ -167,6 +171,54 @@ only `<CONTEXT7_API_KEY>` or `<redacted>`. Evidence may record
 `credentialSource: "Apple Passwords item Context7"`, never the key value.
 There is no Apple Passwords or keychain automation in this slice.
 
+### Google Apps Script Context7 Docs Capability
+
+`host.mcp.context7.google-apps-script.docs` declares an experimental,
+Apps Script-scoped `host.mcp` docs capability. It uses `provider: context7`,
+`interface: remote-docs-mcp`, `requiresGrant: true`, `writes: []`, and
+`outputs: ["context7-google-apps-script-operator-evidence.json"]`.
+
+The scoped source labels are `apps-script-guide`, `apps-script-reference`, and
+`apps-script-samples`. Their Context7 library IDs are
+`/websites/developers_google_apps-script`,
+`/websites/developers_google_apps-script_reference`, and
+`/googleworkspace/apps-script-samples`.
+
+This capability is not a broad Google Workspace runtime capability. It does not
+configure MCP servers, prove live Context7 availability, read
+`CONTEXT7_API_KEY`, mutate the target repo, inspect `appsscript.json`, install
+Apps Script triggers, enable Calendar APIs, deploy Apps Script, or authorize
+writes. The generic `host.mcp.context7.docs` capability remains the route for
+non-Apps-Script documentation evidence.
+
+### Context7 WebGL Fundamentals Docs Capability
+
+`host.mcp.context7.webgl-fundamentals.docs` declares an experimental,
+WebGL Fundamentals-scoped `host.mcp` docs capability. It uses
+`provider: context7`, `interface: remote-docs-mcp`, `requiresGrant: true`,
+`writes: []`, and `outputs:
+["context7-webgl-fundamentals-operator-evidence.json"]`.
+
+The scoped source label is `webgl-fundamentals`. Its Context7 library ID is
+`/websites/webglfundamentals`, with Context7 source
+<https://context7.com/websites/webglfundamentals> and upstream source
+<https://webglfundamentals.org>. On `2026-05-07`, operator review recorded
+Trust Score 9.5, 420,644 tokens, 3,855 snippets, and observed update
+`2026-05-04`, inferred from Context7 displaying "Update: 3 days ago".
+
+WebGL2 is an upstream caveat only: the upstream WebGL Fundamentals site points
+WebGL2 users to <https://webgl2fundamentals.org>; no separate Context7 source
+was found during review. Discovery aliases may mention WebGL2, but this
+capability must not claim a separate WebGL2 Context7 source or WebGL2-specific
+coverage without retrieved evidence.
+
+This capability is not a broad graphics runtime capability. It does not
+configure MCP servers, prove live Context7 availability, read
+`CONTEXT7_API_KEY`, mutate the target repo, run WebGL, inspect browser GPU
+state, provide `webgl-runtime` proof, provide `browser-gpu-state` proof, or
+authorize writes. The generic `host.mcp.context7.docs` capability remains the
+route for non-WebGL-Fundamentals documentation evidence.
+
 ### Docker MCP Toolkit Candidate
 
 `host.mcp.docker.toolkit` declares an experimental, declaration-only
@@ -184,7 +236,7 @@ config, network state, and Apple Passwords state are not verifier input and not
 Workspace authority.
 
 The secret-safe planning boundary and portable verifier example live at
-`docs/workspace/docker-mcp-context7-planning.md` and
+`docs/workspace/mcp/docker-mcp-context7-planning.md` and
 `docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
 `secretRef: Context7` is non-secret metadata. Prefer Docker MCP secret /
 `secretRef`, then `CONTEXT7_API_KEY` from a secret manager, and use `--api-key`
@@ -215,7 +267,7 @@ previous `@mako10k/mcp-shell-server` candidate is rejected by that gate. BMad He
 official-MCP prompt would still reject Desktop Commander as unofficial;
 Workspace records it only as experimental advisory operator evidence. The
 planning boundary and portable verifier example live at
-`docs/workspace/zsh-shell-mcp-capability-planning.md` and
+`docs/workspace/mcp/zsh-shell-mcp-capability-planning.md` and
 `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`.
 Manual evidence should use
 `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
@@ -250,7 +302,7 @@ access, `_bmad/custom`, query results, and Workspace Session artifacts are not
 verifier input and not Workspace authority.
 
 The secret-safe planning boundary and portable verifier example live at
-`docs/workspace/postgresql-mcp-capability-planning.md` and
+`docs/workspace/mcp/postgresql-mcp-capability-planning.md` and
 `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
 Manual operator evidence should use
 `docs/workspace/templates/postgres-mcp-operator-evidence.template.json` and may
@@ -294,7 +346,7 @@ Codex Google Calendar connector is installed, a Google Cloud project has enabled
 the Calendar API or Calendar MCP API, or an Apps Script target repo can deploy,
 install triggers, or satisfy its manifest. The official-source planning
 boundary and portable verifier example live at
-`docs/workspace/google-calendar-capability-planning.md` and
+`docs/workspace/mcp/google-calendar-capability-planning.md` and
 `docs/workspace/templates/capability-request.google-calendar-mcp.example.json`.
 
 ### Outlook Calendar Remote MCP Candidate
@@ -309,7 +361,7 @@ This declaration is not a statement that Outlook Calendar MCP is configured, a
 connector is installed, Microsoft Graph permissions are granted, local OAuth is
 set up, a token cache exists, or mailbox state is available. The planning
 boundary and portable verifier example live at
-`docs/workspace/outlook-calendar-capability-planning.md` and
+`docs/workspace/mcp/outlook-calendar-capability-planning.md` and
 `docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json`.
 
 ## Capability Profile Registry

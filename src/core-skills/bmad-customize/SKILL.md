@@ -90,6 +90,22 @@ mcp-server-git", separate the surfaces before authoring:
   `docs/workspace/templates/capability-request.context7-docs.example.json`.
   Context7 may fetch current docs, including MCP and Git MCP docs, but it does
   not perform Git operations.
+- **Google Apps Script docs through Context7** — use
+  `host.mcp.context7.google-apps-script.docs`,
+  `docs/workspace/mcp/context7-google-apps-script-planning.md`, and
+  `docs/workspace/templates/capability-request.context7-google-apps-script.example.json`
+  for Apps Script guide, reference, and samples source mapping. Treat the
+  sources as docs evidence only, not Apps Script runtime proof, trigger/deploy
+  proof, or verifier input. Generic docs-only Context7 requests still use
+  `host.mcp.context7.docs`.
+- **WebGL Fundamentals docs through Context7** — use
+  `host.mcp.context7.webgl-fundamentals.docs`,
+  `docs/workspace/mcp/context7-webgl-fundamentals-planning.md`, and
+  `docs/workspace/templates/capability-request.context7-webgl-fundamentals.example.json`
+  for WebGL Fundamentals source mapping. Treat WebGL2 as an upstream caveat and
+  discovery route only; do not claim a separate Context7 WebGL2 source or
+  WebGL2-specific coverage without retrieved evidence. Generic docs-only
+  Context7 requests still use `host.mcp.context7.docs`.
 - **Context7 credential handling** — recommended local credential source is
   Apple Passwords item `Context7`. The operator may manually expose only
   `CONTEXT7_API_KEY` in a local shell/session. Customize must never read Apple
@@ -118,7 +134,7 @@ separate the surfaces before authoring:
 
 - **Docker MCP Toolkit** — optional Docker Desktop/CLI setup and catalog
   guidance only. Use `host.mcp.docker.toolkit`,
-  `docs/workspace/docker-mcp-context7-planning.md`, and
+  `docs/workspace/mcp/docker-mcp-context7-planning.md`, and
   `docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json`.
 - **Docker MCP Gateway** — runtime gateway process and profile execution. Live
   gateway state, tool lists, Docker CLI shape, and local profile files are not
@@ -147,7 +163,7 @@ separate the surfaces before authoring:
 
 - **Zsh Shell MCP** — optional/operator-provided shell evidence only. Use
   `host.mcp.shell.zsh`,
-  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/mcp/zsh-shell-mcp-capability-planning.md`,
   `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
   `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
 - **Candidate gate** — Desktop Commander MCP clears the explicit 1000+ GitHub
@@ -174,7 +190,7 @@ surfaces before authoring:
 
 - **PostgreSQL read-only MCP** — optional/operator-provided database evidence
   only. Use `host.mcp.postgresql.readonly`,
-  `docs/workspace/postgresql-mcp-capability-planning.md`, and
+  `docs/workspace/mcp/postgresql-mcp-capability-planning.md`, and
   `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`.
 - **Reference provider** — `modelcontextprotocol/server-postgres` is
   archived/deprecated reference metadata, not endorsement. The BMAD-owned
@@ -252,7 +268,7 @@ separate the surfaces before authoring:
   triggers, deploy state, and advanced services never prove verifier
   compatibility.
 
-Use `docs/workspace/google-calendar-capability-planning.md` as the source
+Use `docs/workspace/mcp/google-calendar-capability-planning.md` as the source
 register and boundary map. Because this `bmad-customize` source skill has no
 exposed `customize.toml`, Google Calendar capability behavior changes require
 source/docs edits, not `_bmad/custom`. Customize may add per-skill reminders

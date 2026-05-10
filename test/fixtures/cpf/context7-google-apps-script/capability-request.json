@@ -1,0 +1,87 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.context7.google-apps-script.docs",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "context7",
+    "interface": "remote-docs-mcp",
+    "writes": [],
+    "outputs": ["context7-google-apps-script-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.context7.google-apps-script.docs",
+      "group": "host.mcp",
+      "provider": "context7",
+      "interface": "remote-docs-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store",
+        "apps-script-runtime",
+        "calendar-api-enablement",
+        "trigger-install",
+        "deployment"
+      ],
+      "outputs": ["context7-google-apps-script-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_APPS_SCRIPT_CAPABILITY",
+      "message": "Google Apps Script Context7 docs are a scoped docs capability for guide, reference, and samples evidence.",
+      "details": {
+        "capabilityId": "host.mcp.context7.google-apps-script.docs",
+        "genericCapabilityId": "host.mcp.context7.docs",
+        "output": "context7-google-apps-script-operator-evidence.json",
+        "reviewedAt": "2026-05-07",
+        "jobToBeDone": "When BMAD agents plan Google Apps Script work, they can select a named Apps Script docs capability, verify it offline, generate a capability pack draft from local evidence, and mark docs/reference/samples coverage or gaps.",
+        "boundary": "Apps Script Context7 docs evidence does not configure MCP, read secrets, prove runtime availability, install triggers, deploy Apps Script, enable Calendar APIs, mutate the target repo, or change Workspace verifier behavior."
+      }
+    },
+    {
+      "code": "CONTEXT7_APPS_SCRIPT_SOURCE_REGISTER",
+      "message": "Context7 library IDs are the URL path of the library page.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "sources": [
+          {
+            "label": "apps-script-guide",
+            "libraryId": "/websites/developers_google_apps-script",
+            "sourceUrl": "https://context7.com/websites/developers_google_apps-script"
+          },
+          {
+            "label": "apps-script-reference",
+            "libraryId": "/websites/developers_google_apps-script_reference",
+            "sourceUrl": "https://context7.com/websites/developers_google_apps-script_reference?contextType=info"
+          },
+          {
+            "label": "apps-script-samples",
+            "libraryId": "/googleworkspace/apps-script-samples",
+            "sourceUrl": "https://context7.com/googleworkspace/apps-script-samples"
+          }
+        ]
+      }
+    },
+    {
+      "code": "CONTEXT7_SECRET_BOUNDARY",
+      "message": "Recommended credential source is Apple Passwords item Context7; record only redacted environment state.",
+      "details": {
+        "credentialSource": "Apple Passwords item Context7",
+        "credentialEvidence": "CONTEXT7_API_KEY=set",
+        "credentialValue": "[REDACTED]",
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

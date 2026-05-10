@@ -32,6 +32,31 @@
       "details": {
         "sourceUrl": "https://context7.com/docs/installation"
       }
+    },
+    {
+      "code": "CONTEXT7_APPS_SCRIPT_SOURCE_REGISTER",
+      "message": "Google Apps Script Context7 sources are advisory docs evidence only.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "capabilityId": "host.mcp.context7.docs",
+        "sources": [
+          {
+            "label": "apps-script-guide",
+            "libraryId": "/websites/developers_google_apps-script",
+            "sourceUrl": "https://context7.com/websites/developers_google_apps-script"
+          },
+          {
+            "label": "apps-script-reference",
+            "libraryId": "/websites/developers_google_apps-script_reference",
+            "sourceUrl": "https://context7.com/websites/developers_google_apps-script_reference?contextType=info"
+          },
+          {
+            "label": "apps-script-samples",
+            "libraryId": "/googleworkspace/apps-script-samples",
+            "sourceUrl": "https://context7.com/googleworkspace/apps-script-samples"
+          }
+        ]
+      }
     }
   ]
 }

@@ -32,7 +32,10 @@ function createPostgresStore(config, env = process.env) {
     connectionString: getDatabaseUrl(config, env),
     statement_timeout: config.database.statement_timeout_ms || 5000,
   });
+  return createPostgresStoreFromPool(config, pool);
+}
 
+function createPostgresStoreFromPool(config, pool) {
   async function close() {
     await pool.end();
   }
@@ -185,6 +188,7 @@ function createPostgresStore(config, env = process.env) {
             evidence_ref.heading,
             evidence_ref.line_start,
             evidence_ref.line_end,
+            evidence_ref.stale,
             capability_evidence_ref.purpose,
             capability_draft.capability_id
           FROM ${qualify(config, 'capability_draft')} AS capability_draft
@@ -224,6 +228,7 @@ function createPostgresStore(config, env = process.env) {
 
 module.exports = {
   createPostgresStore,
+  createPostgresStoreFromPool,
   sha256,
   stripMigrationTransaction,
 };

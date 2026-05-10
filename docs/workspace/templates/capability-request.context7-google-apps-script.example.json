@@ -2,17 +2,17 @@
   "kind": "bmad-workspace-capability-request",
   "schemaVersion": 1,
   "request": {
-    "id": "host.mcp.context7.docs",
+    "id": "host.mcp.context7.google-apps-script.docs",
     "sessionType": "normal",
     "group": "host.mcp",
     "provider": "context7",
     "interface": "remote-docs-mcp",
     "writes": [],
-    "outputs": ["context7-docs-operator-evidence.json"]
+    "outputs": ["context7-google-apps-script-operator-evidence.json"]
   },
   "capabilities": [
     {
-      "id": "host.mcp.context7.docs",
+      "id": "host.mcp.context7.google-apps-script.docs",
       "group": "host.mcp",
       "provider": "context7",
       "interface": "remote-docs-mcp",
@@ -20,51 +20,45 @@
       "allowedInBaseImprovement": true,
       "requiresGrant": true,
       "writes": [],
-      "forbiddenWrites": ["workspace-base", "target-repo", "scheduler", "daemon", "live-adapter", "secret-store"],
-      "outputs": ["context7-docs-operator-evidence.json"],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store",
+        "apps-script-runtime",
+        "calendar-api-enablement",
+        "trigger-install",
+        "deployment"
+      ],
+      "outputs": ["context7-google-apps-script-operator-evidence.json"],
       "upstreamGapProofRequired": false
     }
   ],
   "observations": [
     {
-      "code": "CONTEXT7_INSTALL_DOCS",
-      "message": "Context7 installation docs describe CLI plus MCP modes, optional API key use, and CONTEXT7_API_KEY header configuration.",
+      "code": "CONTEXT7_APPS_SCRIPT_CAPABILITY",
+      "message": "Google Apps Script Context7 docs are a scoped docs capability for guide, reference, and samples evidence.",
       "details": {
-        "sourceId": "context7_install_docs",
-        "sourceUrl": "https://context7.com/docs/installation",
-        "reviewedAt": "2026-05-07"
-      }
-    },
-    {
-      "code": "CONTEXT7_MCP_DOCS_INDEX",
-      "message": "Context7 indexes Model Context Protocol docs as documentation context only.",
-      "details": {
-        "sourceId": "context7_modelcontextprotocol_docs",
-        "sourceUrl": "https://context7.com/modelcontextprotocol/docs",
-        "reviewedAt": "2026-05-07"
-      }
-    },
-    {
-      "code": "OPENAI_CODEX_MCP_CONFIG_DOCS",
-      "message": "Codex MCP configuration docs describe MCP server setup as host configuration, not Workspace verifier input.",
-      "details": {
-        "sourceId": "openai_codex_mcp_docs",
-        "sourceUrl": "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
-        "reviewedAt": "2026-05-07"
+        "capabilityId": "host.mcp.context7.google-apps-script.docs",
+        "genericCapabilityId": "host.mcp.context7.docs",
+        "output": "context7-google-apps-script-operator-evidence.json",
+        "reviewedAt": "2026-05-07",
+        "jobToBeDone": "When BMAD agents plan Google Apps Script work, they can select a named Apps Script docs capability, verify it offline, generate a capability pack draft from local evidence, and mark docs/reference/samples coverage or gaps.",
+        "boundary": "Apps Script Context7 docs evidence does not configure MCP, read secrets, prove runtime availability, install triggers, deploy Apps Script, enable Calendar APIs, mutate the target repo, or change Workspace verifier behavior."
       }
     },
     {
       "code": "CONTEXT7_APPS_SCRIPT_SOURCE_REGISTER",
-      "message": "Context7 Google Apps Script sources are advisory docs evidence for planning Apps Script work; URL paths are the Context7 library IDs.",
+      "message": "Context7 library IDs are the URL path of the library page.",
       "details": {
         "sourceId": "context7_google_apps_script_sources",
         "reviewedAt": "2026-05-07",
-        "jobToBeDone": "When BMAD agents plan Google Apps Script work, they can discover exact Context7 source IDs, cite docs, reference, and samples, and mark evidence coverage or gaps.",
         "idDerivation": {
           "rule": "Context7 library ID is the URL path of the library page.",
           "sourceUrl": "https://context7.com/docs/api-guide"
         },
-        "capabilityId": "host.mcp.context7.docs",
         "sources": [
           {
             "label": "apps-script-guide",
@@ -90,8 +84,24 @@
             "usedFor": ["implementation examples", "sample project patterns", "code pattern checks"],
             "doNotUseFor": ["runtime availability proof", "Workspace verifier input", "local MCP configuration proof"]
           }
+        ]
+      }
+    },
+    {
+      "code": "CONTEXT7_APPS_SCRIPT_NEGATIVE_PROOF",
+      "message": "Apps Script runtime and deployment state are explicitly outside this docs capability.",
+      "details": {
+        "notVerifierInput": [
+          "local Context7 MCP server configuration",
+          "CONTEXT7_API_KEY value",
+          "local Codex config",
+          "appsscript.json",
+          "apps-script-runtime",
+          "calendar-api-enablement",
+          "trigger-install",
+          "deployment"
         ],
-        "boundary": "Apps Script Context7 sources are docs/planning evidence only; they do not configure MCP, read secrets, prove runtime availability, change verifier schema, install triggers, deploy Apps Script, or authorize writes."
+        "reviewedAt": "2026-05-07"
       }
     },
     {

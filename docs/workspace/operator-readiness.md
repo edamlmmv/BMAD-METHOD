@@ -66,7 +66,7 @@ verifier behavior, or Graphify behavior.
   `.codex/config.toml` as operator context only, and confirms no verifier, CLI,
   schema, or capability registry drift before implementation.
 - `AC-OPR-12`: PASS when Zsh Shell MCP readiness uses
-  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/mcp/zsh-shell-mcp-capability-planning.md`,
   `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`,
   and
   `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`;
@@ -100,11 +100,11 @@ without asking a maintainer.
 - PostgreSQL MCP evidence inputs:
   `docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json`,
   `docs/workspace/templates/postgres-mcp-operator-evidence.template.json`, and
-  `docs/workspace/postgresql-mcp-capability-planning.md`. Read-only evidence
+  `docs/workspace/mcp/postgresql-mcp-capability-planning.md`. Read-only evidence
   must record `POSTGRES_URL=set` or unset, allowed schemas/tables, denied
   writes, and why DB evidence is needed.
 - Codex MCP/TOML docs readiness inputs:
-  `docs/workspace/customize-codex-mcp-planning.md`, official OpenAI Codex
+  `docs/workspace/mcp/customize-codex-mcp-planning.md`, official OpenAI Codex
   config and CLI MCP references
   (`https://developers.openai.com/codex/config-reference#configtoml` and
   `https://developers.openai.com/codex/cli/reference#codex-mcp`),
@@ -113,7 +113,7 @@ without asking a maintainer.
   and recorded validation commands. These inputs guide operators only; they are
   not Workspace verifier authority.
 - Zsh Shell MCP readiness inputs:
-  `docs/workspace/zsh-shell-mcp-capability-planning.md`,
+  `docs/workspace/mcp/zsh-shell-mcp-capability-planning.md`,
   `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`,
   `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`,
   `https://github.com/wonderwhy-er/DesktopCommanderMCP`,

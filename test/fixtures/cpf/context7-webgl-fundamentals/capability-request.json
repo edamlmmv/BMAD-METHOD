@@ -1,0 +1,83 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.context7.webgl-fundamentals.docs",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "context7",
+    "interface": "remote-docs-mcp",
+    "writes": [],
+    "outputs": ["context7-webgl-fundamentals-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.context7.webgl-fundamentals.docs",
+      "group": "host.mcp",
+      "provider": "context7",
+      "interface": "remote-docs-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store",
+        "webgl-runtime",
+        "browser-gpu-state"
+      ],
+      "outputs": ["context7-webgl-fundamentals-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_WEBGL_FUNDAMENTALS_CAPABILITY",
+      "message": "Context7 WebGL Fundamentals Docs are a scoped docs capability for WebGL fundamentals evidence.",
+      "details": {
+        "capabilityId": "host.mcp.context7.webgl-fundamentals.docs",
+        "genericCapabilityId": "host.mcp.context7.docs",
+        "output": "context7-webgl-fundamentals-operator-evidence.json",
+        "reviewedAt": "2026-05-07",
+        "boundary": "WebGL Fundamentals Context7 docs evidence does not configure MCP, read secrets, prove runtime availability, inspect browser GPU state, run WebGL, mutate the target repo, or change Workspace verifier behavior."
+      }
+    },
+    {
+      "code": "CONTEXT7_WEBGL_FUNDAMENTALS_SOURCE_REGISTER",
+      "message": "Context7 library IDs are the URL path of the library page.",
+      "details": {
+        "reviewedAt": "2026-05-07",
+        "observedUpdate": "2026-05-04",
+        "metadata": {
+          "trustScore": "Trust Score 9.5",
+          "tokens": "420,644 tokens",
+          "snippets": "3,855 snippets"
+        },
+        "sources": [
+          {
+            "label": "webgl-fundamentals",
+            "libraryId": "/websites/webglfundamentals",
+            "sourceUrl": "https://context7.com/websites/webglfundamentals",
+            "upstreamUrl": "https://webglfundamentals.org",
+            "webgl2UpstreamUrl": "https://webgl2fundamentals.org",
+            "webgl2Caveat": "The upstream WebGL Fundamentals site points WebGL2 users to https://webgl2fundamentals.org; no separate Context7 source was found during review."
+          }
+        ]
+      }
+    },
+    {
+      "code": "CONTEXT7_SECRET_BOUNDARY",
+      "message": "Recommended credential source is Apple Passwords item Context7; record only redacted environment state.",
+      "details": {
+        "credentialSource": "Apple Passwords item Context7",
+        "credentialEvidence": "CONTEXT7_API_KEY=set",
+        "credentialValue": "[REDACTED]",
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

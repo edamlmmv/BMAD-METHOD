@@ -1,0 +1,42 @@
+{
+  "kind": "context7-google-apps-script-operator-evidence",
+  "schemaVersion": 1,
+  "capabilityId": "host.mcp.context7.google-apps-script.docs",
+  "observer": "Codex operator",
+  "timestamp": "<ISO-8601>",
+  "mcpServer": "context7",
+  "context7Configured": false,
+  "credentialSource": "Apple Passwords item Context7",
+  "credentialEvidence": "CONTEXT7_API_KEY=set|unset",
+  "credentialValue": "[REDACTED]",
+  "sourceRegister": [
+    {
+      "label": "apps-script-guide",
+      "libraryId": "/websites/developers_google_apps-script",
+      "sourceUrl": "https://context7.com/websites/developers_google_apps-script",
+      "upstreamUrl": "https://developers.google.com/apps-script/",
+      "coverage": "conceptual docs, product overview, setup and guide context",
+      "gap": "<coverage gap or none>"
+    },
+    {
+      "label": "apps-script-reference",
+      "libraryId": "/websites/developers_google_apps-script_reference",
+      "sourceUrl": "https://context7.com/websites/developers_google_apps-script_reference?contextType=info",
+      "upstreamUrl": "https://developers.google.com/apps-script/reference",
+      "coverage": "API signatures, service constraints, reference checks",
+      "gap": "<coverage gap or none>"
+    },
+    {
+      "label": "apps-script-samples",
+      "libraryId": "/googleworkspace/apps-script-samples",
+      "sourceUrl": "https://context7.com/googleworkspace/apps-script-samples",
+      "upstreamUrl": "https://github.com/googleworkspace/apps-script-samples",
+      "coverage": "implementation examples, sample project patterns, code pattern checks",
+      "gap": "<coverage gap or none>"
+    }
+  ],
+  "querySummary": "<Apps Script docs query summary>",
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Google Apps Script Context7 docs evidence is not verifier input, not grant authority, not runtime authority, and not Workspace authority; record CONTEXT7_API_KEY=set or unset only, never the API key value."
+}

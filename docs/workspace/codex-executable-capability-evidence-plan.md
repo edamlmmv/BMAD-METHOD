@@ -21,7 +21,7 @@ app-server APIs, live Graphify output, or Workspace Session artifacts.
 
 BMad Customize is authoring and education only; it is not executable evidence.
 For Codex MCP-aware customization, use
-[BMad Customize And Codex MCP Planning](./customize-codex-mcp-planning.md) to
+[BMad Customize And Codex MCP Planning](./mcp/customize-codex-mcp-planning.md) to
 keep Codex MCP host context, Codex MCP server context, declared capability,
 executable proof, and human decision separate.
 Codex MCP is advisory authoring context for Customize; self-contained

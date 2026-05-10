@@ -92,7 +92,7 @@
       "evidenceRefs": [
         "/Users/edam/.codex/skills/playwright/SKILL.md",
         "/Users/edam/.codex/skills/playwright/scripts/playwright_cli.sh",
-        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/mcp/customize-codex-mcp-planning.md",
         "docs/workspace/templates/browser-affordance-evidence.template.json",
         "test/test-workspace-contracts.js"
       ],
@@ -116,7 +116,7 @@
       "evidenceRefs": [
         "/Users/edam/.codex/plugins/cache/openai-curated/vercel/c5debd62/skills/agent-browser/SKILL.md",
         "/Users/edam/.codex/plugins/cache/openai-curated/vercel/c5debd62/skills/agent-browser-verify/SKILL.md",
-        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/mcp/customize-codex-mcp-planning.md",
         "docs/workspace/templates/browser-affordance-evidence.template.json",
         "test/test-workspace-contracts.js"
       ],
@@ -140,7 +140,7 @@
       ],
       "evidenceRefs": [
         "/Users/edam/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md",
-        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/mcp/customize-codex-mcp-planning.md",
         "docs/workspace/templates/browser-affordance-evidence.template.json",
         "test/test-workspace-contracts.js"
       ],
@@ -163,7 +163,7 @@
       ],
       "evidenceRefs": [
         "/Users/edam/.codex/plugins/cache/openai-bundled/computer-use",
-        "docs/workspace/customize-codex-mcp-planning.md",
+        "docs/workspace/mcp/customize-codex-mcp-planning.md",
         "docs/workspace/templates/browser-affordance-evidence.template.json",
         "test/test-workspace-contracts.js"
       ],
@@ -236,6 +236,48 @@
       "repairHint": "Refresh Context7 and Codex MCP docs, keep Apple Passwords item Context7 secret handling redacted, and record manual operator evidence before citing live Context7 output."
     },
     {
+      "profileId": "context7.docs.google-apps-script-reference",
+      "capabilityId": "host.mcp.context7.google-apps-script.docs",
+      "toolName": "Context7 MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Context7 MCP can provide scoped Google Apps Script docs evidence for an operator, including guide, reference, and samples sources, but live MCP availability, API key presence, local Codex config, Apps Script runtime state, trigger install, deployment state, and target repo manifests are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://context7.com/docs/api-guide",
+        "https://context7.com/websites/developers_google_apps-script",
+        "https://context7.com/websites/developers_google_apps-script_reference?contextType=info",
+        "https://context7.com/googleworkspace/apps-script-samples",
+        "/websites/developers_google_apps-script",
+        "/websites/developers_google_apps-script_reference",
+        "/googleworkspace/apps-script-samples",
+        "docs/workspace/mcp/context7-google-apps-script-planning.md",
+        "docs/workspace/templates/capability-request.context7-google-apps-script.example.json",
+        "docs/workspace/templates/context7-google-apps-script-operator-evidence.template.json",
+        "context7-google-apps-script-operator-evidence.json",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh the Apps Script Context7 source register, keep source labels mapped to exact Context7 library IDs, and record manual operator evidence before citing live Apps Script docs output."
+    },
+    {
+      "profileId": "context7.docs.webgl-fundamentals-reference",
+      "capabilityId": "host.mcp.context7.webgl-fundamentals.docs",
+      "toolName": "Context7 MCP",
+      "supportState": "experimental",
+      "trustBoundary": "Context7 MCP can provide scoped WebGL Fundamentals docs evidence for an operator, including /websites/webglfundamentals and upstream WebGL2 caveat context, but live MCP availability, API key presence, local Codex config, WebGL runtime state, browser GPU state, docs output, and any separate WebGL2 source claim are not verifier input and not Workspace authority.",
+      "evidenceRefs": [
+        "https://context7.com/websites/webglfundamentals",
+        "https://webglfundamentals.org",
+        "https://webgl2fundamentals.org",
+        "/websites/webglfundamentals",
+        "docs/workspace/mcp/context7-webgl-fundamentals-planning.md",
+        "docs/workspace/templates/capability-request.context7-webgl-fundamentals.example.json",
+        "docs/workspace/templates/context7-webgl-fundamentals-operator-evidence.template.json",
+        "context7-webgl-fundamentals-operator-evidence.json",
+        "no separate Context7 source",
+        "test/test-workspace-contracts.js"
+      ],
+      "repairHint": "Refresh the WebGL Fundamentals Context7 source register, keep /websites/webglfundamentals as the canonical source, preserve the WebGL2 caveat, and record manual operator evidence before citing live WebGL docs output."
+    },
+    {
       "profileId": "docker-mcp.toolkit.gateway-profile",
       "capabilityId": "host.mcp.docker.toolkit",
       "toolName": "Docker MCP Toolkit",
@@ -249,7 +291,7 @@
         "https://github.com/upstash/context7",
         "https://github.com/upstash/context7/blob/master/docs/agentic-tools/ai-sdk/getting-started.mdx",
         "https://github.com/upstash/context7/blob/master/docs/integrations/mastra.mdx",
-        "docs/workspace/docker-mcp-context7-planning.md",
+        "docs/workspace/mcp/docker-mcp-context7-planning.md",
         "docs/workspace/templates/capability-request.docker-mcp-toolkit.example.json",
         "tools/workspace/capability-contract.js",
         "docs/workspace/capability-contract.md",
@@ -269,7 +311,7 @@
         "https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/SECURITY.md",
         "https://developers.openai.com/codex/mcp#connect-codex-to-an-mcp-server",
         "https://developers.openai.com/codex/cli/reference#codex-mcp",
-        "docs/workspace/zsh-shell-mcp-capability-planning.md",
+        "docs/workspace/mcp/zsh-shell-mcp-capability-planning.md",
         "docs/workspace/templates/capability-request.zsh-shell-mcp.example.json",
         "docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json",
         "tools/workspace/capability-contract.js",
@@ -290,7 +332,7 @@
         "https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/",
         "https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/",
         "https://www.npmjs.com/package/%40modelcontextprotocol/server-postgres",
-        "docs/workspace/postgresql-mcp-capability-planning.md",
+        "docs/workspace/mcp/postgresql-mcp-capability-planning.md",
         "docs/workspace/templates/capability-request.postgresql-mcp-readonly.example.json",
         "docs/workspace/templates/postgres-mcp-operator-evidence.template.json",
         "tools/workspace/capability-contract.js",
@@ -328,7 +370,7 @@
         "https://developers.google.com/workspace/guides/configure-mcp-servers",
         "https://developers.google.com/workspace/calendar/api/guides/overview",
         "https://developers.openai.com/codex/mcp",
-        "docs/workspace/google-calendar-capability-planning.md",
+        "docs/workspace/mcp/google-calendar-capability-planning.md",
         "docs/workspace/templates/capability-request.google-calendar-mcp.example.json",
         "tools/workspace/capability-contract.js",
         "test/test-workspace-contracts.js"
@@ -347,7 +389,7 @@
         "https://learn.microsoft.com/en-us/office/dev/add-ins/overview/office-add-ins",
         "https://learn.microsoft.com/office/dev/add-ins/outlook/apis",
         "https://developers.openai.com/codex/mcp",
-        "docs/workspace/outlook-calendar-capability-planning.md",
+        "docs/workspace/mcp/outlook-calendar-capability-planning.md",
         "docs/workspace/templates/capability-request.outlook-calendar-mcp.example.json",
         "docs/workspace/templates/outlook-calendar-mcp-operator-evidence.template.json",
         "tools/workspace/capability-contract.js",

@@ -9,8 +9,8 @@ function verifyCapabilityInput({ inputPath }) {
   let capabilityRequest;
   try {
     capabilityRequest = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-  } catch (error) {
-    return failVerdict('REQUEST_INVALID', `Capability request input could not be read as JSON: ${error.message}`, '$.input');
+  } catch {
+    return failVerdict('REQUEST_INVALID', 'Capability request input could not be read as JSON.', '$.input');
   }
 
   return verifyCapabilityRequest(capabilityRequest);

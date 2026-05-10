@@ -10,7 +10,10 @@
   "credentialValue": "[REDACTED]",
   "sourceUrls": [
     "https://context7.com/docs/installation",
-    "https://context7.com/modelcontextprotocol/docs"
+    "https://context7.com/modelcontextprotocol/docs",
+    "https://context7.com/websites/developers_google_apps-script",
+    "https://context7.com/websites/developers_google_apps-script_reference?contextType=info",
+    "https://context7.com/googleworkspace/apps-script-samples"
   ],
   "querySummary": "Context7 Docs MCP reviewed as advisory docs evidence only.",
   "artifactRefs": [],

@@ -86,10 +86,12 @@ permission, verifier proof, or runtime authority.
 
 ## Boundaries
 
-Forge must not call live Context7, MCP, Docker, PostgreSQL, Git, Codex
-app-server, Desktop Commander MCP, shell commands, Apple Passwords, keychain, or
-network. It must not store raw secrets, query results, connection strings, or
-API keys.
+The legacy v1 JSON artifact path must not call live Context7, MCP, Docker,
+PostgreSQL, Git, Codex app-server, Desktop Commander MCP, shell commands, Apple
+Passwords, keychain, or network. Forge must not store raw secrets, raw query
+results, connection strings, or API keys. The optional v2 compiler path below is
+the only Forge path that may use live PostgreSQL, and it may do so only through
+the configured direct `pg` adapter as compiler state.
 
 Forge does not alter `bmad workspace`, `verify-capability`, Workspace
 Capability Contract matching, Grant Guard, Evidence Gate behavior, or
@@ -121,11 +123,14 @@ remain stable.
   database; live migration coverage is opt-in when that environment variable is
   set.
 - `pack-draft.toml` is a reviewable contract generated from PostgreSQL state.
-  If edited, it must be reconciled and validated before export or promotion.
+  If edited, it must match database-backed compiler state before export or
+  promotion.
 - PostgreSQL MCP remains advisory/operator evidence only. Forge infrastructure
   uses the direct `pg` adapter.
 - BMAD review exports are handoff/input packets only. Forge does not invoke,
   satisfy, approve, or mark complete BMAD workflows.
+- `export-bmad` review packets are handoff artifacts; TOML/PostgreSQL advisory
+  notes remain opt-in and must not be treated as verifier input.
 - Promotion writes only validated, approved draft artifacts to configured safe
   targets and blocks unsafe paths, collisions, symlinks, and dirty worktrees
   unless an explicit tested override exists.
@@ -135,7 +140,7 @@ remain stable.
 | Surface                       | Authority                                                                                                                                       |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | v1 JSON                       | Canonical Forge input/output authority. The `--input` / `--output` command does not require v2 compiler state.                                  |
-| v2 `pack-draft.toml`          | Byte-stable review contract only. It is not product truth until validated and explicitly promoted.                                              |
+| v2 `pack-draft.toml`          | Byte-stable review contract only. It is never verifier, export, promotion, or product truth authority.                                          |
 | direct `pg` PostgreSQL        | Compiler state for evidence, provenance, review events, artifacts, migrations, and promotion records.                                           |
 | PostgreSQL MCP                | Advisory/operator evidence only. It is not runtime infrastructure, compiler input authority, verifier authority, or promotion authority.        |
 | Workspace `verify-capability` | Declared-contract check only. Forge v2 does not change Workspace verifier semantics.                                                            |
@@ -151,11 +156,12 @@ remain stable.
 - `search`: read compiler evidence state for operator review; search results
   are not authority.
 - `draft`: render deterministic `pack-draft.toml` from non-stale evidence.
-- `validate`: parse and reconcile `pack-draft.toml` before report write.
+- `validate`: parse `pack-draft.toml` and match it against database-backed
+  compiler state before report write.
 - `export-bmad`: validate first, then emit BMAD handoff artifacts only.
 - `promote`: require `--approved`, acquire the promotion lock, prepare the row,
-  copy through a temp directory, atomically rename, then finalize or report a
-  recovery code.
+  stage artifacts outside every configured runtime root, publish with atomic
+  no-replace behavior, then finalize or report a recovery code.
 
 ### Compiler Commands
 
@@ -176,14 +182,14 @@ cleanup.
 
 Promotion is the only authority-changing compiler step. Forge uses a
 PostgreSQL advisory transaction lock for the pack/target pair, prepares a
-promotion row before file copy, copies artifacts through a sibling temporary
-directory, atomically renames the temporary directory into place, and finalizes
-the row only after the target exists.
+promotion row before file copy, stages artifacts outside every configured
+runtime root, publishes the complete target with atomic no-replace behavior,
+and finalizes the row only after the target exists.
 
 Failure handling is explicit:
 
-- copy or rename failure removes the temporary directory, leaves no target
-  directory, and marks the promotion row `failed`;
+- staging copy or publish failure removes the temporary directory, leaves no
+  target directory, and marks the promotion row `failed`;
 - a matching prepared row plus existing target finalizes on retry;
 - a prepared row with a mismatched target snapshot fails with
   `FORGE_PROMOTE_RECONCILE_REQUIRED`;
@@ -205,5 +211,6 @@ Operator recovery:
   target state and retry only after the conflict is resolved.
 - `FORGE_PROMOTE_RECONCILE_REQUIRED`: prepared database state and target
   snapshot differ; inspect target artifacts before retrying.
-- `FORGE_PROMOTE_COPY_FAILED`: temp copy or rename failed; Forge removes the
-  temp directory, leaves no authoritative target, and marks promotion `failed`.
+- `FORGE_PROMOTE_COPY_FAILED`: staging copy or publish failed; Forge removes
+  the temp directory, leaves no authoritative target, and marks promotion
+  `failed`.

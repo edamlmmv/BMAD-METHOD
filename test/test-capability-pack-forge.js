@@ -16,6 +16,8 @@ const { WORKSPACE_COMMAND_NAMES } = require('../tools/workspace/command-registry
 const repoRoot = path.join(__dirname, '..');
 const forgeCli = path.join(repoRoot, 'tools', 'capability-pack-forge.js');
 const fixtureRoot = path.join(repoRoot, 'test', 'fixtures', 'cpf', 'context7-minimal');
+const appsScriptFixtureRoot = path.join(repoRoot, 'test', 'fixtures', 'cpf', 'context7-google-apps-script');
+const webglFixtureRoot = path.join(repoRoot, 'test', 'fixtures', 'cpf', 'context7-webgl-fundamentals');
 const schemaPath = path.join(repoRoot, 'tools', 'schemas', 'bmad-capability-pack.schema.json');
 const declaredPackTemplates = [
   {
@@ -24,6 +26,27 @@ const declaredPackTemplates = [
     displayName: 'Codex Manual Executor',
     summary: 'Draft a BMAD capability pack for manual Codex executor readiness.',
     template: 'capability-request.codex-manual.example.json',
+  },
+  {
+    slug: 'context7-docs-mcp',
+    id: 'host.mcp.context7.docs',
+    displayName: 'Context7 Docs MCP',
+    summary: 'Draft a BMAD capability pack for Context7 docs evidence.',
+    template: 'capability-request.context7-docs.example.json',
+  },
+  {
+    slug: 'context7-google-apps-script-docs',
+    id: 'host.mcp.context7.google-apps-script.docs',
+    displayName: 'Google Apps Script Context7 Docs',
+    summary: 'Draft a BMAD capability pack for Google Apps Script docs evidence through Context7.',
+    template: 'capability-request.context7-google-apps-script.example.json',
+  },
+  {
+    slug: 'context7-webgl-fundamentals-docs',
+    id: 'host.mcp.context7.webgl-fundamentals.docs',
+    displayName: 'Context7 WebGL Fundamentals Docs',
+    summary: 'Draft a BMAD capability pack for WebGL Fundamentals docs evidence through Context7.',
+    template: 'capability-request.context7-webgl-fundamentals.example.json',
   },
   {
     slug: 'git-worktree-review',
@@ -80,10 +103,14 @@ const expectedFiles = [
 ];
 
 function runForge(args, options = {}) {
+  const env = { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1', ...options.env };
+  for (const key of options.unsetEnv || []) {
+    delete env[key];
+  }
   return spawnSync(process.execPath, [forgeCli, ...args], {
     cwd: options.cwd || repoRoot,
     encoding: 'utf8',
-    env: { ...process.env, BMAD_DISABLE_UPDATE_CHECK: '1', NO_COLOR: '1' },
+    env,
   });
 }
 
@@ -168,7 +195,7 @@ function assertNoSecretLookingValues(label, content) {
   assert(!/\bsk-[A-Za-z0-9_-]{8,}/.test(content), `${label} omits API-key-like values`);
   assert(!/postgres(?:ql)?:\/\/[^"'<\s)]+/i.test(content), `${label} omits PostgreSQL URLs`);
   assert(!/POSTGRES_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} omits raw POSTGRES_URL values`);
-  assert(!/DATABASE_URL\s*=\s*(?!set\b|unset\b)/.test(content), `${label} omits raw DATABASE_URL values`);
+  assert(!/DATABASE_URL\s*=/.test(content), `${label} omits DATABASE_URL values`);
   assert(!/PGPASSWORD\s*=/.test(content), `${label} omits raw PGPASSWORD values`);
 }
 
@@ -204,6 +231,12 @@ function testContext7MinimalPack() {
   assert.equal(pack.status.packMode, 'verifier-ready');
   assert.equal(pack.status.label, 'Ready');
   assert.equal(pack.capability.id, 'host.mcp.context7.docs');
+  assert.equal(pack.capability.displayName, 'Context7 Docs MCP');
+  assert(!JSON.stringify(pack).includes('host.mcp.context7.google-apps-script.docs'), 'generic Context7 pack keeps generic id');
+  assert(
+    !JSON.stringify(pack).includes('context7-google-apps-script-operator-evidence.json'),
+    'generic Context7 pack keeps generic output',
+  );
   assert(pack.boundaries.includes('No live tool access.'), 'pack records no live tool boundary');
   assert(pack.boundaries.includes('No Workspace command is added.'), 'pack records Workspace command boundary');
   assert(pack.boundaries.includes('Generated artifacts are drafts until human review.'), 'pack records draft boundary');
@@ -246,17 +279,263 @@ function testContext7MinimalPack() {
   }
 }
 
+function testContext7GoogleAppsScriptPack() {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-context7-apps-script-'));
+  const requestPath = path.join(appsScriptFixtureRoot, 'forge-request.json');
+  const beforeCommands = [...WORKSPACE_COMMAND_NAMES];
+
+  const result = runForge(['--input', requestPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(WORKSPACE_COMMAND_NAMES, beforeCommands, 'Apps Script Forge fixture does not mutate Workspace command registry');
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.kind, 'bmad-capability-pack');
+  assert.equal(pack.capability.id, 'host.mcp.context7.google-apps-script.docs');
+  assert.equal(pack.capability.displayName, 'Google Apps Script Context7 Docs');
+  assert.equal(pack.status.packMode, 'verifier-ready');
+  assert.equal(pack.status.verificationStatus, 'ready');
+  assert(pack.boundaries.includes('No live tool access.'), 'Apps Script pack records no live tool boundary');
+  assert(pack.boundaries.includes('No Workspace command is added.'), 'Apps Script pack records Workspace command boundary');
+  assert(pack.boundaries.includes('No runtime authority is granted.'), 'Apps Script pack records runtime boundary');
+
+  const capabilityRequest = readJson(path.join(outputDir, 'capability-request.json'));
+  const verdict = verifyCapabilityRequest(capabilityRequest);
+  assert.equal(verdict.ok, true, JSON.stringify(verdict, null, 2));
+  assert.equal(verdict.request.id, 'host.mcp.context7.google-apps-script.docs');
+  assert.deepEqual(verdict.matchedDeclaration.outputs, ['context7-google-apps-script-operator-evidence.json']);
+
+  const outputText = expectedFiles.map((file) => fs.readFileSync(path.join(outputDir, file), 'utf8')).join('\n');
+  for (const text of [
+    'Google Apps Script Context7 Docs',
+    'host.mcp.context7.google-apps-script.docs',
+    'context7-google-apps-script-operator-evidence.json',
+    'apps-script-guide',
+    'apps-script-reference',
+    'apps-script-samples',
+    '/websites/developers_google_apps-script',
+    '/websites/developers_google_apps-script_reference',
+    '/googleworkspace/apps-script-samples',
+    'No live tools',
+    'No Workspace command changes',
+  ]) {
+    assert(outputText.includes(text), `Apps Script generated artifacts include ${text}`);
+  }
+  assert(!outputText.includes('mcp_servers.context7'), 'Apps Script generated artifacts do not configure MCP');
+  assert(!outputText.includes('liveToolInvocation'), 'Apps Script generated artifacts omit live tool invocation fields');
+
+  for (const file of expectedFiles) {
+    assertNoSecretLookingValues(file, fs.readFileSync(path.join(outputDir, file), 'utf8'));
+  }
+}
+
+function testContext7WebglFundamentalsPack() {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-context7-webgl-'));
+  const requestPath = path.join(webglFixtureRoot, 'forge-request.json');
+  const beforeCommands = [...WORKSPACE_COMMAND_NAMES];
+
+  const result = runForge(['--input', requestPath, '--output', outputDir]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.deepEqual(WORKSPACE_COMMAND_NAMES, beforeCommands, 'WebGL Fundamentals Forge fixture does not mutate Workspace command registry');
+  assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
+
+  const pack = readJson(path.join(outputDir, 'capability-pack.json'));
+  assert.equal(pack.kind, 'bmad-capability-pack');
+  assert.equal(pack.capability.id, 'host.mcp.context7.webgl-fundamentals.docs');
+  assert.equal(pack.capability.displayName, 'Context7 WebGL Fundamentals Docs');
+  assert.equal(pack.status.packMode, 'verifier-ready');
+  assert.equal(pack.status.verificationStatus, 'ready');
+  assert(pack.boundaries.includes('No live tool access.'), 'WebGL Fundamentals pack records no live tool boundary');
+  assert(pack.boundaries.includes('No Workspace command is added.'), 'WebGL Fundamentals pack records Workspace command boundary');
+  assert(pack.boundaries.includes('No runtime authority is granted.'), 'WebGL Fundamentals pack records runtime boundary');
+
+  const capabilityRequest = readJson(path.join(outputDir, 'capability-request.json'));
+  const verdict = verifyCapabilityRequest(capabilityRequest);
+  assert.equal(verdict.ok, true, JSON.stringify(verdict, null, 2));
+  assert.equal(verdict.request.id, 'host.mcp.context7.webgl-fundamentals.docs');
+  assert.deepEqual(verdict.matchedDeclaration.outputs, ['context7-webgl-fundamentals-operator-evidence.json']);
+  assert.deepEqual(verdict.matchedDeclaration.writes, []);
+
+  const outputText = expectedFiles.map((file) => fs.readFileSync(path.join(outputDir, file), 'utf8')).join('\n');
+  for (const text of [
+    'Context7 WebGL Fundamentals Docs',
+    'host.mcp.context7.webgl-fundamentals.docs',
+    'context7-webgl-fundamentals-operator-evidence.json',
+    'webgl-fundamentals',
+    '/websites/webglfundamentals',
+    'https://context7.com/websites/webglfundamentals',
+    'https://webglfundamentals.org',
+    'https://webgl2fundamentals.org',
+    'no separate Context7 source',
+    'No live tools',
+    'No Workspace command changes',
+  ]) {
+    assert(outputText.includes(text), `WebGL Fundamentals generated artifacts include ${text}`);
+  }
+  assert(
+    !outputText.includes('host.mcp.context7.webgl2-fundamentals.docs'),
+    'WebGL Fundamentals artifacts do not declare WebGL2 capability',
+  );
+  assert(!outputText.includes('/websites/webgl2fundamentals'), 'WebGL Fundamentals artifacts do not declare WebGL2 Context7 source');
+  assert(!outputText.includes('mcp_servers.context7'), 'WebGL Fundamentals generated artifacts do not configure MCP');
+  assert(!outputText.includes('liveToolInvocation'), 'WebGL Fundamentals generated artifacts omit live tool invocation fields');
+
+  for (const file of expectedFiles) {
+    assertNoSecretLookingValues(file, fs.readFileSync(path.join(outputDir, file), 'utf8'));
+  }
+}
+
 function testV1JsonAuthorityDoesNotRequireV2CompilerState() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cpf-v1-authority-'));
   assert(!fs.existsSync(path.join(tempDir, '.capability-forge')), 'fixture starts without v2 compiler config');
   const requestPath = path.join(fixtureRoot, 'forge-request.json');
   const outputDir = path.join(tempDir, 'out');
-  const result = runForge(['--input', requestPath, '--output', outputDir], { cwd: tempDir });
+  const result = runForge(['--input', requestPath, '--output', outputDir], {
+    cwd: tempDir,
+    unsetEnv: ['CAPABILITY_FORGE_DATABASE_URL', 'DATABASE_URL', 'POSTGRES_URL', 'PGPASSWORD'],
+  });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.deepEqual(listRelativeFiles(outputDir), expectedFiles);
   const pack = readJson(path.join(outputDir, 'capability-pack.json'));
   assert.equal(pack.metadata.source, 'capability-pack-forge');
   assert(!fs.existsSync(path.join(tempDir, '.capability-forge')), 'v1 JSON path does not create v2 compiler state');
+}
+
+function testV1JsonPathIgnoresV2CompilerStateAndKeepsCanonicalOutputs() {
+  const poisonSentinels = [
+    'BMAD_POISON_CAPABILITY_FORGE_DB_SENTINEL',
+    'BMAD_POISON_DATABASE_URL_SENTINEL',
+    'BMAD_POISON_DOT_GRAPHIFY_SENTINEL',
+    'BMAD_POISON_FORGE_CONFIG_SENTINEL',
+    'BMAD_POISON_GRAPHIFY_SENTINEL',
+    'BMAD_POISON_MCP_SENTINEL',
+    'BMAD_POISON_PACK_DRAFT_SENTINEL',
+    'BMAD_POISON_PGPASSWORD_SENTINEL',
+    'BMAD_POISON_POSTGRES_URL_SENTINEL',
+    'BMAD_POISON_CODEX_CONFIG_SENTINEL',
+    'BMAD_POISON_CUSTOM_SURFACE_SENTINEL',
+    'BMAD_POISON_WORKSPACE_RUNTIME_SENTINEL',
+  ];
+  const capability = declaredPackTemplates.find((entry) => entry.slug === 'postgresql-readonly-mcp');
+  const clean = writeForgeFixture({
+    capability,
+    capabilityRequestTemplate: capability.template,
+    evidenceSourceType: 'manual_contract',
+    requestPatch: {
+      capabilityDomain: 'postgresql',
+      draftAuthoring: 'toml',
+    },
+    evidencePatch: {
+      credentialEvidence: 'POSTGRES_URL=set',
+      localEvidenceOnly: true,
+    },
+  });
+  const noisy = writeForgeFixture({
+    capability,
+    capabilityRequestTemplate: capability.template,
+    evidenceSourceType: 'manual_contract',
+    requestPatch: {
+      capabilityDomain: 'postgresql',
+      draftAuthoring: 'toml',
+    },
+    evidencePatch: {
+      credentialEvidence: 'POSTGRES_URL=set',
+      localEvidenceOnly: true,
+    },
+  });
+  const noisyRoot = path.dirname(noisy.inputPath);
+  fs.mkdirSync(path.join(noisyRoot, '.capability-forge', 'drafts', 'ignored-pack'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, '.capability-forge', 'forge.toml'),
+    [
+      'schema_version = "capability-forge.v2"',
+      '',
+      '[database]',
+      'url_env = "CAPABILITY_FORGE_DATABASE_URL"',
+      'schema = "BMAD_POISON_FORGE_CONFIG_SENTINEL"',
+      '',
+      '[workspace]',
+      'write_mode = "draft_only"',
+      '',
+    ].join('\n'),
+  );
+  fs.writeFileSync(
+    path.join(noisyRoot, '.capability-forge', 'drafts', 'ignored-pack', 'pack-draft.toml'),
+    [
+      'schema_version = "capability-pack-draft.v2"',
+      'slug = "ignored-pack"',
+      'pack_id = "capability-pack.ignored-pack"',
+      'title = "Ignored Pack"',
+      'description = "BMAD_POISON_PACK_DRAFT_SENTINEL"',
+      'status = "approved"',
+      'workspace_runtime_change = false',
+      '',
+    ].join('\n'),
+  );
+  fs.mkdirSync(path.join(noisyRoot, 'graph'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, 'graph', 'ignored.graph.json'),
+    `${JSON.stringify({ nodes: [{ id: 'BMAD_POISON_GRAPHIFY_SENTINEL' }], links: [] }, null, 2)}\n`,
+  );
+  fs.mkdirSync(path.join(noisyRoot, '.graphify'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, '.graphify', 'ignored.graph.json'),
+    `${JSON.stringify({ nodes: [{ id: 'BMAD_POISON_DOT_GRAPHIFY_SENTINEL' }], links: [] }, null, 2)}\n`,
+  );
+  fs.mkdirSync(path.join(noisyRoot, 'mcp'), { recursive: true });
+  fs.writeFileSync(path.join(noisyRoot, 'mcp', 'state.json'), '{"poison":"BMAD_POISON_MCP_SENTINEL","tool":"context7",\n');
+  fs.mkdirSync(path.join(noisyRoot, '.codex'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, '.codex', 'config.toml'),
+    ['[features]', 'goals = true', 'poison = "BMAD_POISON_CODEX_CONFIG_SENTINEL"', '[broken', ''].join('\n'),
+  );
+  fs.mkdirSync(path.join(noisyRoot, '_bmad', 'custom'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, '_bmad', 'custom', 'bmad-workspace.toml'),
+    ['poison = "BMAD_POISON_CUSTOM_SURFACE_SENTINEL"', 'capability_forge = "must-not-drive-v1"', '[broken', ''].join('\n'),
+  );
+  fs.mkdirSync(path.join(noisyRoot, '_bmad-output', 'workspace-runtime', 'sessions', 'poison-session'), { recursive: true });
+  fs.writeFileSync(
+    path.join(noisyRoot, '_bmad-output', 'workspace-runtime', 'sessions', 'poison-session', 'instance.json'),
+    '{"poison":"BMAD_POISON_WORKSPACE_RUNTIME_SENTINEL","sessionType":"normal",\n',
+  );
+
+  const poisonedEnv = {
+    CAPABILITY_FORGE_DATABASE_URL: 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_CAPABILITY_FORGE_DB_SENTINEL',
+    DATABASE_URL: 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_DATABASE_URL_SENTINEL',
+    GRAPHIFY_LIVE_STATE: 'BMAD_POISON_GRAPHIFY_SENTINEL',
+    PGPASSWORD: 'BMAD_POISON_PGPASSWORD_SENTINEL',
+    POSTGRES_URL: 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_POSTGRES_URL_SENTINEL',
+  };
+  const cleanResult = runForge(['--input', clean.inputPath, '--output', clean.outputDir], {
+    env: poisonedEnv,
+  });
+  const noisyResult = runForge(['--input', noisy.inputPath, '--output', noisy.outputDir], {
+    cwd: noisyRoot,
+    env: poisonedEnv,
+  });
+  assert.equal(cleanResult.status, 0, `${cleanResult.stdout}\n${cleanResult.stderr}`);
+  assert.equal(noisyResult.status, 0, `${noisyResult.stdout}\n${noisyResult.stderr}`);
+  assert.deepEqual(listRelativeFiles(noisy.outputDir), expectedFiles);
+  assert.deepEqual(listRelativeFiles(clean.outputDir), expectedFiles);
+
+  for (const file of expectedFiles) {
+    assert.equal(
+      fs.readFileSync(path.join(noisy.outputDir, file), 'utf8'),
+      fs.readFileSync(path.join(clean.outputDir, file), 'utf8'),
+      `${file} stays canonical with adjacent v2 compiler state`,
+    );
+  }
+
+  const capabilityRequest = readJson(path.join(noisy.outputDir, 'capability-request.json'));
+  assert.equal(verifyCapabilityRequest(capabilityRequest).ok, true, 'v1 output remains self-contained verifier JSON');
+  const outputText = expectedFiles.map((file) => fs.readFileSync(path.join(noisy.outputDir, file), 'utf8')).join('\n');
+  const commandText = `${cleanResult.stdout}\n${cleanResult.stderr}\n${noisyResult.stdout}\n${noisyResult.stderr}`;
+  assert(!outputText.includes('ignored-pack'), 'v1 output ignores adjacent pack-draft.toml');
+  for (const sentinel of poisonSentinels) {
+    assert(!outputText.includes(sentinel), `v1 output ignores ambient sentinel ${sentinel}`);
+    assert(!commandText.includes(sentinel), `v1 stdout/stderr ignore ambient sentinel ${sentinel}`);
+  }
 }
 
 function testGenericEvidenceRefsWithoutContext7() {
@@ -375,6 +654,8 @@ function testForbiddenLivePostgresEvidenceFails() {
     { name: 'raw postgres url', evidencePatch: { connectionString: 'postgres://user:pass@example.test/db' } },
     { name: 'raw POSTGRES_URL', evidencePatch: { env: 'POSTGRES_URL=postgres://user:pass@example.test/db' } },
     { name: 'raw DATABASE_URL', evidencePatch: { env: 'DATABASE_URL=postgres://user:pass@example.test/db' } },
+    { name: 'DATABASE_URL set state', evidencePatch: { env: 'DATABASE_URL=set' } },
+    { name: 'DATABASE_URL unset state', evidencePatch: { env: 'DATABASE_URL=unset' } },
     { name: 'raw PGPASSWORD', evidencePatch: { env: 'PGPASSWORD=swordfish' } },
     { name: 'queryResults', evidencePatch: { queryResults: [{ id: 1 }] } },
     { name: 'liveMcp', evidencePatch: { liveMcp: true } },
@@ -383,6 +664,7 @@ function testForbiddenLivePostgresEvidenceFails() {
     { name: 'network', evidencePatch: { network: { reachable: true } } },
     { name: 'liveSchema', evidencePatch: { liveSchema: { tables: ['users'] } } },
     { name: 'sampleRows', evidencePatch: { sampleRows: [{ id: 1 }] } },
+    { name: 'yaml queryResults', evidencePatch: { notes: ['queryResults: unsafe'] } },
   ];
 
   for (const testCase of cases) {
@@ -513,7 +795,10 @@ function testExistingOutputDirWithFilesFails() {
 }
 
 testContext7MinimalPack();
+testContext7GoogleAppsScriptPack();
+testContext7WebglFundamentalsPack();
 testV1JsonAuthorityDoesNotRequireV2CompilerState();
+testV1JsonPathIgnoresV2CompilerStateAndKeepsCanonicalOutputs();
 testGenericEvidenceRefsWithoutContext7();
 testDeclaredCapabilityPacksGenerate();
 testPostgresqlTomlForgeBoundary();

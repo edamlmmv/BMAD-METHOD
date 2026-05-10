@@ -861,6 +861,78 @@ function validateCapability(capability, index, errors) {
     }
   }
 
+  if (capability.id === 'host.mcp.context7.google-apps-script.docs') {
+    if (capability.group !== 'host.mcp') {
+      errors.push(`${label}.group must be host.mcp for Context7 Google Apps Script docs`);
+    }
+    if (capability.provider !== 'context7') {
+      errors.push(`${label}.provider must be context7 for Context7 Google Apps Script docs`);
+    }
+    if (capability.interface !== 'remote-docs-mcp') {
+      errors.push(`${label}.interface must be remote-docs-mcp`);
+    }
+    if (capability.requiresGrant !== true) {
+      errors.push(`${label}.requiresGrant must be true for Context7 Google Apps Script docs`);
+    }
+    if (Array.isArray(capability.writes) && capability.writes.length > 0) {
+      errors.push(`${label}.writes must be empty for Context7 Google Apps Script docs`);
+    }
+    for (const forbiddenWrite of [
+      'workspace-base',
+      'target-repo',
+      'scheduler',
+      'daemon',
+      'live-adapter',
+      'secret-store',
+      'apps-script-runtime',
+      'calendar-api-enablement',
+      'trigger-install',
+      'deployment',
+    ]) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    if (!arrayIncludes(capability.outputs, 'context7-google-apps-script-operator-evidence.json')) {
+      errors.push(`${label}.outputs must include context7-google-apps-script-operator-evidence.json`);
+    }
+  }
+
+  if (capability.id === 'host.mcp.context7.webgl-fundamentals.docs') {
+    if (capability.group !== 'host.mcp') {
+      errors.push(`${label}.group must be host.mcp for Context7 WebGL Fundamentals docs`);
+    }
+    if (capability.provider !== 'context7') {
+      errors.push(`${label}.provider must be context7 for Context7 WebGL Fundamentals docs`);
+    }
+    if (capability.interface !== 'remote-docs-mcp') {
+      errors.push(`${label}.interface must be remote-docs-mcp`);
+    }
+    if (capability.requiresGrant !== true) {
+      errors.push(`${label}.requiresGrant must be true for Context7 WebGL Fundamentals docs`);
+    }
+    if (Array.isArray(capability.writes) && capability.writes.length > 0) {
+      errors.push(`${label}.writes must be empty for Context7 WebGL Fundamentals docs`);
+    }
+    for (const forbiddenWrite of [
+      'workspace-base',
+      'target-repo',
+      'scheduler',
+      'daemon',
+      'live-adapter',
+      'secret-store',
+      'webgl-runtime',
+      'browser-gpu-state',
+    ]) {
+      if (!arrayIncludes(capability.forbiddenWrites, forbiddenWrite)) {
+        errors.push(`${label}.forbiddenWrites must include ${forbiddenWrite}`);
+      }
+    }
+    if (!arrayIncludes(capability.outputs, 'context7-webgl-fundamentals-operator-evidence.json')) {
+      errors.push(`${label}.outputs must include context7-webgl-fundamentals-operator-evidence.json`);
+    }
+  }
+
   if (capability.id === 'host.mcp.git.local') {
     if (capability.group !== 'host.mcp') {
       errors.push(`${label}.group must be host.mcp for Git MCP`);

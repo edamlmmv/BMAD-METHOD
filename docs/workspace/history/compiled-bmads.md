@@ -9,9 +9,9 @@ This archive replaces the scattered per-release BMAD planning files that previou
 
 ## Compilation Scope
 
-- Source artifacts compiled: 69
-- Release groups compiled: 23
-- Compact entries compiled: 6
+- Source artifacts compiled: 70
+- Release groups compiled: 24
+- Compact entries compiled: 7
 - Former artifact types: PRD, Backlog, Acceptance Tests, Traceability
 - Current operator guidance remains in `docs/workspace/` root documents.
 
@@ -570,6 +570,33 @@ This archive replaces the scattered per-release BMAD planning files that previou
   - No scheduler, watcher, replay, restore, merge, promotion, or live adapter behavior.
 - Acceptance anchors: v25-readiness-closure-candidate, ac-v25-01-operator-runbook, ac-v25-02-inbound-links, ac-v25-03-verifier-json-only, ac-v25-04-graphify-advisory-only, ac-v25-05-toml-not-authority, ac-v25-06-history-count-convention, ac-v25-07-exact-head-push-gate
 - Traceability markers: Evidence, Operator UX, Boundary, Test Target
+
+### V26
+
+- Compiled artifacts: PRD, Architecture, Epics and Stories, Implementation Readiness, Story Evidence, Contract Tests, Archive Verification, Final Quality Gate
+- PRD and Architecture: Capability Pack Forge compiler scope preserved JSON as canonical BMAD/Workspace authority while keeping `pack-draft.toml` review-only
+- Epics and Stories: Six implementation epics closed the local evidence, PostgreSQL compiler state, review-only TOML draft, canonical JSON export, approved promotion, Help routing, and advisory evidence-boundary slices
+- Implementation Readiness: Readiness passed for the first implementation slice and stayed unchanged because no material authority or architecture drift was introduced
+- Story Evidence: Red/green logs, dirty worktree maps, targeted gates, and story closeouts were preserved under ignored `_bmad-output/implementation-artifacts/evidence/`
+- Archive Verification: `bmad workspace verify-archive` passed for the Capability Forge compiler readiness archive with `ok: true`, archive version 2, and 18 checked files
+- Final Quality Gate: `npm ci && npm run quality` passed on the exact checkout with `__QUALITY_EXIT_STATUS__=0`
+- Overview: V26 delivers Capability Pack Forge Phase 4. It adds the compiler path from local evidence through PostgreSQL-backed compiler state, review-only TOML draft rendering, canonical BMAD/Workspace JSON export, and approval-gated atomic promotion without expanding Workspace authority.
+- Goals:
+  - Keep self-contained Capability Request JSON and BMAD/Workspace JSON exports canonical.
+  - Keep `pack-draft.toml` as a deterministic reviewer artifact, never verifier, status, export, or promotion authority.
+  - Store compiler state through direct `pg` paths while keeping PostgreSQL MCP advisory/operator evidence only.
+  - Validate stale, duplicate, poisoned, and side-effect-bearing inputs before durable export or promotion.
+  - Preserve Forge v1 JSON behavior independent from v2 compiler state.
+  - Preserve Workspace verifier isolation from Forge, PostgreSQL, Graphify, MCP, Codex config, Workspace runtime state, and `_bmad/custom`.
+  - Record MCP, Graphify, PostgreSQL MCP, Codex task packet, and Workspace ledger boundaries as advisory evidence only.
+- Non-goals:
+  - No Workspace verifier TOML input.
+  - No TOML, MCP, Graphify, Codex config, Workspace runtime state, or `_bmad/custom` authority.
+  - No PostgreSQL MCP replacement for direct `pg` compiler infrastructure.
+  - No live Graphify, live MCP, scheduler, daemon, watcher, hidden execution, hidden promotion, restore, replay, merge, or live adapter activation.
+  - No broad workflow promotion claims beyond tested approval and safe-target behavior.
+- Acceptance anchors: cpf-phase-4-complete, cpf-json-authority, cpf-review-only-toml, cpf-direct-pg-compiler-state, cpf-stale-evidence-rejected, cpf-export-json-canonical, cpf-approval-gated-promotion, cpf-workspace-verifier-isolation, cpf-advisory-evidence-boundaries, cpf-final-quality-green
+- Traceability markers: Evidence, Red/Green Test, Archive Verification, Quality Gate, Boundary, Story Closeout
 
 ## Old Artifact Removal
 

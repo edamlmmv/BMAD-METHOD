@@ -81,6 +81,77 @@ function commandText(result) {
   return `${result.stdout || ''}\n${result.stderr || ''}\n${result.error?.message || ''}`;
 }
 
+function parseCliStdoutJson(result, testName) {
+  const text = commandText(result);
+  try {
+    const parsed = JSON.parse(result.stdout);
+    assert(true, `${testName} stdout parses as JSON`, text);
+    return parsed;
+  } catch (error) {
+    assert(false, `${testName} stdout parses as JSON`, `${text}\n${error.message}`);
+    return null;
+  }
+}
+
+function outputContainsAny(text, sentinels) {
+  return sentinels.some((sentinel) => text.includes(sentinel));
+}
+
+function assertNoSentinelLeak(result, parsedOutput, sentinels, testName) {
+  const rawText = commandText(result);
+  const parsedText = JSON.stringify(parsedOutput || null);
+  assert(!outputContainsAny(rawText, sentinels), `${testName} does not leak sentinels in stdout/stderr`, rawText);
+  assert(!outputContainsAny(parsedText, sentinels), `${testName} does not leak sentinels in parsed verdict`, parsedText);
+}
+
+function staticValidPackDraftToml() {
+  return [
+    '# Review-only artifact: v1 JSON remains canonical; Workspace verify-capability does not read this TOML.',
+    'schema_version = "capability-pack-draft.v2"',
+    'slug = "poisoned-pack"',
+    'pack_id = "capability-pack.poisoned-pack"',
+    'title = "Poisoned Pack"',
+    'description = "BMAD_POISON_PACK_DRAFT_SENTINEL"',
+    'status = "review_pending"',
+    'workspace_runtime_change = false',
+    '',
+    '[bmad]',
+    'module_code = "POISON"',
+    'parent_module = "bmm"',
+    'export_mode = "draft_only"',
+    '',
+    '[provenance]',
+    'forge_run_id = 1',
+    'generated_at = "1970-01-01T00:00:00.000Z"',
+    'source = "capability-pack-forge-v2"',
+    '',
+    '[[evidence_refs]]',
+    'id = "ev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#L1-L2"',
+    'uri = "evidence/BMAD_POISON_PACK_DRAFT_SENTINEL.md"',
+    'sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"',
+    'line_start = 1',
+    'line_end = 2',
+    'purpose = "source"',
+    '',
+    '[[capabilities]]',
+    'id = "cap.poisoned-pack"',
+    'menu_code = "PP"',
+    'title = "Poisoned Pack"',
+    'intent = "Preserve BMAD_POISON_PACK_DRAFT_SENTINEL as inert review-only TOML."',
+    'status = "needs_review"',
+    'evidence_refs = ["ev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#L1-L2"]',
+    'acceptance = [',
+    '  "Workspace verifier must reject this TOML as non-JSON input.",',
+    ']',
+    '',
+    '[[artifacts]]',
+    'kind = "pack_toml"',
+    'path = ".capability-forge/drafts/poisoned-pack/pack-draft.toml"',
+    'status = "draft"',
+    '',
+  ].join('\n');
+}
+
 function git(args, cwd) {
   return execFileSync('git', args, {
     cwd,
@@ -471,6 +542,213 @@ function runTests() {
         'verify-capability malformed declaration observations do not change ok',
         malformedDeclarationText,
       );
+
+      function testVerifyCapabilityInputRejectsTomlDraftsAndIgnoresAmbientForgeState() {
+        const isolationSentinels = [
+          'BMAD_POISON_FORGE_TOML_SENTINEL',
+          'BMAD_POISON_PACK_DRAFT_SENTINEL',
+          'BMAD_POISON_CUSTOMIZATION_SENTINEL',
+          'BMAD_POISON_CUSTOM_SURFACE_SENTINEL',
+          'BMAD_POISON_GRAPHIFY_SENTINEL',
+          'BMAD_POISON_DOT_GRAPHIFY_SENTINEL',
+          'BMAD_POISON_CAPABILITY_FORGE_DB_SENTINEL',
+          'BMAD_POISON_POSTGRES_URL_SENTINEL',
+          'BMAD_POISON_GRAPHIFY_LIVE_SENTINEL',
+          'BMAD_POISON_MALFORMED_JSON_SENTINEL',
+          'BMAD_POISON_CODEX_CONFIG_SENTINEL',
+          'BMAD_POISON_WORKSPACE_SESSION_SENTINEL',
+          'BMAD_POISON_MCP_SENTINEL',
+        ];
+        const poisonedEnv = {
+          CAPABILITY_FORGE_DATABASE_URL: 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_CAPABILITY_FORGE_DB_SENTINEL',
+          POSTGRES_URL: 'postgres://user:pass@127.0.0.1:1/BMAD_POISON_POSTGRES_URL_SENTINEL',
+          GRAPHIFY_LIVE_STATE: 'BMAD_POISON_GRAPHIFY_LIVE_SENTINEL',
+        };
+
+        function writeVerifierIsolationWorkspace(root, poisoned) {
+          fs.mkdirSync(root, { recursive: true });
+          const requestPath = path.join(root, 'valid-request.json');
+          fs.writeFileSync(
+            requestPath,
+            `${JSON.stringify(
+              {
+                kind: 'bmad-workspace-capability-request',
+                schemaVersion: 1,
+                request: {
+                  id: 'evidence.graph.repo-intake',
+                  sessionType: 'normal',
+                  group: 'evidence.graph',
+                  provider: 'graphify',
+                  interface: 'repo-intake',
+                  writes: ['workspace-session/intake'],
+                  outputs: ['graph.json'],
+                },
+                capabilities: [capability],
+                observations: [
+                  {
+                    code: 'VERIFIER_ISOLATION_FIXTURE',
+                    message: 'Verifier isolation fixture preserves declared-contract behavior.',
+                    details: { reviewedAt: '2026-05-08' },
+                  },
+                ],
+              },
+              null,
+              2,
+            )}\n`,
+          );
+
+          if (!poisoned) {
+            return {
+              requestPath,
+              customizationDraftPath: null,
+              packDraftPath: null,
+              malformedJsonPath: null,
+            };
+          }
+
+          const forgeDir = path.join(root, '.capability-forge');
+          const draftDir = path.join(forgeDir, 'drafts', 'poisoned-pack');
+          const customDir = path.join(root, '_bmad', 'custom');
+          const graphDir = path.join(root, 'graph');
+          const dotGraphifyDir = path.join(root, '.graphify');
+          const codexDir = path.join(root, '.codex');
+          const mcpDir = path.join(root, 'mcp');
+          const workspaceSessionDir = path.join(root, '_bmad-output', 'workspace-runtime', 'sessions', 'poison-session');
+          fs.mkdirSync(draftDir, { recursive: true });
+          fs.mkdirSync(customDir, { recursive: true });
+          fs.mkdirSync(graphDir, { recursive: true });
+          fs.mkdirSync(dotGraphifyDir, { recursive: true });
+          fs.mkdirSync(codexDir, { recursive: true });
+          fs.mkdirSync(mcpDir, { recursive: true });
+          fs.mkdirSync(workspaceSessionDir, { recursive: true });
+
+          fs.writeFileSync(
+            path.join(forgeDir, 'forge.toml'),
+            ['workspace.write_mode = "runtime"', 'poison = "BMAD_POISON_FORGE_TOML_SENTINEL"', '[malformed', ''].join('\n'),
+          );
+
+          const packDraftPath = path.join(draftDir, 'pack-draft.toml');
+          fs.writeFileSync(packDraftPath, staticValidPackDraftToml());
+
+          const customizationDraftPath = path.join(root, 'customization-draft.toml');
+          fs.writeFileSync(
+            customizationDraftPath,
+            ['kind = "not-verifier-input"', 'poison = "BMAD_POISON_CUSTOMIZATION_SENTINEL"', '[broken', ''].join('\n'),
+          );
+
+          fs.writeFileSync(
+            path.join(customDir, 'bmad-workspace.toml'),
+            ['poison = "BMAD_POISON_CUSTOM_SURFACE_SENTINEL"', 'verify_capability = "must-not-read-custom"', '[broken', ''].join('\n'),
+          );
+
+          fs.writeFileSync(path.join(graphDir, 'poison.graph.json'), '{"poison":"BMAD_POISON_GRAPHIFY_SENTINEL"; "valid": false}\n');
+          fs.writeFileSync(
+            path.join(dotGraphifyDir, 'poison.graph.json'),
+            '{"poison":"BMAD_POISON_DOT_GRAPHIFY_SENTINEL"; "valid": false}\n',
+          );
+          fs.writeFileSync(
+            path.join(codexDir, 'config.toml'),
+            ['[features]', 'goals = true', 'poison = "BMAD_POISON_CODEX_CONFIG_SENTINEL"', '[broken', ''].join('\n'),
+          );
+          fs.writeFileSync(path.join(mcpDir, 'state.json'), '{"poison":"BMAD_POISON_MCP_SENTINEL","tool":"context7",\n');
+          fs.writeFileSync(
+            path.join(workspaceSessionDir, 'instance.json'),
+            '{"poison":"BMAD_POISON_WORKSPACE_SESSION_SENTINEL","sessionType":"normal"}\n',
+          );
+
+          const malformedJsonPath = path.join(root, 'malformed-request.json');
+          fs.writeFileSync(malformedJsonPath, '{"poison":"BMAD_POISON_MALFORMED_JSON_SENTINEL",\n');
+
+          return { requestPath, customizationDraftPath, packDraftPath, malformedJsonPath };
+        }
+
+        const cleanIsolationRoot = path.join(verifierTempRoot, 'isolation-clean');
+        const poisonedIsolationRoot = path.join(verifierTempRoot, 'isolation-poisoned');
+        const cleanIsolation = writeVerifierIsolationWorkspace(cleanIsolationRoot, false);
+        const poisonedIsolation = writeVerifierIsolationWorkspace(poisonedIsolationRoot, true);
+
+        const beforeCleanIsolation = fingerprintTree(cleanIsolationRoot);
+        const cleanIsolationResult = runCli(['workspace', 'verify-capability', '--input', cleanIsolation.requestPath], {
+          cwd: cleanIsolationRoot,
+        });
+        const afterCleanIsolation = fingerprintTree(cleanIsolationRoot);
+        const cleanIsolationText = commandText(cleanIsolationResult);
+        assert(cleanIsolationResult.status === 0, 'verify-capability clean isolation request exits zero', cleanIsolationText);
+        assert(cleanIsolationResult.stderr.trim() === '', 'verify-capability clean isolation request has empty stderr', cleanIsolationText);
+        const cleanIsolationOutput = parseCliStdoutJson(cleanIsolationResult, 'verify-capability clean isolation request');
+        assert(cleanIsolationOutput?.ok === true, 'verify-capability clean isolation request returns ok true', cleanIsolationText);
+        assert(
+          beforeCleanIsolation === afterCleanIsolation,
+          'verify-capability clean isolation request makes no filesystem writes',
+          cleanIsolationText,
+        );
+        assertNoSentinelLeak(cleanIsolationResult, cleanIsolationOutput, isolationSentinels, 'verify-capability clean isolation request');
+
+        const beforePoisonedIsolation = fingerprintTree(poisonedIsolationRoot);
+        const poisonedIsolationResult = runCli(['workspace', 'verify-capability', '--input', poisonedIsolation.requestPath], {
+          cwd: poisonedIsolationRoot,
+          env: poisonedEnv,
+        });
+        const afterPoisonedIsolation = fingerprintTree(poisonedIsolationRoot);
+        const poisonedIsolationText = commandText(poisonedIsolationResult);
+        assert(poisonedIsolationResult.status === 0, 'verify-capability poisoned isolation request exits zero', poisonedIsolationText);
+        assert(
+          poisonedIsolationResult.stderr.trim() === '',
+          'verify-capability poisoned isolation request has empty stderr',
+          poisonedIsolationText,
+        );
+        const poisonedIsolationOutput = parseCliStdoutJson(poisonedIsolationResult, 'verify-capability poisoned isolation request');
+        assert(poisonedIsolationOutput?.ok === true, 'verify-capability poisoned isolation request returns ok true', poisonedIsolationText);
+        assert(
+          JSON.stringify(cleanIsolationOutput) === JSON.stringify(poisonedIsolationOutput),
+          'verify-capability poisoned isolation request matches clean normalized verdict',
+          poisonedIsolationText,
+        );
+        assert(
+          beforePoisonedIsolation === afterPoisonedIsolation,
+          'verify-capability poisoned isolation request makes no filesystem writes',
+          poisonedIsolationText,
+        );
+        assertNoSentinelLeak(
+          poisonedIsolationResult,
+          poisonedIsolationOutput,
+          isolationSentinels,
+          'verify-capability poisoned isolation request',
+        );
+
+        function assertVerifierInvalidInput(inputPath, label) {
+          const beforeInvalidInput = fingerprintTree(poisonedIsolationRoot);
+          const result = runCli(['workspace', 'verify-capability', '--input', inputPath], {
+            cwd: poisonedIsolationRoot,
+            env: poisonedEnv,
+          });
+          const afterInvalidInput = fingerprintTree(poisonedIsolationRoot);
+          const text = commandText(result);
+          assert(result.status === 1, `${label} exits one`, text);
+          assert(result.stderr.trim() === '', `${label} has empty stderr`, text);
+          const output = parseCliStdoutJson(result, label);
+          assert(output?.ok === false, `${label} returns ok false`, text);
+          assert(
+            output?.errors?.some((error) => error.code === 'REQUEST_INVALID'),
+            `${label} reports REQUEST_INVALID`,
+            text,
+          );
+          assert(
+            output?.errors?.every((error) => !String(error.message).includes('BMAD_POISON')),
+            `${label} redacts invalid input parse excerpts`,
+            text,
+          );
+          assert(Array.isArray(output?.observations) && output.observations.length === 0, `${label} has empty observations`, text);
+          assert(beforeInvalidInput === afterInvalidInput, `${label} makes no filesystem writes`, text);
+          assertNoSentinelLeak(result, output, isolationSentinels, label);
+        }
+
+        assertVerifierInvalidInput(poisonedIsolation.customizationDraftPath, 'verify-capability rejects customization-draft.toml input');
+        assertVerifierInvalidInput(poisonedIsolation.packDraftPath, 'verify-capability rejects pack-draft.toml input');
+        assertVerifierInvalidInput(poisonedIsolation.malformedJsonPath, 'verify-capability rejects malformed JSON input');
+      }
+
+      testVerifyCapabilityInputRejectsTomlDraftsAndIgnoresAmbientForgeState();
     } finally {
       fs.rmSync(verifierTempRoot, { recursive: true, force: true });
     }

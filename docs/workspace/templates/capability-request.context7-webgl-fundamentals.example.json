@@ -1,0 +1,110 @@
+{
+  "kind": "bmad-workspace-capability-request",
+  "schemaVersion": 1,
+  "request": {
+    "id": "host.mcp.context7.webgl-fundamentals.docs",
+    "sessionType": "normal",
+    "group": "host.mcp",
+    "provider": "context7",
+    "interface": "remote-docs-mcp",
+    "writes": [],
+    "outputs": ["context7-webgl-fundamentals-operator-evidence.json"]
+  },
+  "capabilities": [
+    {
+      "id": "host.mcp.context7.webgl-fundamentals.docs",
+      "group": "host.mcp",
+      "provider": "context7",
+      "interface": "remote-docs-mcp",
+      "allowedInNormalSession": true,
+      "allowedInBaseImprovement": true,
+      "requiresGrant": true,
+      "writes": [],
+      "forbiddenWrites": [
+        "workspace-base",
+        "target-repo",
+        "scheduler",
+        "daemon",
+        "live-adapter",
+        "secret-store",
+        "webgl-runtime",
+        "browser-gpu-state"
+      ],
+      "outputs": ["context7-webgl-fundamentals-operator-evidence.json"],
+      "upstreamGapProofRequired": false
+    }
+  ],
+  "observations": [
+    {
+      "code": "CONTEXT7_WEBGL_FUNDAMENTALS_CAPABILITY",
+      "message": "Context7 WebGL Fundamentals Docs is a scoped docs capability for WebGL Fundamentals evidence.",
+      "details": {
+        "capabilityId": "host.mcp.context7.webgl-fundamentals.docs",
+        "genericCapabilityId": "host.mcp.context7.docs",
+        "output": "context7-webgl-fundamentals-operator-evidence.json",
+        "reviewedAt": "2026-05-07",
+        "jobToBeDone": "When BMAD agents plan WebGL fundamentals work, they can select a named docs capability, verify it offline, generate a capability pack draft from local evidence, and preserve WebGL2 as an upstream caveat only.",
+        "boundary": "WebGL Fundamentals Context7 docs evidence does not configure MCP, read secrets, prove runtime availability, mutate the target repo, inspect browser GPU state, run WebGL, or change Workspace verifier behavior."
+      }
+    },
+    {
+      "code": "CONTEXT7_WEBGL_FUNDAMENTALS_SOURCE_REGISTER",
+      "message": "Context7 library IDs are the URL path of the library page.",
+      "details": {
+        "sourceId": "context7_webgl_fundamentals_source",
+        "reviewedAt": "2026-05-07",
+        "observedUpdate": "2026-05-04",
+        "observedUpdateBasis": "Context7 showed Update: 3 days ago when reviewed on 2026-05-07.",
+        "metadata": {
+          "trustScore": "Trust Score 9.5",
+          "tokens": "420,644 tokens",
+          "snippets": "3,855 snippets"
+        },
+        "sources": [
+          {
+            "label": "webgl-fundamentals",
+            "libraryId": "/websites/webglfundamentals",
+            "sourceUrl": "https://context7.com/websites/webglfundamentals",
+            "upstreamUrl": "https://webglfundamentals.org",
+            "webgl2UpstreamUrl": "https://webgl2fundamentals.org",
+            "webgl2Caveat": "The upstream WebGL Fundamentals site points WebGL2 users to https://webgl2fundamentals.org; no separate Context7 source was found during review.",
+            "usedFor": ["WebGL fundamentals docs", "shader concepts", "buffers", "textures", "rendering fundamentals"],
+            "doNotUseFor": [
+              "runtime availability proof",
+              "Workspace verifier input",
+              "local MCP configuration proof",
+              "WebGL2-specific claims without retrieved evidence"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "code": "CONTEXT7_WEBGL_FUNDAMENTALS_NEGATIVE_PROOF",
+      "message": "WebGL runtime and browser GPU state are explicitly outside this docs capability.",
+      "details": {
+        "notVerifierInput": [
+          "local Context7 MCP server configuration",
+          "CONTEXT7_API_KEY value",
+          "local Codex config",
+          "webgl-runtime",
+          "browser-gpu-state",
+          "live network proof",
+          "live Context7 output"
+        ],
+        "reviewedAt": "2026-05-07"
+      }
+    },
+    {
+      "code": "CONTEXT7_SECRET_BOUNDARY",
+      "message": "Recommended credential source is Apple Passwords item Context7; operator may expose only CONTEXT7_API_KEY in a local shell/session and must never record the value.",
+      "details": {
+        "credentialSource": "Apple Passwords item Context7",
+        "credentialEvidence": "CONTEXT7_API_KEY=set",
+        "credentialValue": "[REDACTED]",
+        "allowedPlaceholders": ["YOUR_API_KEY", "[REDACTED]", "ctx7_test_placeholder_DO_NOT_USE"],
+        "reviewedAt": "2026-05-07"
+      }
+    }
+  ]
+}

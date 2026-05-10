@@ -32,7 +32,7 @@ Runtime model:
   - PostgreSQL MCP remains advisory/operator evidence only.
   - Promotion is the only authority-changing step.
   - Stale referenced evidence blocks validate/export-bmad/promote; re-run ingest and draft before review.
-  - Promotion prepares a database row before file copy, copies through a temp directory, finalizes after atomic rename, marks failed copy as status=failed, and reports stable concurrency/reconcile errors.
+  - Promotion prepares a database row before file copy, stages artifacts outside every configured runtime root, finalizes after atomic no-replace publish, marks failed copy as status=failed, and reports stable concurrency/recovery errors.
 
 Authority matrix:
   - v1 JSON: canonical input/output authority; v2 state is not required.
@@ -47,9 +47,9 @@ Command contracts:
   - ingest: refresh local evidence, marking previous rows stale before current files are seen.
   - search: query non-authoritative compiler evidence state.
   - draft: generate deterministic pack-draft.toml from non-stale evidence.
-  - validate: parse and reconcile pack-draft.toml before report write.
+  - validate: parse pack-draft.toml and match it against database-backed compiler state before report write.
   - export-bmad: validate, then emit BMAD handoff artifacts only.
-  - promote: approved-only artifact promotion with advisory lock, prepared row, temp copy, atomic rename, retry/reconcile handling.
+  - promote: approved-only artifact promotion with advisory lock, prepared row, temp copy, atomic publish, and retry/recovery handling.
 `.trim();
 
 function isCapabilityForgeV2Command(value) {
@@ -129,6 +129,7 @@ async function runCapabilityForgeV2Cli(argv, cwd = process.cwd(), env = process.
         command,
         await promoteDraft({
           allowDirty: args.allowDirty === true,
+          approved: args.approved === true,
           approvedBy: args.approvedBy || 'operator',
           config,
           slug: args.slug,

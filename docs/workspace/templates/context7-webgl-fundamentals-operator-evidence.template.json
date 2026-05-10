@@ -1,0 +1,31 @@
+{
+  "kind": "context7-webgl-fundamentals-operator-evidence",
+  "schemaVersion": 1,
+  "capabilityId": "host.mcp.context7.webgl-fundamentals.docs",
+  "observer": "Codex operator",
+  "timestamp": "<ISO-8601>",
+  "mcpServer": "context7",
+  "context7Configured": false,
+  "credentialSource": "Apple Passwords item Context7",
+  "credentialEvidence": "CONTEXT7_API_KEY=set|unset",
+  "credentialValue": "[REDACTED]",
+  "sourceRegister": [
+    {
+      "label": "webgl-fundamentals",
+      "libraryId": "/websites/webglfundamentals",
+      "sourceUrl": "https://context7.com/websites/webglfundamentals",
+      "upstreamUrl": "https://webglfundamentals.org",
+      "webgl2UpstreamUrl": "https://webgl2fundamentals.org",
+      "coverage": "WebGL fundamentals docs, shader concepts, buffers, textures, and rendering fundamentals",
+      "metadata": "Trust Score 9.5; 420,644 tokens; 3,855 snippets; reviewed 2026-05-07; observed update 2026-05-04",
+      "webgl2Caveat": "The upstream WebGL Fundamentals site points WebGL2 users to https://webgl2fundamentals.org; no separate Context7 source was found during review.",
+      "gap": "<coverage gap or none>"
+    }
+  ],
+  "querySummary": "<WebGL Fundamentals docs query summary>",
+  "webglVersionIntended": "WebGL|WebGL2|Both",
+  "webgl2EvidenceCheck": "For WebGL2-specific answers, retrieved evidence must name WebGL2 features, APIs, or upstream WebGL2 Fundamentals guidance.",
+  "artifactRefs": [],
+  "pass": false,
+  "boundary": "Context7 WebGL Fundamentals docs evidence is not verifier input, not grant authority, not runtime authority, and not Workspace authority; record CONTEXT7_API_KEY=set or unset only, never the API key value."
+}

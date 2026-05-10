@@ -143,7 +143,7 @@ context, summary, and an explicit "not verifier input" boundary.
 
 When a customization discussion mentions zsh shell MCP, shell MCP, local shell
 MCP, or Desktop Commander MCP, use
-`docs/workspace/zsh-shell-mcp-capability-planning.md`,
+`docs/workspace/mcp/zsh-shell-mcp-capability-planning.md`,
 `docs/workspace/templates/capability-request.zsh-shell-mcp.example.json`, and
 `docs/workspace/templates/zsh-shell-mcp-operator-evidence.template.json`.
 
@@ -312,10 +312,10 @@ bmad workspace verify-capability --input docs/workspace/templates/capability-req
 ## Canonical References
 
 - `src/core-skills/bmad-customize/SKILL.md`
-- [Workspace Capability Contract](./capability-contract.md)
-- [Codex Executable Capability Evidence Plan](./codex-executable-capability-evidence-plan.md)
-- [Capability Request Template](./templates/capability-request.template.json)
-- [Codex Manual Capability Request Example](./templates/capability-request.codex-manual.example.json)
-- [Codex Executable Evidence Template](./templates/codex-executable-evidence.template.json)
+- [Workspace Capability Contract](../capability-contract.md)
+- [Codex Executable Capability Evidence Plan](../codex-executable-capability-evidence-plan.md)
+- [Capability Request Template](../templates/capability-request.template.json)
+- [Codex Manual Capability Request Example](../templates/capability-request.codex-manual.example.json)
+- [Codex Executable Evidence Template](../templates/codex-executable-evidence.template.json)
 - [OpenAI Codex Config Reference](https://developers.openai.com/codex/config-reference#configtoml)
 - [OpenAI Codex CLI MCP Reference](https://developers.openai.com/codex/cli/reference#codex-mcp)

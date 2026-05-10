@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { forgeError } = require('./errors');
 const { resolvePromotionTarget, resolveUnderRoot } = require('./paths');
@@ -8,23 +9,36 @@ const { validateDraft } = require('./validate');
 
 const REQUIRED_PROMOTION_FILES = Object.freeze(['SKILL.md', 'module.yaml', 'module-help.csv']);
 
-async function promoteDraft({ allowDirty = false, approvedBy = 'operator', config, fileSystem = fs, store, slug, target }) {
-  const validation = await validateDraft({ config, store, slug, reconcile: true });
-  if (validation.status !== 'approved') {
-    throw forgeError('FORGE_PROMOTE_NOT_APPROVED', 'promotion requires pack-draft.toml status = "approved"');
-  }
-  const graph = await store.getPackGraph(slug);
-  if (graph.pack.status !== 'approved') {
-    throw forgeError('FORGE_PROMOTE_NOT_APPROVED', 'promotion requires approved database status');
-  }
+async function promoteDraft({
+  allowDirty = false,
+  approved = false,
+  approvedBy = 'operator',
+  config,
+  fileSystem = fs,
+  store,
+  slug,
+  target,
+}) {
   const targetPath = resolvePromotionTarget({
     allowedRoots: config.workspace.runtime_roots,
     projectRoot: config.project_root,
     target,
   });
+  if (approved !== true) {
+    throw forgeError('FORGE_PROMOTE_REQUIRES_APPROVED', 'promote requires explicit approval');
+  }
   if (!allowDirty && isGitDirty(config.project_root)) {
     throw forgeError('FORGE_PROMOTE_DIRTY', 'promotion requires a clean worktree; rerun only after review or explicit tested override');
   }
+  const validation = await validateDraft({ config, store, slug, writeReport: false });
+  if (validation.status !== 'approved') {
+    throw forgeError('FORGE_PROMOTE_NOT_APPROVED', 'promotion requires approved database-backed draft state');
+  }
+  const graph = await store.getPackGraph(slug);
+  if (graph.pack.status !== 'approved') {
+    throw forgeError('FORGE_PROMOTE_NOT_APPROVED', 'promotion requires approved database status');
+  }
+  assertDeclaredPromotionArtifacts(graph, slug);
 
   const sourceRoot = resolveUnderRoot(config.project_root, `.capability-forge/drafts/${slug}`, 'draft root');
   for (const fileName of REQUIRED_PROMOTION_FILES) {
@@ -54,8 +68,18 @@ async function promoteDraft({ allowDirty = false, approvedBy = 'operator', confi
   }
 
   try {
-    copyArtifactsAtomically({ fileSystem, files: REQUIRED_PROMOTION_FILES, sourceRoot, targetPath });
+    copyArtifactsAtomically({
+      fileSystem,
+      files: REQUIRED_PROMOTION_FILES,
+      runtimeRoots: promotionRuntimeRoots(config),
+      sourceRoot,
+      stagingRoot: promotionStagingRoot({ config, targetPath }),
+      targetPath,
+    });
   } catch (error) {
+    if (error?.code === 'FORGE_PROMOTE_CONFLICT') {
+      throw error;
+    }
     await markPromotionFailed({
       approvedBy,
       graph,
@@ -85,6 +109,25 @@ async function promoteDraft({ allowDirty = false, approvedBy = 'operator', confi
     store,
   });
   return { targetPath };
+}
+
+function assertDeclaredPromotionArtifacts(graph, slug) {
+  const declared = new Set(graph.artifacts.map((artifact) => `${artifact.kind}:${artifact.relative_path}`));
+  const missing = promotionArtifacts(slug)
+    .map((artifact) => `${artifact.kind}:${artifact.relativePath}`)
+    .filter((artifactKey) => !declared.has(artifactKey));
+  if (missing.length > 0) {
+    throw forgeError('FORGE_PROMOTE_MISSING_ARTIFACT', `database draft missing promotion artifact row: ${missing.join(', ')}`);
+  }
+}
+
+function promotionArtifacts(slug) {
+  const draftRoot = `.capability-forge/drafts/${slug}`;
+  return [
+    { kind: 'skill_md', relativePath: `${draftRoot}/SKILL.md` },
+    { kind: 'module_yaml', relativePath: `${draftRoot}/module.yaml` },
+    { kind: 'module_help_csv', relativePath: `${draftRoot}/module-help.csv` },
+  ];
 }
 
 async function preparePromotion({ approvedBy, graph, relativeTarget, sourceSnapshot, store, targetExists, targetSnapshot }) {
@@ -224,18 +267,206 @@ async function lockPromotion(client, store, packId, relativeTarget) {
   }
 }
 
-function copyArtifactsAtomically({ fileSystem, files, sourceRoot, targetPath }) {
-  const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+function copyArtifactsAtomically({ fileSystem, files, runtimeRoots = [], sourceRoot, stagingRoot, targetPath }) {
+  const reservationPath = `${targetPath}.lock`;
+  const targetParent = path.dirname(targetPath);
+  const tempPath = path.join(stagingRoot, `${path.basename(targetPath)}.tmp-${process.pid}-${Date.now()}`);
+  let reservation = null;
   fileSystem.rmSync(tempPath, { force: true, recursive: true });
   try {
+    fileSystem.mkdirSync(stagingRoot, { recursive: true });
+    assertStagingRootOutsideRuntimeRoots({ fileSystem, runtimeRoots, stagingRoot });
     fileSystem.mkdirSync(tempPath, { recursive: true });
     for (const fileName of files) {
       fileSystem.copyFileSync(path.join(sourceRoot, fileName), path.join(tempPath, fileName));
     }
-    fileSystem.renameSync(tempPath, targetPath);
+    fileSystem.mkdirSync(targetParent, { recursive: true });
+    reservation = reservePromotionTarget(fileSystem, reservationPath);
+    if (fileSystem.existsSync(targetPath)) {
+      throw promotionConflict(`promotion target already exists before commit: ${targetPath}`);
+    }
+    renameDirectoryNoReplace({ fileSystem, sourcePath: tempPath, targetPath });
   } catch (error) {
     fileSystem.rmSync(tempPath, { force: true, recursive: true });
     throw error;
+  } finally {
+    if (reservation) {
+      releasePromotionReservation(fileSystem, reservation);
+    }
+    removeEmptyDirectory(fileSystem, stagingRoot);
+  }
+}
+
+function promotionStagingRoot({ config, targetPath }) {
+  const runtimeRoots = promotionRuntimeRoots(config);
+  let stagingRoot = path.join(path.dirname(targetPath), '.forge-promotion-tmp');
+  while (runtimeRoots.some((runtimeRoot) => isSameOrInside(stagingRoot, runtimeRoot))) {
+    const parent = path.dirname(stagingRoot);
+    if (parent === stagingRoot) {
+      return path.join(config.project_root, '.forge-promotion-tmp');
+    }
+    stagingRoot = path.join(path.dirname(parent), '.forge-promotion-tmp');
+  }
+  return stagingRoot;
+}
+
+function promotionRuntimeRoots(config) {
+  return config.workspace.runtime_roots.map((runtimeRoot) => resolveUnderRoot(config.project_root, runtimeRoot, 'workspace runtime root'));
+}
+
+function assertStagingRootOutsideRuntimeRoots({ fileSystem, runtimeRoots, stagingRoot }) {
+  const stagingRealPath = realPathOrAbsolute(fileSystem, stagingRoot);
+  for (const runtimeRoot of runtimeRoots) {
+    const runtimeRealPath = realPathOrAbsolute(fileSystem, runtimeRoot);
+    if (isSameOrInside(stagingRealPath, runtimeRealPath)) {
+      throw promotionConflict(`promotion staging root resolves inside runtime root: ${stagingRoot}`);
+    }
+  }
+}
+
+function isSameOrInside(candidatePath, rootPath) {
+  return candidatePath === rootPath || candidatePath.startsWith(`${rootPath}${path.sep}`);
+}
+
+function realPathOrAbsolute(fileSystem, candidatePath) {
+  try {
+    if (typeof fileSystem.realpathSync?.native === 'function') {
+      return fileSystem.realpathSync.native(candidatePath);
+    }
+    if (typeof fileSystem.realpathSync === 'function') {
+      return fileSystem.realpathSync(candidatePath);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+  return path.resolve(candidatePath);
+}
+
+function reservePromotionTarget(fileSystem, reservationPath) {
+  const reservation = { markerPath: path.join(reservationPath, 'forge-promotion-lock.json'), nonce: randomUUID(), reservationPath };
+  try {
+    fileSystem.mkdirSync(reservationPath, { recursive: false });
+    writePromotionReservationMarker(fileSystem, reservation);
+    return reservation;
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      if (isStaleReservation(fileSystem, reservationPath) && isForgeOwnedReservation(fileSystem, reservationPath)) {
+        fileSystem.rmSync(reservationPath, { force: true, recursive: true });
+        try {
+          fileSystem.mkdirSync(reservationPath, { recursive: false });
+          writePromotionReservationMarker(fileSystem, reservation);
+        } catch (staleRaceError) {
+          if (staleRaceError?.code === 'EEXIST') {
+            throw promotionConflict(`promotion already in progress: ${reservationPath}`);
+          }
+          throw staleRaceError;
+        }
+        return reservation;
+      }
+      throw promotionConflict(`promotion already in progress: ${reservationPath}`);
+    }
+    throw error;
+  }
+}
+
+function writePromotionReservationMarker(fileSystem, reservation) {
+  try {
+    fileSystem.writeFileSync(
+      reservation.markerPath,
+      JSON.stringify(
+        {
+          kind: 'capability-forge-promotion-lock',
+          nonce: reservation.nonce,
+          pid: process.pid,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    fileSystem.rmSync(reservation.reservationPath, { force: true, recursive: true });
+    throw error;
+  }
+}
+
+function releasePromotionReservation(fileSystem, reservation) {
+  try {
+    const marker = JSON.parse(fileSystem.readFileSync(reservation.markerPath, 'utf8'));
+    if (marker?.kind === 'capability-forge-promotion-lock' && marker?.nonce === reservation.nonce) {
+      fileSystem.rmSync(reservation.reservationPath, { force: true, recursive: true });
+    }
+  } catch {
+    // If the marker disappeared or changed, the reservation is no longer ours.
+  }
+}
+
+function isForgeOwnedReservation(fileSystem, reservationPath) {
+  try {
+    const marker = JSON.parse(fileSystem.readFileSync(path.join(reservationPath, 'forge-promotion-lock.json'), 'utf8'));
+    return marker?.kind === 'capability-forge-promotion-lock' && typeof marker?.nonce === 'string' && marker.nonce.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function removeEmptyDirectory(fileSystem, dirPath) {
+  try {
+    fileSystem.rmdirSync(dirPath);
+  } catch {
+    // Another promotion may still be using the shared staging root.
+  }
+}
+
+function renameDirectoryNoReplace({ fileSystem, sourcePath, targetPath }) {
+  try {
+    if (typeof fileSystem.renameNoReplaceSync === 'function') {
+      fileSystem.renameNoReplaceSync(sourcePath, targetPath);
+      return;
+    }
+    if (fileSystem.renameSync === fs.renameSync) {
+      nativeRenameDirectoryNoReplace(sourcePath, targetPath);
+      return;
+    }
+    fileSystem.renameSync(sourcePath, targetPath);
+  } catch (error) {
+    if (isTargetCollision(error)) {
+      throw promotionConflict(`promotion target already exists before commit: ${targetPath}`);
+    }
+    throw error;
+  }
+}
+
+function nativeRenameDirectoryNoReplace(sourcePath, targetPath) {
+  const result = spawnSync('python3', ['-c', NATIVE_RENAME_NO_REPLACE_SCRIPT, sourcePath, targetPath], { encoding: 'utf8' });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status === 0) {
+    return;
+  }
+  const detail = `${result.stdout || ''}${result.stderr || ''}`.trim();
+  if (/^(17|39|41|66|ENOTEMPTY|EEXIST|EISDIR|ENOTDIR)\b/.test(detail)) {
+    throw promotionConflict(`promotion target already exists before commit: ${targetPath}`);
+  }
+  throw new Error(`atomic no-overwrite rename failed: ${detail || `exit ${result.status}`}`);
+}
+
+function promotionConflict(message) {
+  return forgeError('FORGE_PROMOTE_CONFLICT', message);
+}
+
+function isTargetCollision(error) {
+  return ['EEXIST', 'ENOTEMPTY', 'EISDIR', 'ENOTDIR'].includes(error?.code);
+}
+
+function isStaleReservation(fileSystem, reservationPath) {
+  try {
+    const ageMs = Date.now() - fileSystem.statSync(reservationPath).mtimeMs;
+    return ageMs > 15 * 60 * 1000;
+  } catch {
+    return false;
   }
 }
 
@@ -260,8 +491,66 @@ function isGitDirty(projectRoot) {
   return status.status === 0 && status.stdout.trim() !== '';
 }
 
+const NATIVE_RENAME_NO_REPLACE_SCRIPT = String.raw`
+import ctypes
+import errno
+import os
+import platform
+import sys
+
+source_path = os.fsencode(sys.argv[1])
+target_path = os.fsencode(sys.argv[2])
+
+def fail_with_errno(value):
+    print(value)
+    sys.exit(1)
+
+try:
+    if sys.platform == "darwin":
+        libc = ctypes.CDLL(None, use_errno=True)
+        renamex_np = libc.renamex_np
+        renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+        result = renamex_np(source_path, target_path, ctypes.c_uint(0x00000004))
+        if result == 0:
+            sys.exit(0)
+        fail_with_errno(ctypes.get_errno())
+
+    if sys.platform.startswith("linux"):
+        syscall_by_machine = {
+            "x86_64": 316,
+            "amd64": 316,
+            "aarch64": 276,
+            "arm64": 276,
+            "armv7l": 382,
+            "i386": 353,
+            "i686": 353,
+        }
+        syscall_number = syscall_by_machine.get(platform.machine().lower())
+        if syscall_number is None:
+            print("UNSUPPORTED_PLATFORM")
+            sys.exit(2)
+        libc = ctypes.CDLL(None, use_errno=True)
+        result = libc.syscall(
+            ctypes.c_long(syscall_number),
+            ctypes.c_int(-100),
+            ctypes.c_char_p(source_path),
+            ctypes.c_int(-100),
+            ctypes.c_char_p(target_path),
+            ctypes.c_uint(1),
+        )
+        if result == 0:
+            sys.exit(0)
+        fail_with_errno(ctypes.get_errno())
+
+    os.rename(source_path, target_path)
+except OSError as error:
+    fail_with_errno(error.errno)
+`;
+
 module.exports = {
+  assertDeclaredPromotionArtifacts,
   copyArtifactsAtomically,
   isGitDirty,
   promoteDraft,
+  promotionStagingRoot,
 };

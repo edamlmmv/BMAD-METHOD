@@ -21,7 +21,8 @@ local evidence
 - Normal deterministic tests do not require a live database; live migration
   coverage is opt-in when `CAPABILITY_FORGE_DATABASE_URL` is set.
 - `pack-draft.toml` is a generated review contract. If a reviewer edits it,
-  Forge must reconcile and validate it before export or promotion.
+  Forge must match it against database-backed compiler state before export or
+  promotion.
 - PostgreSQL MCP is advisory/operator evidence only. Forge infrastructure code
   connects through the direct `pg` adapter in `store-postgres.js`.
 - BMAD review exports are handoff/input packets only. Forge must not invoke,
@@ -34,7 +35,7 @@ local evidence
 | Surface                       | Authority                                                                                                                                       |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | v1 JSON                       | Canonical Forge input/output authority. The `--input` / `--output` command does not require v2 compiler state.                                  |
-| v2 `pack-draft.toml`          | Byte-stable review contract only. It is not product truth until validated and explicitly promoted.                                              |
+| v2 `pack-draft.toml`          | Byte-stable review contract only. It is never verifier, export, promotion, or product truth authority.                                          |
 | direct `pg` PostgreSQL        | Compiler state for evidence, provenance, review events, artifacts, migrations, and promotion records.                                           |
 | PostgreSQL MCP                | Advisory/operator evidence only. It is not runtime infrastructure, compiler input authority, verifier authority, or promotion authority.        |
 | Workspace `verify-capability` | Declared-contract check only. Forge v2 must not change verifier semantics.                                                                      |
@@ -48,9 +49,12 @@ local evidence
 - `ingest`: scan configured local evidence roots, mark prior evidence stale, then refresh current file spans.
 - `search`: read compiler evidence state for operator review; search results are not authority.
 - `draft`: render deterministic `pack-draft.toml` from non-stale evidence.
-- `validate`: parse and reconcile `pack-draft.toml` before report write.
+- `validate`: parse `pack-draft.toml` and match it against database-backed
+  compiler state before report write.
 - `export-bmad`: validate first, then emit BMAD handoff artifacts only.
-- `promote`: require `--approved`, acquire the promotion lock, prepare the row, copy through a temp directory, atomically rename, then finalize or report recovery code.
+- `promote`: require `--approved`, acquire the promotion lock, prepare the row,
+  copy through a temp directory outside every configured runtime root,
+  atomically publish, then finalize or report recovery code.
 
 ## Commands
 
@@ -75,14 +79,14 @@ development cleanup.
 
 Promotion is the only authority-changing step in the compiler path. It uses a
 PostgreSQL advisory transaction lock for the pack/target pair, prepares a
-promotion row before file copy, copies artifacts through a sibling temp
-directory, atomically renames the temp directory into place, and finalizes the
-row only after the target exists.
+promotion row before file copy, stages artifacts outside every configured
+runtime root, publishes the complete target with atomic no-replace behavior,
+and finalizes the row only after the target exists.
 
 Failure behavior is explicit:
 
-- copy or rename failure removes the temp directory, leaves no target directory,
-  and marks the promotion row `failed`;
+- staging copy or publish failure removes the temp directory, leaves no target
+  directory, and marks the promotion row `failed`;
 - a matching prepared row plus existing target finalizes on retry;
 - a prepared row with mismatched target snapshot fails with
   `FORGE_PROMOTE_RECONCILE_REQUIRED`;
@@ -101,7 +105,7 @@ Operator recovery:
 - `FORGE_DRAFT_STALE_EVIDENCE`: re-run `ingest`, regenerate `draft`, then review the new TOML before validating again.
 - `FORGE_PROMOTE_CONFLICT`: another promotion or existing target won; inspect target state and retry only after the conflict is resolved.
 - `FORGE_PROMOTE_RECONCILE_REQUIRED`: prepared database state and target snapshot differ; inspect target artifacts before retrying.
-- `FORGE_PROMOTE_COPY_FAILED`: temp copy or rename failed; Forge removes the temp directory, leaves no authoritative target, and marks promotion `failed`.
+- `FORGE_PROMOTE_COPY_FAILED`: staging copy or publish failed; Forge removes the temp directory, leaves no authoritative target, and marks promotion `failed`.
 
 ## State Model
 

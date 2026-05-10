@@ -1,60 +1,106 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { BMAD_HANDOFF_PACKETS } = require('./constants');
+const { forgeError } = require('./errors');
 const { resolveUnderRoot } = require('./paths');
 const { sha256 } = require('./store-postgres');
-const { stringifyReviewPacket } = require('./toml');
+const { getTomlPostgresqlBmadIntegrationSection, stringifyReviewPacket } = require('./toml');
 const { validateDraft } = require('./validate');
 
 async function exportBmadArtifacts({ config, store, slug }) {
-  await validateDraft({ config, store, slug, reconcile: true });
+  await validateDraft({ config, store, slug, writeReport: false });
+  const graph = await store.getPackGraph(slug);
+  const exportArtifacts = bmadExportArtifacts(slug);
+  assertDeclaredExportArtifacts(graph, exportArtifacts);
   const runId = await store.createRun(`capability-forge export-bmad ${slug}`);
   try {
-    const graph = await store.getPackGraph(slug);
-    const outputRoot = `.capability-forge/drafts/${slug}`;
-    const files = {
-      [`${outputRoot}/SKILL.md`]: renderSkillMd(graph),
-      [`${outputRoot}/module.yaml`]: renderModuleYaml(graph),
-      [`${outputRoot}/module-help.csv`]: renderModuleHelpCsv(graph),
-      [`${outputRoot}/review.md`]: renderReviewMd(graph),
-    };
-    for (const packet of BMAD_HANDOFF_PACKETS) {
-      files[`${outputRoot}/${packet.path}`] = stringifyReviewPacket({
-        boundary: 'Handoff/input packet only. Human operator chooses whether to run the referenced BMAD skill in a fresh context.',
-        pack: graph.pack,
-        skill: packet.skill,
-        title: packet.title,
-      });
-    }
-
-    for (const [relativePath, content] of Object.entries(files)) {
+    const files = exportArtifacts.map((artifact) => ({
+      ...artifact,
+      content: artifact.render(graph),
+    }));
+    await store.withTransaction(async (client) => {
+      for (const { content, relativePath } of files) {
+        const result = await client.query(
+          `
+            UPDATE ${store.qualify('artifact_draft')}
+            SET sha256 = $3, status = 'exported', generated_by_run_id = $4
+            WHERE pack_draft_id = $1 AND relative_path = $2
+          `,
+          [graph.pack.id, relativePath, sha256(content), runId],
+        );
+        if (result.rowCount !== 1) {
+          throw forgeError('FORGE_EXPORT_ARTIFACT_MISSING', `artifact draft row missing during export: ${relativePath}`);
+        }
+      }
+      await client.query(
+        `
+          INSERT INTO ${store.qualify('review_event')} (pack_draft_id, actor, event_type, comment_md)
+          VALUES ($1, 'capability-forge', 'exported', 'BMAD handoff artifacts exported; no BMAD workflow was executed.')
+        `,
+        [graph.pack.id],
+      );
+    });
+    for (const { content, relativePath } of files) {
       const targetPath = resolveUnderRoot(config.project_root, relativePath, relativePath);
       fs.mkdirSync(path.dirname(targetPath), { recursive: true });
       fs.writeFileSync(targetPath, content);
-      await store.query(
-        `
-          UPDATE ${store.qualify('artifact_draft')}
-          SET sha256 = $3, status = 'exported', generated_by_run_id = $4
-          WHERE pack_draft_id = $1 AND relative_path = $2
-        `,
-        [graph.pack.id, relativePath, sha256(content), runId],
-      );
     }
-    await store.query(
-      `
-        INSERT INTO ${store.qualify('review_event')} (pack_draft_id, actor, event_type, comment_md)
-        VALUES ($1, 'capability-forge', 'exported', 'BMAD handoff artifacts exported; no BMAD workflow was executed.')
-      `,
-      [graph.pack.id],
-    );
     await store.finishRun(runId, 'succeeded', `exported ${slug}`);
     return {
-      files: Object.keys(files).sort(),
+      files: files.map((file) => file.relativePath).sort(),
       runId,
     };
   } catch (error) {
     await store.finishRun(runId, 'failed', error.message);
     throw error;
+  }
+}
+
+function bmadExportArtifacts(slug) {
+  const outputRoot = `.capability-forge/drafts/${slug}`;
+  return [
+    {
+      kind: 'skill_md',
+      relativePath: `${outputRoot}/SKILL.md`,
+      render: renderSkillMd,
+    },
+    {
+      kind: 'module_yaml',
+      relativePath: `${outputRoot}/module.yaml`,
+      render: renderModuleYaml,
+    },
+    {
+      kind: 'module_help_csv',
+      relativePath: `${outputRoot}/module-help.csv`,
+      render: renderModuleHelpCsv,
+    },
+    {
+      kind: 'review_md',
+      relativePath: `${outputRoot}/review.md`,
+      render: renderReviewMd,
+    },
+    ...BMAD_HANDOFF_PACKETS.map((packet) => ({
+      kind: packet.kind,
+      relativePath: `${outputRoot}/${packet.path}`,
+      render: (graph) =>
+        stringifyReviewPacket({
+          boundary: 'Handoff/input packet only. Human operator chooses whether to run the referenced BMAD skill in a fresh context.',
+          advisorySections: [getTomlPostgresqlBmadIntegrationSection()],
+          pack: graph.pack,
+          skill: packet.skill,
+          title: packet.title,
+        }),
+    })),
+  ];
+}
+
+function assertDeclaredExportArtifacts(graph, artifacts) {
+  const declared = new Set(graph.artifacts.map((artifact) => `${artifact.kind}:${artifact.relative_path}`));
+  const missing = artifacts
+    .map((artifact) => `${artifact.kind}:${artifact.relativePath}`)
+    .filter((artifactKey) => !declared.has(artifactKey));
+  if (missing.length > 0) {
+    throw forgeError('FORGE_EXPORT_ARTIFACT_MISSING', `database draft missing export artifact row: ${missing.join(', ')}`);
   }
 }
 
@@ -136,6 +182,8 @@ function renderReviewMd({ evidenceRefs, pack }) {
 }
 
 module.exports = {
+  assertDeclaredExportArtifacts,
+  bmadExportArtifacts,
   exportBmadArtifacts,
   renderModuleHelpCsv,
   renderModuleYaml,

@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { sha256 } = require('./store-postgres');
+const { assertSecretSafeEvidence } = require('./evidence-boundary');
 const { normalizePosix, resolveUnderRoot } = require('./paths');
 
 const DEFAULT_TEXT_EXTENSIONS = new Set(['.md', '.txt', '.csv', '.toml']);
@@ -64,21 +65,30 @@ async function ingestEvidence({ config, store }) {
       files.push(...walkFiles(resolvedRoot));
     }
 
+    const evidenceRecords = files.map((filePath) => {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const relativePath = normalizePosix(path.relative(config.project_root, filePath));
+      assertSecretSafeEvidence(content, relativePath);
+      return {
+        bytes: Buffer.byteLength(content),
+        relativePath,
+        sha256: sha256(content),
+        spans: splitIntoSpans(content),
+      };
+    });
+
     let spanCount = 0;
     await store.withTransaction(async (client) => {
       await client.query(`UPDATE ${store.qualify('evidence_file')} SET stale = true`);
-      for (const filePath of files) {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const relativePath = normalizePosix(path.relative(config.project_root, filePath));
-        const spans = splitIntoSpans(content);
+      for (const record of evidenceRecords) {
         const evidenceFileId = await store.upsertEvidenceFile(client, {
-          bytes: Buffer.byteLength(content),
+          bytes: record.bytes,
           mediaType: 'text/plain',
-          sha256: sha256(content),
-          uri: relativePath,
+          sha256: record.sha256,
+          uri: record.relativePath,
         });
-        await store.replaceEvidenceSpans(client, evidenceFileId, spans);
-        spanCount += spans.length;
+        await store.replaceEvidenceSpans(client, evidenceFileId, record.spans);
+        spanCount += record.spans.length;
       }
     });
     await store.finishRun(runId, 'succeeded', `ingested ${files.length} files and ${spanCount} spans`);

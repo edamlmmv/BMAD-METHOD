@@ -36,8 +36,14 @@ function assertNoSymlinkPath(targetPath, label = 'target', rootPath = path.parse
   let cursor = resolvedRoot;
   for (const part of relativeParts) {
     cursor = path.join(cursor, part);
-    if (fs.existsSync(cursor) && fs.lstatSync(cursor).isSymbolicLink()) {
-      throw forgeError('FORGE_PATH_UNSAFE', `${label} must not contain symlink segment: ${cursor}`);
+    try {
+      if (fs.lstatSync(cursor).isSymbolicLink()) {
+        throw forgeError('FORGE_PATH_UNSAFE', `${label} must not contain symlink segment: ${cursor}`);
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
 }
@@ -46,7 +52,7 @@ function resolvePromotionTarget({ projectRoot, target, allowedRoots }) {
   const resolvedProjectRoot = path.resolve(projectRoot);
   assertSafeRelativePath(target, 'promotion target');
   const resolvedTarget = path.resolve(resolvedProjectRoot, target);
-  assertNoSymlinkPath(path.dirname(resolvedTarget), 'promotion target', resolvedProjectRoot);
+  assertNoSymlinkPath(resolvedTarget, 'promotion target', resolvedProjectRoot);
 
   const resolvedAllowedRoots = allowedRoots.map((allowedRoot) => path.resolve(resolvedProjectRoot, allowedRoot));
   const insideAllowedRoot = resolvedAllowedRoots.some(
