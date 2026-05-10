@@ -27,6 +27,7 @@ CLI records reviewable evidence.
 | Advisory capability profiles | [Capability Profile Registry](./capability-profile-registry.json) |
 | Capability pack artifact generator | [Capability Pack Forge](./capability-pack-forge.md) |
 | Capability Forge TOML/PostgreSQL integration plan | [Forge TOML/PostgreSQL BMAD Integration Plan](./capability-forge-toml-postgresql-bmad-integration-plan.md) |
+| Upstream BMAD update planning | [BMAD Upstream Sync](./upstream-sync.md) |
 | MCP planning boundaries and advisory evidence routes | [Workspace MCP Planning](./mcp/index.md) |
 | Generic BMAD loop contract | [BMAD Loop Runbook](./bmad-loop.md) |
 | Thin pre-established loop platform | [Loop Platform v1](./loop-platform-v1.md) |
